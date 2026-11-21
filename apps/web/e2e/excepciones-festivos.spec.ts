@@ -1,42 +1,15 @@
-import { test, expect, type Page } from '@playwright/test'
+import { type Page } from '@playwright/test'
 import { openAsidePanel, pickDate, pickTime, selectProfessional } from './horarios-controles'
+import { PROFESSIONAL_B, expect, openSchedules, test } from './horarios-sesion'
 
 /**
- * Recorrido E2E de HU-041 (excepciones de jornada y festivos colombianos).
- * Corre contra el API real en local (`go run ./cmd/api` sobre PostgreSQL
- * real con las catorce migraciones aplicadas y un usuario con un hash
- * argon2id REAL), mismo criterio que `e2e/horarios.spec.ts` (HU-040).
- *
- * Variables de entorno: las mismas que horarios.spec.ts.
+ * Recorrido E2E de HU-041 (excepciones de jornada y festivos colombianos) contra
+ * el API real y PostgreSQL real. Datos, sesión y limpieza: ./horarios-sesion.ts y
+ * database/testdata/ui_horarios_766.sql (#766). El fixture retira las excepciones
+ * creadas y devuelve el calendario de festivos a su valor inicial, aunque la
+ * prueba falle.
  */
-const EMAIL = process.env.E2E_EMAIL ?? 'duena.a@ejemplo.test'
-const PASSWORD = process.env.E2E_PASSWORD ?? 'ClaveDePruebaHU010!'
-const EMAIL_B = process.env.E2E_EMAIL_B ?? 'dueno.b@ejemplo.test'
-const PASSWORD_B = process.env.E2E_PASSWORD_B ?? 'ClaveDePruebaHU010!'
-
-async function login(page: Page, email: string, password: string) {
-  await page.goto('/acceso')
-  await page.getByLabel('Correo', { exact: true }).fill(email)
-  await page.getByLabel('Contraseña', { exact: true }).fill(password)
-  await page.getByRole('button', { name: 'Iniciar sesión' }).click()
-  await expect(page).toHaveURL(/\/panel$/)
-}
-
-async function addProfessional(page: Page, fullName: string) {
-  await page.getByRole('link', { name: 'Barberos' }).click()
-  await expect(page).toHaveURL(/\/panel\/profesionales$/)
-  await page.getByRole('button', { name: 'Agregar barbero' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Agregar barbero' })
-  await dialog.getByLabel('Nombre').fill(fullName)
-  await dialog.getByRole('button', { name: 'Guardar' }).click()
-  await expect(dialog).toBeHidden()
-}
-
-async function openSchedules(page: Page) {
-  await page.getByRole('link', { name: 'Horarios' }).click()
-  await expect(page).toHaveURL(/\/panel\/horarios$/)
-  await expect(page.getByRole('heading', { name: 'Horarios' })).toBeVisible()
-}
+test.use({ scheduleSpec: 'festivos' })
 
 // El diálogo cerrado conserva su contenido en el DOM (la fecha elegida sigue
 // escrita en su selector): los textos de la lista se buscan dentro de ella.
@@ -62,40 +35,34 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
 
   test('activar el calendario de festivos persiste tras recargar (CA-041-01/02)', async ({
     page,
+    professional,
   }) => {
-    const stamp = Date.now()
-    const professionalName = `E2E Festivos ${stamp}`
-
-    await login(page, EMAIL, PASSWORD)
-    await addProfessional(page, professionalName)
-
     await openSchedules(page)
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
 
     // Los festivos viven en un apartado del acordeón lateral: hay que abrirlo.
     await openAsidePanel(page, 'Calendario de festivos colombianos')
-    const toggle = page.getByLabel(
-      'Cerrar automáticamente los festivos colombianos de este barbero',
-    )
+    // El final del rótulo sale del vocabulario del negocio («de este barbero»,
+    // «de este profesional»…): solo se fija el principio.
+    const toggle = page.getByLabel(/^Cerrar automáticamente los festivos colombianos/)
     await expect(toggle).not.toBeChecked()
-    await toggle.check()
+    // El input es el control accesible pero va oculto bajo el interruptor
+    // dibujado: se pulsa el rótulo visible, como lo haría una persona.
+    await page.locator('.schedules-switch__text').click()
     await expect(toggle).toBeChecked()
 
     await page.reload()
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
     await openAsidePanel(page, 'Calendario de festivos colombianos')
     await expect(toggle).toBeChecked()
   })
 
-  test('agregar una excepción cerrada persiste tras recargar (CA-041-04)', async ({ page }) => {
-    const stamp = Date.now()
-    const professionalName = `E2E Excepcion Cerrada ${stamp}`
-
-    await login(page, EMAIL, PASSWORD)
-    await addProfessional(page, professionalName)
-
+  test('agregar una excepción cerrada persiste tras recargar (CA-041-04)', async ({
+    page,
+    professional,
+  }) => {
     await openSchedules(page)
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
 
     const dialog = await addException(page, { effectiveDate: '2027-12-08', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
@@ -104,39 +71,32 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await expect(exceptionList(page).getByText('Cerrado')).toBeVisible()
 
     await page.reload()
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
     await expect(exceptionList(page).getByText('2027-12-08')).toBeVisible()
   })
 
   test('agregar una excepción abierta con un tramo especial persiste (CA-041-04)', async ({
     page,
+    professional,
   }) => {
-    const stamp = Date.now()
-    const professionalName = `E2E Excepcion Abierta ${stamp}`
-
-    await login(page, EMAIL, PASSWORD)
-    await addProfessional(page, professionalName)
-
     await openSchedules(page)
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
 
     const dialog = await addException(page, { effectiveDate: '2027-07-20', closed: false })
     await pickTime(dialog, page, 'Hora de inicio', '09:00')
-    await dialog.getByLabel('Duración (minutos)').fill('180')
+    // El tramo especial se pide de inicio a fin, como los tramos de la semana.
+    await pickTime(dialog, page, 'Hora de fin', '12:00')
     await dialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(dialog).toBeHidden()
-    await expect(exceptionList(page).getByText('09:00 (180 min)')).toBeVisible()
+    await expect(exceptionList(page).getByText('9:00 a. m. – 12:00 p. m.')).toBeVisible()
   })
 
-  test('una fecha duplicada se rechaza sin cerrar el diálogo (CA-041-05)', async ({ page }) => {
-    const stamp = Date.now()
-    const professionalName = `E2E Fecha Duplicada ${stamp}`
-
-    await login(page, EMAIL, PASSWORD)
-    await addProfessional(page, professionalName)
-
+  test('una fecha duplicada se rechaza sin cerrar el diálogo (CA-041-05)', async ({
+    page,
+    professional,
+  }) => {
     await openSchedules(page)
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
 
     const first = await addException(page, { effectiveDate: '2027-12-25', closed: true })
     await first.getByRole('button', { name: 'Guardar' }).click()
@@ -146,21 +106,16 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await second.getByRole('button', { name: 'Guardar' }).click()
     await expect(second).toBeVisible()
     await expect(second.getByText('Ya existe una excepción para esa fecha')).toBeVisible()
-    await second.getByRole('button', { name: 'Cancelar' }).click()
+    await second.getByRole('button', { name: 'Cerrar diálogo' }).click()
     await expect(second).toBeHidden()
   })
 
   test('editar una excepción cambia su fecha, y retirarla la elimina de la lista', async ({
     page,
+    professional,
   }) => {
-    const stamp = Date.now()
-    const professionalName = `E2E Editar Retirar Excepcion ${stamp}`
-
-    await login(page, EMAIL, PASSWORD)
-    await addProfessional(page, professionalName)
-
     await openSchedules(page)
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
 
     const dialog = await addException(page, { effectiveDate: '2027-05-01', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
@@ -179,34 +134,21 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
 
     await page.reload()
-    await selectProfessional(page, professionalName)
+    await selectProfessional(page, professional.name)
     await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
   })
 
   test('un identificador real de otro negocio responde 404 al consultar el calendario de festivos (RN-TEN-01)', async ({
     page,
+    pageB,
+    professional,
   }) => {
-    await login(page, EMAIL_B, PASSWORD_B)
-    const stamp = Date.now()
-    const nameB = `E2E Festivos Solo De B ${stamp}`
-    await addProfessional(page, nameB)
-
-    const professionalBId = await page.evaluate(async (name) => {
-      const res = await fetch('/api/v1/private/professionals?limit=50', { credentials: 'include' })
-      const body = (await res.json()) as { items: { id: string; fullName: string }[] }
-      return body.items.find((b) => b.fullName === name)?.id ?? null
-    }, nameB)
-    expect(professionalBId).toBeTruthy()
-
-    await page.goto('/acceso')
-    await login(page, EMAIL, PASSWORD)
-
-    const crossTenantStatus = await page.evaluate(async (id) => {
-      const res = await fetch(`/api/v1/private/professionals/${id}/holiday-calendar`, {
-        credentials: 'include',
-      })
-      return res.status
-    }, professionalBId)
-    expect(crossTenantStatus).toBe(404)
+    const path = `/api/v1/private/professionals/${PROFESSIONAL_B}/holiday-calendar`
+    // El profesional de B es real: su propio negocio lo lee.
+    expect((await pageB.request.get(path)).status()).toBe(200)
+    // A lee el suyo, pero el de B no existe para A.
+    const own = `/api/v1/private/professionals/${professional.id}/holiday-calendar`
+    expect((await page.request.get(own)).status()).toBe(200)
+    expect((await page.request.get(path)).status()).toBe(404)
   })
 })

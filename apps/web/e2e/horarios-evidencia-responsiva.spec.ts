@@ -223,7 +223,7 @@ test('horarios: el diálogo de tramo y el de excepción se leen en móvil y escr
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     ).toBe(false)
-    await tramo.getByRole('button', { name: 'Cancelar' }).click()
+    await tramo.getByRole('button', { name: 'Cerrar diálogo' }).click()
     await expect(tramo).toBeHidden()
 
     await page.getByRole('button', { name: 'Agregar excepción', exact: true }).click()
@@ -236,7 +236,7 @@ test('horarios: el diálogo de tramo y el de excepción se leen en móvil y escr
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
     ).toBe(false)
-    await excepcion.getByRole('button', { name: 'Cancelar' }).click()
+    await excepcion.getByRole('button', { name: 'Cerrar diálogo' }).click()
     await expect(excepcion).toBeHidden()
   }
 })
@@ -245,7 +245,9 @@ test('horarios: el selector de profesional se maneja con teclado y cambia el hor
   page,
 }) => {
   await openSchedules(page, 1280, 900)
-  const trigger = page.getByRole('button', { name: /Barbero/ }).first()
+  // El nombre accesible del selector es su rótulo («Profesional»), no el
+  // profesional elegido: se localiza por su id, como en horarios-controles.ts.
+  const trigger = page.locator('#schedules-professional-select')
   await trigger.focus()
   await page.keyboard.press('ArrowDown')
   await expect(page.getByRole('listbox')).toBeVisible()
@@ -278,7 +280,7 @@ test('horarios: el alta de un tramo y de una excepción funciona con los control
   const tramo = page.getByRole('dialog', { name: 'Agregar tramo' })
   await tramo.getByRole('radio', { name: 'Miércoles' }).click()
   await pickTime(tramo, page, 'Hora de inicio', '11:30')
-  await tramo.getByLabel('Duración (minutos)').fill('90')
+  await pickTime(tramo, page, 'Hora de fin', '13:00')
   await expect(
     tramo.getByText(/Miércoles · 11:30\sa\.\sm\.\s–\s1:00\sp\.\sm\. · 1 h 30 min/),
   ).toBeVisible()
