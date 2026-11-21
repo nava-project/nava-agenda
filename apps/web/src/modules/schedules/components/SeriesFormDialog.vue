@@ -571,7 +571,7 @@ const previousDay = computed(() =>
       </p>
       <div class="block-form__row">
         <BaseTimePicker v-model="startsTime" label="Hora de inicio" required :disabled="busy" />
-        <BaseTimePicker v-model="endsTime" label="Hora de fin" required :disabled="busy" />
+        <BaseTimePicker v-model="endsTime" label="Hora de fin" required closing :disabled="busy" />
       </div>
       <div v-if="showValidity && !splitting" class="block-form__date-field">
         <label :id="`series-from-label-${uid}`" :for="`series-from-${uid}`"
