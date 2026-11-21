@@ -9,9 +9,9 @@ import (
 )
 
 // customerAccessEmailSubject es el asunto fijo del correo con el código con el que
-// el cliente entra a su turno (HU-105, DEC-178). Habla de entrar al turno, no de
-// cambiar la hora: con el código también se cancela (#753).
-const customerAccessEmailSubject = "Tu código para entrar a tu turno"
+// el cliente entra a cambiar la hora de su turno (HU-105, DEC-178). La plantilla de
+// marca no cambia asuntos (DEC-143): el título del cuerpo sí sigue a la pantalla.
+const customerAccessEmailSubject = "Tu código para cambiar tu turno"
 
 // ErrUnknownAccessChannel indica un canal que este adaptador no entrega. Es un
 // defecto de cableado, no un fallo del proveedor.

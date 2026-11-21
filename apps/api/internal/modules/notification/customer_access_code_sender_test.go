@@ -41,7 +41,7 @@ func TestCustomerAccessCodeSender_Email_UsesItsOwnSubjectAndCarriesTheCode(t *te
 	if err := newAccessSender(t, resend, nil).SendCode(context.Background(), "email", "ana@ejemplo.test", "Barbería Ejemplo", "482913"); err != nil {
 		t.Fatalf("SendCode: %v", err)
 	}
-	if body["subject"] != "Tu código para entrar a tu turno" {
+	if body["subject"] != "Tu código para cambiar tu turno" {
 		t.Fatalf("unexpected subject %v", body["subject"])
 	}
 	text, _ := body["text"].(string)
