@@ -255,7 +255,13 @@ const rulerMarks = computed(
 
 /* Sello: timbre de consultorio a −4°, en latón si está confirmado y en el
    color de su estado si no. */
+/* --ticket-seal-anchor: el borde que el timbre no cruza al caer (−1 derecho,
+   1 izquierdo). Su entrada a escala 1,6 se desplaza ese porcentaje de su
+   ancho para crecer hacia dentro de la tarjeta: crecer desde el centro sumaba
+   desborde horizontal desplazable aun con opacidad 0 (reflow al 200 %, #780). */
 .appointment-ticket__seal {
+  --ticket-seal-anchor: -1;
+
   position: absolute;
   top: 20px;
   right: 18px;
@@ -464,6 +470,8 @@ const rulerMarks = computed(
 
   .appointment-ticket__seal,
   .appointment-ticket__pending {
+    --ticket-seal-anchor: 1;
+
     top: auto;
     bottom: 16px;
     left: 22px;
@@ -573,12 +581,16 @@ const rulerMarks = computed(
 @keyframes ticket-stamp {
   from {
     opacity: 0;
-    transform: rotate(-4deg) scale(1.6);
+    transform: translateX(calc(var(--ticket-seal-anchor) * 30%)) rotate(-4deg) scale(1.6);
   }
 
   60% {
     opacity: 1;
-    transform: rotate(-4deg) scale(0.94);
+    transform: translateX(calc(var(--ticket-seal-anchor) * -3%)) rotate(-4deg) scale(0.94);
+  }
+
+  to {
+    transform: translateX(0) rotate(-4deg) scale(1);
   }
 }
 </style>

@@ -516,6 +516,69 @@ test('HU-066: reflow y foco del botón Cancelar en los viewports obligatorios', 
   }
 })
 
+// #780: el sello entra a escala 1,6. Si crece desde su centro, sobresale de la tarjeta y suma
+// desborde horizontal desplazable aun con opacidad 0 (reflow al 200 %, WCAG 1.4.10). Se mide en
+// su peor cuadro, con todas las animaciones de llegada congeladas al inicio.
+for (const viewport of [
+  { name: '1280-zoom200', width: 640, height: 450 },
+  { name: '390', width: 390, height: 844 },
+]) {
+  test(`#780: el sello entra sin desbordar en su peor cuadro a ${viewport.name}`, async ({
+    page,
+  }) => {
+    await installDetailMock(page)
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await page.goto('/panel/turnos/turno-mateo?date=2026-05-24&professionalId=profesional-julian')
+    await expect(page.getByRole('heading', { name: 'Mateo Rojas' })).toBeVisible()
+
+    const frame = await page.evaluate(() => {
+      const animations = document.getAnimations()
+      for (const animation of animations) {
+        animation.pause()
+        animation.currentTime = 0
+      }
+      const seal = document.querySelector('.appointment-ticket__seal')
+      const ticket = document.querySelector('.appointment-ticket')
+      const content = document.querySelector('.private-shell__content')
+      if (!seal || !ticket || !content) return null
+      const sealBox = seal.getBoundingClientRect()
+      const ticketBox = ticket.getBoundingClientRect()
+      return {
+        stamping: animations.some(
+          (a) => a instanceof CSSAnimation && a.animationName.startsWith('detail-arrive-stamp'),
+        ),
+        scale: getComputedStyle(seal).scale,
+        documentOverflow:
+          document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        contentOverflow: content.scrollWidth - content.clientWidth,
+        sealLeft: sealBox.left - ticketBox.left,
+        sealRight: ticketBox.right - sealBox.right,
+      }
+    })
+
+    expect(frame).not.toBeNull()
+    // La prueba solo vale si de verdad congeló el timbre en su cuadro más grande.
+    expect(frame!.stamping).toBe(true)
+    expect(frame!.scale).toBe('1.6')
+    expect(
+      frame!.documentOverflow,
+      `${viewport.name}: sin desborde del documento`,
+    ).toBeLessThanOrEqual(0)
+    expect(
+      frame!.contentOverflow,
+      `${viewport.name}: sin desborde del contenido`,
+    ).toBeLessThanOrEqual(0)
+    expect(
+      frame!.sealLeft,
+      'el sello no sale de la tarjeta por la izquierda',
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      frame!.sealRight,
+      'el sello no sale de la tarjeta por la derecha',
+    ).toBeGreaterThanOrEqual(0)
+  })
+}
+
 test('HU-066: movimiento reducido elimina la transición del diálogo de cancelación', async ({
   page,
 }) => {
