@@ -2498,8 +2498,23 @@ const editPreview = computed(() =>
     gap: 16px;
   }
 
-  .schedules-page__main > :deep(.week-board) {
+  /* El tablero llena la columna y se desplaza por dentro. Desde #578 va dentro
+     del envoltorio del velo de «ocupado», así que la contención pasa por él: sin
+     esto el tablero crecía con su contenido y desplazaba la página (#769). */
+  .schedules-page__main {
+    gap: 6px;
+  }
+
+  .schedules-page__board-wrap {
+    display: flex;
     flex: 1 1 0;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .schedules-page__board {
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
   }
 

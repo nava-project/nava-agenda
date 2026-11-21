@@ -172,6 +172,9 @@ function countLabel(day: BoardDay): string {
    del negocio no aparece aquí; «hoy» y «ahora» van en Sol, como en la agenda. */
 .week-board {
   --track-height: 14px;
+  /* Objetivo de las acciones de fila y del «+»: 44 px táctil (DEC-039); en
+     escritorio baja al piso de 36 px de las acciones de fila (DEC-112). */
+  --board-control: 44px;
 
   display: flex;
   min-height: 0;
@@ -367,8 +370,8 @@ function countLabel(day: BoardDay): string {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 42px;
-  padding: 3px 4px 3px 14px;
+  min-height: calc(var(--board-control) + 6px);
+  padding: 2px 3px 2px 14px;
   background-color: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -410,7 +413,7 @@ function countLabel(day: BoardDay): string {
 
 /* Acciones de fila: BaseButton secundario neutro (v2), solo más compacto. */
 .week-board__chip-actions :deep(.base-button) {
-  height: 32px;
+  height: var(--board-control);
   padding-inline: 12px;
   font-size: var(--font-size-body-sm);
 }
@@ -428,7 +431,7 @@ function countLabel(day: BoardDay): string {
 .week-board__empty {
   display: flex;
   align-items: center;
-  min-height: 42px;
+  min-height: calc(var(--board-control) + 6px);
   padding: 0 14px;
   margin: 0;
   color: var(--color-text-secondary);
@@ -441,8 +444,8 @@ function countLabel(day: BoardDay): string {
 .week-board__add {
   display: inline-grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: var(--board-control);
+  height: var(--board-control);
   padding: 0;
   color: var(--color-text-primary);
   font-size: var(--font-size-title-item);
@@ -533,6 +536,47 @@ function countLabel(day: BoardDay): string {
 
   .week-board__line {
     gap: 8px;
+  }
+}
+
+/* Escritorio (≥ 1100 px): la semana entera cabe en la altura del panel
+   (DEC-109, «Composición sin desplazamiento»). Filas más ceñidas y acciones en
+   el piso de 36 px, para que dos tramos y el «+» quepan en un renglón; si un
+   barbero tiene más, el tablero se desplaza por dentro, nunca la página. */
+@media (min-width: 1100px) {
+  .week-board {
+    --board-control: 36px;
+  }
+
+  .week-board__axis,
+  .week-board__day {
+    gap: 14px;
+    padding-inline: 14px;
+  }
+
+  .week-board__axis {
+    height: 26px;
+  }
+
+  .week-board__day {
+    padding-block: 3px;
+  }
+
+  .week-board__body {
+    gap: 4px;
+  }
+
+  .week-board__chip {
+    gap: 8px;
+    padding-left: 12px;
+  }
+
+  .week-board__chip-actions {
+    margin-left: 0;
+  }
+
+  .week-board__chip-actions :deep(.base-button) {
+    padding-inline: 10px;
   }
 }
 
