@@ -36,7 +36,6 @@ const ROUND_ALLOWED: Record<string, string> = {
   '.bk-chip__any': 'hueco de avatar de «Cualquiera», junto a las fotos redondas',
   '.bk-chip .professional-avatar': 'foto del profesional',
   '.daily-agenda-page__timeline-slip-initial': 'avatar de inicial',
-  '.accent-swatch__gem': 'muestra de color, el dato que se elige (DEC-188)',
   '.shell-ambient__glow': 'luz ambiental del fondo',
   '.professional-reviews__badge': 'píldora de texto',
   '.actions__stamp': 'píldora de texto',

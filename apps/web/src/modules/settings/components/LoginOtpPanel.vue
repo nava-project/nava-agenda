@@ -152,11 +152,16 @@ onMounted(load)
   border-radius: var(--radius-md);
 }
 
-/* Seleccionada en tinta (v2, DEC-188): borde de 2px y fondo tenue, sin acento. */
-.login-otp__option--selected {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
-  box-shadow: inset 0 0 0 1px var(--color-text-primary);
+.login-otp__option:hover {
+  border-color: var(--option-hover-border);
+}
+
+/* Elegida en latón con su rombo (#759; el rombo lo pone OptionGroup). */
+.login-otp__option--selected,
+.login-otp__option--selected:hover {
+  background: var(--option-selected-bg);
+  border-color: var(--option-selected-border);
+  box-shadow: inset 0 0 0 1px var(--option-selected-border);
 }
 
 .login-otp__name {

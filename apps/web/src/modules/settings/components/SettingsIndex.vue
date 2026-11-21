@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Índice de secciones de Configuración (DEC-110): en escritorio una columna
-// fija con un filete en tinta que marca la sección visible; en
+// fija sobre un riel; la sección visible lleva el rombo de latón sobre el riel y
+// el hover solo enciende el tramo, sin rombo (#759); en
 // pantallas angostas, una fila de pestañas que se desplaza en horizontal. Es
 // navegación por anclas (enlaces reales), no pestañas que oculten contenido:
 // toda la información sigue en la página. Sin numerales: las secciones son
@@ -70,8 +71,8 @@ function onClick(event: MouseEvent, id: string) {
     background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-/* v2 (DEC-188): la sección visible se marca en tinta —filete y fondo tenue—,
-   no en el acento, que queda reservado a la acción principal. */
+/* El tramo del riel (::before) y el rombo de la sección visible (::after). El
+   acento queda reservado a la acción principal: todo es latón. */
 .settings-index__link::before {
   content: '';
   position: absolute;
@@ -79,29 +80,60 @@ function onClick(event: MouseEvent, id: string) {
   bottom: 6px;
   left: -1px;
   width: 2px;
-  background: var(--color-text-primary);
+  background: var(--color-brass-line);
   opacity: 0;
   transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
+.settings-index__link::after {
+  position: absolute;
+  top: 50%;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background: var(--color-brass-body);
+  opacity: 0;
+  transform: translateY(-50%) rotate(45deg) scale(0.4);
+}
+
 .settings-index__link:hover {
   color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+}
+
+.settings-index__link:hover::before {
+  opacity: 0.5;
 }
 
 .settings-index__link:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface-strong, var(--color-surface)),
+    0 0 0 4px var(--color-focus);
 }
 
 .settings-index__link--active {
   color: var(--color-text-primary);
   font-weight: 600;
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  background: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
 }
 
 .settings-index__link--active::before {
   opacity: 1;
+}
+
+.settings-index__link--active::after {
+  opacity: 1;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* El rombo se posa al cambiar de sección: finito, solo transform y opacity. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .settings-index__link::after {
+    transition:
+      opacity 180ms ease,
+      transform 240ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
 }
 
 @media (max-width: 1099px) {
@@ -143,11 +175,26 @@ function onClick(event: MouseEvent, id: string) {
     width: auto;
     height: 2px;
   }
+
+  /* En la fila de pestañas el rombo se posa sobre el subrayado, al centro. */
+  .settings-index__link::after {
+    top: auto;
+    bottom: 1px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    transform: translateX(-50%) rotate(45deg) scale(0.4);
+  }
+
+  .settings-index__link--active::after {
+    transform: translateX(-50%) rotate(45deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .settings-index__link,
-  .settings-index__link::before {
+  .settings-index__link::before,
+  .settings-index__link::after {
     transition: none;
   }
 }

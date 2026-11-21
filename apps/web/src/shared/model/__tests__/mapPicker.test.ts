@@ -234,6 +234,21 @@ describe('loadGoogleMaps', () => {
     await expect(loaded).resolves.toBeDefined()
   })
 
+  // P-picker: Google avisa el rechazo de la clave por `gm_authFailure`, después del `load`.
+  it('tells the listeners when Google rejects the key, also the ones that arrive late', async () => {
+    const { loadGoogleMaps, onMapsAuthFailure } = await freshModule()
+    void loadGoogleMaps('browser-key').catch(() => {})
+    const early = vi.fn()
+    const stopEarly = onMapsAuthFailure(early)
+    ;(window as unknown as Record<string, () => void>).gm_authFailure!()
+    expect(early).toHaveBeenCalledTimes(1)
+    stopEarly()
+
+    const late = vi.fn()
+    onMapsAuthFailure(late)
+    expect(late).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects if the API reports ready without importLibrary', async () => {
     const { loadGoogleMaps } = await freshModule()
     const loaded = loadGoogleMaps('browser-key')

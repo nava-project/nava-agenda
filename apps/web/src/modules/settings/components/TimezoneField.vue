@@ -447,12 +447,13 @@ defineExpose({ focus: () => inputRef.value?.focus() })
   border-radius: var(--radius-md);
 }
 
+/* La hora en la serif de la familia, como en la tarjeta de turno (#759). */
 .tz-field__time {
   display: inline-flex;
   align-items: baseline;
-  font-family: var(--font-sans);
-  font-size: 28px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 400;
   line-height: 1;
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;

@@ -147,15 +147,23 @@ onMounted(load)
     background-color 0.15s ease;
 }
 
-.reminders__option--selected {
-  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
-  box-shadow: inset 0 0 0 1px var(--color-text-primary);
+.reminders__option:hover {
+  border-color: var(--option-hover-border);
 }
 
+/* Elegida en latón con su rombo (#759; el rombo lo pone OptionGroup). */
+.reminders__option--selected,
+.reminders__option--selected:hover {
+  background: var(--option-selected-bg);
+  border-color: var(--option-selected-border);
+  box-shadow: inset 0 0 0 1px var(--option-selected-border);
+}
+
+/* Los minutos en la serif de la familia, como la hora de la tarjeta (#759). */
 .reminders__minutes {
-  font-size: 24px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

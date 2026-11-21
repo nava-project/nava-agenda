@@ -94,6 +94,7 @@ const needsActivation = computed(
 )
 
 let handle: MapPickerHandle | null = null
+let stopWatchingFailure: (() => void) | undefined
 let unmounted = false
 let lastPoint: LatLng | null = props.modelValue ? pointOf(props.modelValue) : null
 let describeToken = 0
@@ -153,6 +154,13 @@ onMounted(async () => {
     }
     handle = mounted
     mapState.value = 'ready'
+    // El proveedor puede rechazar la clave después de dibujar (P-picker): su aviso gris
+    // quedaría bajo el pin, así que la pantalla pasa a su propio estado de fallo.
+    stopWatchingFailure = client.watchFailure?.(() => {
+      if (unmounted) return
+      mapState.value = 'failed'
+      mapActive.value = false
+    })
   } catch {
     if (!unmounted) mapState.value = 'failed'
   }
@@ -249,6 +257,7 @@ function onStageFocusOut(event: FocusEvent) {
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onOutsidePointer, true)
   unmounted = true
+  stopWatchingFailure?.()
   describeAbort?.abort()
   handle?.destroy()
   handle = null
@@ -305,11 +314,17 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
       <p v-if="mapState === 'loading'" class="location-picker__overlay" role="status">
         Cargando el mapa…
       </p>
+      <!-- Fallo del mapa (P-picker): papel de la familia con su rombo encima del
+           lienzo, en vez del aviso gris del proveedor. Marcar el punto sigue
+           siendo posible con la dirección o la ubicación. -->
+      <div v-if="mapState === 'failed'" class="location-picker__fallback" role="status">
+        <span class="location-picker__fallback-mark" aria-hidden="true" />
+        <p class="location-picker__fallback-title">El mapa no está disponible</p>
+        <p class="location-picker__warning">
+          No pudimos cargar el mapa. Busca tu dirección o usa tu ubicación.
+        </p>
+      </div>
     </div>
-
-    <p v-if="mapState === 'failed'" class="location-picker__warning" role="status">
-      No pudimos cargar el mapa. Busca tu dirección o usa tu ubicación.
-    </p>
     <p class="location-picker__notice" role="status">{{ notice }}</p>
     <p v-if="modelValue" class="location-picker__chosen" role="status">
       Ubicación marcada: <strong>{{ modelValue.address }}</strong>
@@ -336,6 +351,64 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
 .location-picker__hint,
 .location-picker__notice,
 .location-picker__chosen,
+/* Cubre el lienzo (y el aviso del proveedor, si lo pintó) con el papel de la familia. */
+.location-picker__fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  text-align: center;
+  color: var(--color-text-primary, currentColor);
+  background-color: var(--color-surface, #fffdf8);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line, #b08a4a) 30%, transparent) 1px,
+    transparent 1.4px
+  );
+  background-size: 14px 14px;
+  border: 1px solid var(--color-brass-line, #b08a4a);
+  border-radius: 2px;
+}
+
+.location-picker__fallback-mark {
+  width: 14px;
+  height: 14px;
+  margin-bottom: 6px;
+  background: var(--color-brass-body, #c9a35a);
+  box-shadow: 0 0 0 4px var(--color-surface, #fffdf8);
+  transform: rotate(45deg);
+}
+
+.location-picker__fallback-title {
+  margin: 0;
+  font-family: var(--font-display, serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.location-picker__fallback .location-picker__warning {
+  max-width: 36ch;
+  color: var(--color-text-secondary, currentColor);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .location-picker__fallback {
+    animation: location-picker-fallback 280ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes location-picker-fallback {
+  from {
+    opacity: 0;
+  }
+}
+
 .location-picker__warning,
 .location-picker__error {
   margin: 0;

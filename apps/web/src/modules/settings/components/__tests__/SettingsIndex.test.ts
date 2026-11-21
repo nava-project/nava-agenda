@@ -28,6 +28,14 @@ describe('SettingsIndex', () => {
     expect(wrapper.get('[aria-current]').text()).toBe('Marca')
   })
 
+  it('gives only the active link the brass rail mark class', () => {
+    const wrapper = mount(SettingsIndex, { props: { items, active: 'dos' } })
+
+    const active = wrapper.findAll('a.settings-index__link--active')
+    expect(active).toHaveLength(1)
+    expect(active[0]!.attributes('aria-current')).toBe('location')
+  })
+
   it('emits the section instead of jumping, so the page can scroll smoothly', async () => {
     const wrapper = mount(SettingsIndex, { props: { items, active: 'uno' } })
 

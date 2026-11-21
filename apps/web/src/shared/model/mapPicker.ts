@@ -44,6 +44,12 @@ export interface MapPickerEngine {
   ): Promise<MapPickerHandle>
   /** Dirección aproximada del punto, o `null` si no hay una. */
   describe(point: LatLng, signal?: AbortSignal): Promise<string | null>
+  /**
+   * Avisa si el mapa, ya dibujado, deja de servir (clave o dominio no autorizados): el
+   * proveedor pinta su propio aviso de error encima y la pantalla debe sustituirlo por el
+   * suyo. Devuelve la función para dejar de escuchar.
+   */
+  watchFailure?(listener: () => void): () => void
 }
 
 /** Cercanía (en grados, ~1 m) bajo la cual dos centros son el mismo punto. */
@@ -122,6 +128,35 @@ const READY_CALLBACK = '__navaGoogleMapsReady'
 
 let loading: Promise<GoogleMapsNamespace> | null = null
 
+/** Nombre global que la API de Google invoca cuando rechaza la clave o el dominio. */
+const AUTH_FAILURE_CALLBACK = 'gm_authFailure'
+let authFailed = false
+const authFailureListeners = new Set<() => void>()
+
+/**
+ * Escucha el rechazo de la clave (por ejemplo, RefererNotAllowedMapError). Google lo
+ * avisa una sola vez y después del `load`, cuando el mapa ya parece listo; quien llega
+ * tarde se entera en el acto.
+ */
+export function onMapsAuthFailure(listener: () => void): () => void {
+  if (authFailed) {
+    listener()
+    return () => {}
+  }
+  authFailureListeners.add(listener)
+  return () => {
+    authFailureListeners.delete(listener)
+  }
+}
+
+function installAuthFailureHook(w: Record<string, unknown>) {
+  w[AUTH_FAILURE_CALLBACK] = () => {
+    authFailed = true
+    for (const listener of [...authFailureListeners]) listener()
+    authFailureListeners.clear()
+  }
+}
+
 /** Carga la API una sola vez; un fallo se recuerda solo hasta el siguiente intento. */
 export function loadGoogleMaps(key: string): Promise<GoogleMapsNamespace> {
   const existing = (window as GoogleWindow).google?.maps
@@ -132,6 +167,7 @@ export function loadGoogleMaps(key: string): Promise<GoogleMapsNamespace> {
     // Con `loading=async` el evento `load` del script llega ANTES de que exista
     // `google.maps.importLibrary`; la API avisa que está lista llamando a `callback`.
     const w = window as unknown as GoogleWindow & Record<string, unknown>
+    installAuthFailureHook(w)
     w[READY_CALLBACK] = () => {
       delete w[READY_CALLBACK]
       const maps = w.google?.maps
@@ -222,6 +258,7 @@ function googleEngine(key: string): MapPickerEngine {
       const text = (address?.formatted_address ?? '').trim().replace(/\s+/g, ' ')
       return text === '' ? null : text
     },
+    watchFailure: onMapsAuthFailure,
   }
 }
 
