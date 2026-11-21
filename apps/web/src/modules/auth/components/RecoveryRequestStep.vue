@@ -254,6 +254,7 @@ async function onSubmit() {
             variant="primary"
             size="lg"
             :loading="isSubmitting"
+            loading-label="Enviando…"
             :disabled="isSubmitting"
             class="recovery-request__submit"
           >

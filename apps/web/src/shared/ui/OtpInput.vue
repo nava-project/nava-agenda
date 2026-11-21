@@ -1,11 +1,13 @@
 <script setup lang="ts">
 /**
- * OtpInput - Ranuras de código reglado (issue #212, auth-eventos/README.md
- * "Contrato visual común"). Seis posiciones que repiten la construcción del
- * campo reglado de BaseInput en formato estrecho: no es un componente de
- * kit de formularios genérico con caja redondeada, pertenece a la misma
- * familia visual (en v2: superficie, borde de control, radio medio y rótulo
- * en tipo oración y texto secundario).
+ * OtpInput - Las seis casillas del código (issue #212; marca de la familia en
+ * #751). Cada casilla es una celda de papel con un rombo de latón hueco que
+ * espera el dígito: la casilla activa lo llena y lo hace asomar, el dígito
+ * entra en la serif de la familia (Instrument Serif) con un salto de resorte,
+ * y la celda llena toma el filete y la línea base de latón. Con las seis
+ * llenas se dibuja la regla de latón bajo la fila. Un error sacude la fila y
+ * deja el rombo de aviso. Es la misma pieza en mi turno, /acceso y
+ * /recuperar-acceso: ninguna pantalla la reviste por su cuenta.
  *
  * Expone un único valor lógico de seis dígitos hacia afuera (`modelValue`
  * string), nunca seis campos independientes: quien consume este componente
@@ -26,11 +28,20 @@ interface Props {
   disabled?: boolean
   /** Nombre del campo lógico (no se refleja en el DOM de cada ranura) */
   name?: string
+  /** Aviso neutro bajo las casillas («Te enviamos otro código»); cede su sitio al error. */
+  note?: string
+  /**
+   * Reserva bajo las casillas el hueco del aviso o del error, aunque estén vacíos,
+   * para que lo que viene debajo no se mueva cuando llegan con la red lenta (#751).
+   */
+  reserveMessage?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: '',
   disabled: false,
+  note: '',
+  reserveMessage: false,
 })
 
 const emit = defineEmits<{
@@ -49,6 +60,9 @@ const digits = computed(() => {
   const value = props.modelValue.replace(/[^0-9]/g, '').slice(0, LENGTH)
   return Array.from({ length: LENGTH }, (_, index) => value[index] ?? '')
 })
+
+/** Las seis casillas llenas: la regla de latón se dibuja bajo la fila. */
+const isComplete = computed(() => digits.value.every(Boolean))
 
 const slotRefs = ref<(HTMLInputElement | null)[]>([])
 const setSlotRef = (el: unknown, index: number) => {
@@ -190,37 +204,57 @@ const slotsClasses = (index: number) => {
 
     <div
       class="otp-input__slots"
-      :class="{ 'otp-input__slots--shake': shaking }"
+      :class="{
+        'otp-input__slots--shake': shaking,
+        'otp-input__slots--complete': isComplete && !hasError,
+      }"
       role="group"
-      @animationend.self="shaking = false"
       :aria-labelledby="labelId"
       :aria-describedby="errorId"
+      @animationend.self="shaking = false"
     >
-      <input
+      <span
         v-for="(digit, index) in digits"
         :key="index"
-        :ref="(el) => setSlotRef(el, index)"
-        type="text"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        pattern="[0-9]*"
-        maxlength="1"
-        :class="slotsClasses(index)"
-        :value="digit"
-        :disabled="disabled"
-        :aria-invalid="hasError"
-        :aria-label="`Dígito ${index + 1} de ${LENGTH}`"
+        class="otp-input__cell"
+        :class="{
+          'otp-input__cell--filled': !!digit,
+          'otp-input__cell--invalid': hasError,
+        }"
         :style="{ '--i': index }"
-        @input="onInput(index, $event)"
-        @keydown="onKeydown(index, $event)"
-        @paste="onPaste(index, $event)"
-        @focus="onFocus"
-        @blur="onBlur"
-      />
+      >
+        <input
+          :ref="(el) => setSlotRef(el, index)"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]*"
+          maxlength="1"
+          :class="slotsClasses(index)"
+          :value="digit"
+          :disabled="disabled"
+          :aria-invalid="hasError"
+          :aria-label="`Dígito ${index + 1} de ${LENGTH}`"
+          :style="{ '--i': index }"
+          @input="onInput(index, $event)"
+          @keydown="onKeydown(index, $event)"
+          @paste="onPaste(index, $event)"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+      </span>
+      <span class="otp-input__rule" aria-hidden="true"></span>
     </div>
 
-    <div v-if="error" :id="errorId" class="otp-input__error" aria-live="assertive" role="alert">
-      {{ error }}
+    <div
+      v-if="error || note || reserveMessage"
+      class="otp-input__message"
+      :class="{ 'otp-input__message--reserved': reserveMessage }"
+    >
+      <div v-if="error" :id="errorId" class="otp-input__error" aria-live="assertive" role="alert">
+        {{ error }}
+      </div>
+      <p v-else-if="note" class="otp-input__note" role="status">{{ note }}</p>
     </div>
   </div>
 </template>
@@ -239,74 +273,185 @@ const slotsClasses = (index: number) => {
 
 .otp-input__label {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 18px;
-  color: var(--color-text-secondary);
+  line-height: 20px;
+  color: var(--color-text-primary);
 }
 
 .otp-input__slots {
+  position: relative;
   display: flex;
   gap: var(--space-2);
+  /* Deja sitio a la regla de latón sin mover nada al dibujarla (CLS 0). */
+  padding-bottom: 10px;
 }
 
-/* Misma construcción del campo reglado (BaseInput) en formato estrecho:
-   superficie blanca, filete perimetral de baja opacidad, línea base de
-   tinta de 2px, radio 2px. El dígito se compone en la serif del wordmark,
-   no en la sans funcional del resto del control. */
+/* La celda sostiene el rombo que espera el dígito: un <input> no admite
+   pseudoelementos. */
+.otp-input__cell {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* El rombo hueco de latón en el centro de la celda vacía. */
+.otp-input__cell::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  content: '';
+  border: 1.5px solid var(--color-brass-line);
+  transform: translate(-50%, -50%) rotate(45deg);
+  pointer-events: none;
+  transition:
+    opacity 160ms var(--motion-easing-standard, ease),
+    transform 220ms var(--motion-ease-spring, ease-out);
+}
+
+/* La casilla activa: el rombo se llena, crece y marca dónde va el dígito
+   (sustituye al cursor de texto, que caería encima). */
+.otp-input__cell:focus-within:not(.otp-input__cell--filled)::before {
+  background-color: var(--color-brass-body);
+  border-color: var(--color-brass-body);
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.35);
+}
+
+.otp-input__cell--filled::before {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.2);
+}
+
+.otp-input__cell--invalid::before {
+  border-color: var(--color-danger-border);
+}
+
+.otp-input__cell--invalid:focus-within:not(.otp-input__cell--filled)::before {
+  background-color: var(--color-danger-border);
+  border-color: var(--color-danger-border);
+}
+
 .otp-input__slot {
   flex: 1 1 0;
   /* Un <input> trae ancho intrínseco (≈20 caracteres a 22 px). Con ancho 0
      la casilla solo toma lo que le reparte el flex y no empuja la fila (#733). */
   width: 0;
   min-width: 0;
-  height: var(--control-height);
+  height: 60px;
   padding: 0;
-  /* Dato, no titular: va en la sans con cifras tabulares (#726). */
-  font-family: var(--font-sans);
-  font-size: 22px;
+  /* El código es la pieza de la pantalla: va en la serif de la familia, con
+     las cifras alineadas (#751; antes, sans tabular, #726). */
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-variant-numeric: lining-nums tabular-nums;
   line-height: 1;
   text-align: center;
   color: var(--color-text-primary);
+  caret-color: transparent;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-bottom: var(--border-width-emphasis) solid var(--color-action-primary);
+  border: 1px solid var(--color-border-control);
   border-radius: var(--radius-md);
   outline: none;
-  transition:
-    border-color var(--motion-duration-fast) var(--motion-easing-standard),
-    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .otp-input__slot {
-    transition: none;
-  }
 }
 
 .otp-input__slot:hover:not(:disabled):not(.otp-input__slot--invalid) {
-  border-color: var(--color-text-secondary);
-  border-bottom-color: var(--color-action-primary);
+  border-color: var(--color-brass-line);
 }
 
 .otp-input__slot:focus-visible {
-  border-color: var(--color-focus);
+  border-color: var(--color-brass-line);
   box-shadow:
     0 0 0 2px var(--color-surface),
     0 0 0 4px var(--color-focus);
 }
 
+/* Al enfocar una casilla llena se selecciona su dígito (para escribir encima):
+   sin el resaltado azul del sistema, que rompe el latón (#752). */
+.otp-input__slot::selection {
+  color: inherit;
+  background-color: transparent;
+}
+
+/* Llena: filete y línea base de latón, como la regla del pase. */
 .otp-input__slot--filled {
-  border-bottom-color: var(--color-action-primary);
-  animation: otp-input-fill 300ms var(--motion-ease-spring, ease-out) both;
+  border-color: var(--color-brass-line);
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
-.otp-input--pasted .otp-input__slot--filled {
-  animation-delay: calc(var(--i, 0) * 40ms);
+.otp-input__slot--filled:focus-visible {
+  box-shadow:
+    inset 0 -2px 0 var(--color-brass-body),
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
 }
 
-.otp-input__slots--shake {
-  animation: otp-input-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+/* La regla de latón con su rombo, que se dibuja al completar el código. */
+.otp-input__rule {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  left: 0;
+  height: 1px;
+  background-color: var(--color-brass-line);
+  transform: scaleX(0);
+  transform-origin: left center;
+  opacity: 0;
+}
+
+.otp-input__rule::after {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  content: '';
+  background-color: var(--color-brass-body);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.otp-input__slots--complete .otp-input__rule {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .otp-input__slot--filled {
+    animation: otp-input-fill 300ms var(--motion-ease-spring, ease-out) both;
+  }
+
+  :root:not([data-motion='reduced']) .otp-input--pasted .otp-input__slot--filled {
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  :root:not([data-motion='reduced']) .otp-input__slots--shake {
+    animation: otp-input-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  :root:not([data-motion='reduced']) .otp-input__slots--complete .otp-input__rule {
+    transition:
+      transform 480ms var(--motion-easing-standard, ease) 120ms,
+      opacity 120ms linear 120ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .otp-input__cell:focus-within:not(.otp-input__cell--filled)::before {
+    animation: otp-input-await 420ms var(--motion-ease-spring, ease-out) both;
+  }
+}
+
+/* Con movimiento reducido el rombo cambia sin transición. */
+@media (prefers-reduced-motion: reduce) {
+  .otp-input__cell::before {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduced'] .otp-input__cell::before {
+  transition: none;
 }
 
 @keyframes otp-input-fill {
@@ -316,6 +461,20 @@ const slotsClasses = (index: number) => {
 
   55% {
     transform: scale(1.06);
+  }
+}
+
+@keyframes otp-input-await {
+  from {
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.4);
+  }
+
+  60% {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.6);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.35);
   }
 }
 
@@ -342,21 +501,9 @@ const slotsClasses = (index: number) => {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .otp-input__slot--filled,
-  .otp-input__slots--shake {
-    animation: none;
-  }
-}
-
-:root[data-motion='reduced'] .otp-input__slot--filled,
-:root[data-motion='reduced'] .otp-input__slots--shake {
-  animation: none;
-}
-
 .otp-input__slot--invalid {
   border-color: var(--color-danger-border);
-  border-bottom-color: var(--color-danger-border);
+  box-shadow: none;
 }
 
 .otp-input__slot--invalid:focus-visible {
@@ -368,10 +515,40 @@ const slotsClasses = (index: number) => {
 .otp-input__slot:disabled {
   background-color: var(--color-surface-muted);
   border-color: var(--color-border-subtle);
-  border-bottom-color: var(--color-border-subtle);
+  box-shadow: none;
   color: var(--color-text-secondary);
   cursor: not-allowed;
   opacity: 0.64;
+}
+
+/* Mientras se comprueba un código completo la fila queda deshabilitada, pero
+   esperar no es estar apagado (#735): los dígitos conservan el papel y el latón.
+   Las casillas vacías deshabilitadas (código bloqueado) sí se apagan. */
+.otp-input__slot--filled:disabled:not(.otp-input__slot--invalid) {
+  background-color: var(--color-surface);
+  border-color: var(--color-brass-line);
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+  color: var(--color-text-primary);
+  cursor: progress;
+  opacity: 1;
+}
+
+.otp-input--disabled .otp-input__cell::before {
+  opacity: 0.4;
+}
+
+/* Un solo hueco para el aviso y el error. Reservado, mide dos líneas: lo que
+   ocupa el error más largo a 390 px; así el botón de abajo no salta. */
+.otp-input__message--reserved {
+  min-height: calc(var(--font-size-body-sm-line) * 2);
+}
+
+.otp-input__note {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--font-size-body-sm-line);
+  color: var(--color-text-secondary);
 }
 
 .otp-input__error {

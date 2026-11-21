@@ -15,7 +15,7 @@
 // turno y las dos acciones a las que vino (cambiar la hora o cancelar) aquí mismo; la
 // pantalla completa de «Mi turno» queda como enlace secundario.
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { BaseAlert, BaseInput, OtpInput, SunDiamond } from '@/shared/ui'
+import { BaseAlert, BaseInput, OtpInput, ResendDusk, SunDiamond } from '@/shared/ui'
 import { BookingStateScreen, PublicFrame, usePublicBusinessName } from '@/modules/public-booking'
 import AppointmentActions from '../components/AppointmentActions.vue'
 import { requestAccessCode } from '../api/requestAccessCodeApi'
@@ -49,6 +49,8 @@ const codeError = ref('')
 const alert = ref<{ variant: 'warning' | 'danger'; text: string } | null>(null)
 const notice = ref('')
 const submitting = ref(false)
+/** «Pedir otro código» en curso: espera en el propio enlace, no en el botón principal (#752). */
+const resending = ref(false)
 const wrongCodes = ref(0)
 const grant = ref<AccessGrant | null>(null)
 /** Credencial del turno abierto en el paso 03. */
@@ -58,6 +60,8 @@ const cancelledHere = ref(false)
 const nowMs = ref(Date.now())
 /** Instante a partir del cual se ofrece «pedir otro código». */
 const resendAt = ref(0)
+/** Segundos completos de esa espera: el atardecer los recorre de principio a fin. */
+const resendTotal = ref(0)
 
 const heading = ref<HTMLElement | null>(null)
 const root = ref<HTMLElement | null>(null)
@@ -123,6 +127,12 @@ async function focusStep() {
 // Al llegar desde el enlace de la entrada pública el título recibe el foco, como en cada paso.
 onMounted(() => void focusStep())
 
+// Al volver a escribir después de un código equivocado, el aviso se retira: las
+// casillas dejan el rojo y vuelven al latón mientras se prueba otro código.
+watch(code, (value) => {
+  if (value && codeError.value && !isLocked.value) codeError.value = ''
+})
+
 watch(step, () => {
   void focusStep()
   if (step.value === 'code') startTicker()
@@ -144,6 +154,7 @@ async function submitContact() {
     case 'sent':
       resetCodeEntry()
       resendAt.value = Date.now() + outcome.resendAfterSeconds * 1000
+      resendTotal.value = outcome.resendAfterSeconds
       step.value = 'code'
       return
     case 'invalid-contact':
@@ -245,21 +256,23 @@ function openAppointment(token: string) {
 const hasSeveral = computed(() => (grant.value?.appointments.length ?? 0) > 1)
 
 async function resend() {
-  if (submitting.value || !canResend.value) return
+  if (submitting.value || resending.value || !canResend.value) return
   alert.value = null
-  submitting.value = true
+  resending.value = true
   const outcome = await requestAccessCode(props.slug, contact.value.trim())
-  submitting.value = false
+  resending.value = false
   switch (outcome.kind) {
     case 'sent':
       resetCodeEntry()
       resendAt.value = Date.now() + outcome.resendAfterSeconds * 1000
+      resendTotal.value = outcome.resendAfterSeconds
       nowMs.value = Date.now()
       notice.value = `Te enviamos otro código por ${channelWord.value}.`
       void focusStep()
       return
     case 'rate-limited':
       resendAt.value = Date.now() + outcome.retryAfterSeconds * 1000
+      resendTotal.value = outcome.retryAfterSeconds
       nowMs.value = Date.now()
       alert.value = {
         variant: 'warning',
@@ -423,16 +436,18 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
         aria-label="Escribir el código"
         @submit.prevent="submitCode"
       >
+        <!-- El aviso del reenvío y el error comparten un hueco reservado bajo las
+             casillas: con la red lenta el botón no se mueve (#752). -->
         <OtpInput
           v-model="code"
           label="Código de 6 dígitos"
           name="code"
           :error="codeError"
+          :note="notice"
+          reserve-message
           :disabled="isLocked || submitting"
           @complete="submitCode"
         />
-
-        <p v-if="notice" class="mt-form__notice" role="status">{{ notice }}</p>
 
         <button
           type="submit"
@@ -446,11 +461,23 @@ const zoneName = computed(() => (grant.value ? timezoneName(grant.value.timezone
 
         <div class="mt-form__aside">
           <p v-if="!canResend" class="mt-form__wait" aria-live="off">
-            ¿No te llegó? Podrás pedir otro en
-            <span class="mt-form__count">{{ formatCountdown(secondsToResend) }}</span>
+            <ResendDusk :key="resendAt" :total="resendTotal" :remaining="secondsToResend" />
+            <span
+              >¿No te llegó? Podrás pedir otro en
+              <span class="mt-form__count">{{ formatCountdown(secondsToResend) }}</span></span
+            >
           </p>
-          <button v-else type="button" class="bk-link" :disabled="submitting" @click="resend">
-            Pedir otro código
+          <button
+            v-else
+            type="button"
+            class="bk-link mt-form__resend"
+            :class="{ 'mt-form__resend--busy': resending }"
+            :disabled="submitting || resending"
+            :aria-busy="resending"
+            @click="resend"
+          >
+            <SunDiamond v-if="resending" size="sm" class="mt-form__resend-wait" />
+            {{ resending ? 'Enviando otro código…' : 'Pedir otro código' }}
           </button>
           <button type="button" class="bk-link" @click="changeContact">Cambiar el contacto</button>
         </div>

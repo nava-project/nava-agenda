@@ -113,7 +113,10 @@ describe('RecoveryResetStep', () => {
     await fillAndSubmit(wrapper)
 
     expect(wrapper.get('input[name="newPassword"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.get('button[type="submit"]').text()).toBe('Guardando contraseña…')
+    // El gerundio se ve junto al diamante dentro del sol (#752) y queda como nombre accesible.
+    const submit = wrapper.get('button[type="submit"]')
+    expect(submit.get('.base-button__wait-label').text()).toBe('Guardando contraseña…')
+    expect(submit.get('.base-button__content').text()).toBe('Guardando contraseña…')
 
     resolveOutcome({ kind: 'success' })
     await flushPromises()

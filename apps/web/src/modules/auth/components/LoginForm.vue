@@ -123,6 +123,7 @@ const onSubmit = async () => {
       :variant="challengeActive ? 'secondary' : 'primary'"
       size="lg"
       :loading="submitting"
+      loading-label="Iniciando sesión…"
       :disabled="submitting || challengeActive"
       class="login-form__submit"
     >

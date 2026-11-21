@@ -11,7 +11,7 @@
 // `PhoneChallengeForm.vue`, pero con cuenta regresiva visible (CA-011-04
 // exige "cuánto falta", no solo un botón deshabilitado).
 import { computed, onUnmounted, ref } from 'vue'
-import { BaseButton, OtpInput } from '@/shared/ui'
+import { BaseButton, OtpInput, ResendDusk } from '@/shared/ui'
 import { requestRecovery, verifyRecovery } from '../api/recoveryApi'
 import { notifyConnectionLost, notifyUnexpectedError } from '../model/authFeedback'
 import type { RecoveryTarget } from '../model/recoveryTarget'
@@ -40,6 +40,8 @@ const fieldError = ref<string | undefined>(undefined)
 const attemptedSubmit = ref(false)
 const verifyStatus = ref<'idle' | 'verifying' | 'invalid-code'>('idle')
 const resendCooldownRemaining = ref(0)
+/** Cambia en cada envío para que el atardecer de la espera vuelva a empezar (#751). */
+const cooldownRound = ref(0)
 let cooldownTimer: ReturnType<typeof setInterval> | undefined
 
 const isVerifying = computed(() => verifyStatus.value === 'verifying')
@@ -56,6 +58,7 @@ const otpError = computed(() =>
 
 function startResendCooldown() {
   resendCooldownRemaining.value = RESEND_COOLDOWN_SECONDS
+  cooldownRound.value += 1
   cooldownTimer = setInterval(() => {
     resendCooldownRemaining.value = Math.max(0, resendCooldownRemaining.value - 1)
     if (resendCooldownRemaining.value === 0 && cooldownTimer) {
@@ -83,6 +86,9 @@ async function onResend() {
 }
 
 const handleCodeInput = (value: string) => {
+  // Al corregir el código después de un rechazo, el aviso se retira, igual que en
+  // mi turno (#752): las casillas vuelven al latón mientras se prueba otro.
+  if (verifyStatus.value === 'invalid-code' && value !== code.value) verifyStatus.value = 'idle'
   code.value = value
   if (attemptedSubmit.value) {
     fieldError.value = validateRecoveryCode(code.value)
@@ -143,6 +149,7 @@ async function onSubmit() {
     <OtpInput
       :model-value="code"
       label="Código de 6 dígitos"
+      reserve-message
       :disabled="isVerifying"
       :error="otpError"
       @update:model-value="handleCodeInput"
@@ -154,6 +161,7 @@ async function onSubmit() {
         variant="primary"
         size="lg"
         :loading="isVerifying"
+        loading-label="Verificando…"
         :disabled="isVerifying"
         class="recovery-verify__submit"
       >
@@ -169,6 +177,12 @@ async function onSubmit() {
         :disabled="!canResend"
         @click="onResend"
       >
+        <ResendDusk
+          v-if="!canResend"
+          :key="cooldownRound"
+          :total="RESEND_COOLDOWN_SECONDS"
+          :remaining="resendCooldownRemaining"
+        />
         {{ canResend ? 'Reenviar código' : `Reenviar en ${resendCooldownRemaining} s` }}
       </BaseButton>
     </div>

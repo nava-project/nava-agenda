@@ -183,7 +183,9 @@ describe('LoginForm', () => {
       expect(wrapper.get('input[name="password"]').attributes('disabled')).toBeDefined()
       const button = wrapper.get('button[type="submit"]')
       expect(button.attributes('aria-busy')).toBe('true')
-      expect(button.text()).toBe('Iniciando sesión…')
+      // El gerundio se ve junto al diamante dentro del sol (#752) y queda como nombre accesible.
+      expect(button.get('.base-button__wait-label').text()).toBe('Iniciando sesión…')
+      expect(button.get('.base-button__content').text()).toBe('Iniciando sesión…')
     })
 
     it('blocks credentials and its submit action while the OTP challenge is active', () => {

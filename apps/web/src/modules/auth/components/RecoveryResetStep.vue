@@ -172,6 +172,7 @@ const onRestart = () => emit('restart')
         variant="primary"
         size="lg"
         :loading="isSubmitting"
+        loading-label="Guardando contraseña…"
         :disabled="isSubmitting"
         class="recovery-reset__submit"
       >

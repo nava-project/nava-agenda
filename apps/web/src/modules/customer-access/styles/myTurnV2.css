@@ -488,27 +488,7 @@
   text-transform: none;
 }
 
-.bk .mt-form .otp-input__slots {
-  gap: var(--space-2);
-}
-
-.bk .mt-form .otp-input__slot {
-  height: 56px;
-  font-family: var(--font-sans);
-  font-size: 24px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-md);
-}
-
-.bk .mt-form .otp-input__slot--filled {
-  border-color: var(--color-text-primary);
-}
-
-.bk .mt-form .otp-input__slot--invalid {
-  border-color: var(--color-danger-border);
-}
+/* Las casillas del código no se revisten aquí: su marca vive en OtpInput (#751). */
 
 .mt-form__action {
   width: 100%;
@@ -530,12 +510,6 @@
   opacity: 1;
 }
 
-.mt-form__notice {
-  margin: 0;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
 .mt-form__aside {
   display: flex;
   flex-wrap: wrap;
@@ -545,9 +519,62 @@
 }
 
 .mt-form__wait {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
   margin: 0;
   font-size: 14px;
   color: var(--color-text-secondary);
+}
+
+/* El sol ya se puso (#751): el enlace llega con su rombo de latón, que asoma
+   con un resorte una sola vez. */
+.mt-form__resend {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.mt-form__resend::before {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  content: '';
+  background-color: var(--color-brass-body);
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .mt-form__resend::before {
+    animation: mt-resend-rise 520ms var(--motion-ease-spring, ease-out) both;
+  }
+}
+
+/* Pidiendo otro código: el diamante dentro del sol ocupa el sitio del rombo y el
+   enlace conserva su color (esperar no es estar apagado, #735). */
+.mt-form__resend--busy::before {
+  display: none;
+}
+
+.mt-form__resend--busy:disabled {
+  cursor: progress;
+  opacity: 1;
+}
+
+.mt-form__resend-wait {
+  --sd-size: 1.25em;
+}
+
+@keyframes mt-resend-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px) rotate(45deg) scale(0.3);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotate(45deg);
+  }
 }
 
 .mt-form__count {
