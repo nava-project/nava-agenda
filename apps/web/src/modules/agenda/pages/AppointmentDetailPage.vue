@@ -12,16 +12,27 @@
 // ya implementados. Cada comando confirmado añade un aviso emergente
 // (DEC-095); el resultado persistente es el estado y el historial del turno.
 import { timezoneLabel } from '@/shared/time/timezoneName'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
-import { BaseAlert, BaseBadge, BaseButton, BaseDialog, BaseInput, DiamondLoader } from '@/shared/ui'
+import {
+  AppointmentTicket,
+  BaseAlert,
+  BaseBadge,
+  BaseButton,
+  BaseDialog,
+  BaseInput,
+  DiamondLoader,
+  PhoneDisplay,
+  type AppointmentTicketState,
+} from '@/shared/ui'
+import { ticketMoment } from '@/shared/time/ticketMoment'
 import {
   formatFullDateInTimezone,
   formatInstantInTimezone,
   formatTimeInTimezone,
 } from '@/shared/time/formatInstant'
-import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { getCivilDateInTimezone, minutesSinceCivilMidnight } from '@/shared/time/civilDate'
 import {
   cancelAppointmentByProfessional,
   completeAppointment,
@@ -35,7 +46,11 @@ import {
 import { mapsLinkUrl } from '@/shared/model/mapEmbed'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import type { AppointmentDetail, HistoryEntry } from '../model/appointmentDetail'
-import { historyEventLabel, historyFieldLabel } from '../model/appointmentDetail'
+import {
+  historyChangeValue,
+  historyEventLabel,
+  historyFieldLabel,
+} from '../model/appointmentDetail'
 import { formatMoney } from '@/shared/model/money'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
@@ -132,8 +147,6 @@ const statusTone = computed(() => {
   if (timePhase.value === 'to-record') return 'to-record'
   return STATUS_TONE[detail.value.status]
 })
-// Un turno terminal cambia de material (contorno sobre tinta), no de peso (§6.7).
-const isTerminal = computed(() => !!detail.value && isTerminalStatus(detail.value.status))
 const attendeeInitials = computed(() => {
   if (!detail.value) return ''
   return detail.value.attendeeName
@@ -157,7 +170,8 @@ const FACT_ICONS: Record<string, string> = {
   note: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v12H9l-4 4V4Z"></path></svg>`,
   calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>`,
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 9.5 17 19 7"></path></svg>`,
-  absent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>`,
+  // «No asistió»: el rombo de la familia, hueco y cruzado (#757), no el ⊗ genérico.
+  absent: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 20.5 12 12 20.5 3.5 12Z"></path><path d="M9.5 9.5l5 5"></path></svg>`,
 }
 
 function factIcon(name: keyof typeof FACT_ICONS): string {
@@ -199,6 +213,104 @@ const timeRangeLabel = computed(() => {
   }).format(new Date(detail.value.endsAt))
   return `${start} – ${end}`
 })
+
+// La tarjeta de turno (DEC-189, #757): la misma que el cliente se lleva, ahora en
+// el panel. El sello dice el estado como lo lee la agenda («En curso», «Por
+// registrar»); el rótulo de latón, de dónde salió el turno.
+const TICKET_STATE: Record<AppointmentStatus, AppointmentTicketState> = {
+  confirmed: 'confirmed',
+  completed: 'completed',
+  no_show: 'no-show',
+  cancelled_by_customer: 'cancelled',
+  cancelled_by_professional: 'cancelled',
+}
+const ORIGIN_LABEL: Record<AppointmentDetail['origin'], string> = {
+  public: 'Reserva en línea',
+  manual: 'Agendado en el panel',
+}
+const ticket = computed(() => {
+  if (!detail.value || !businessTimezone.value) return null
+  const d = detail.value
+  const zone = businessTimezone.value
+  const m = ticketMoment(d.startsAt, d.endsAt, zone)
+  // El Sol sobre la regla mientras ocurre: el mismo instante con el que se leyó la fase.
+  const now =
+    timePhase.value === 'in-progress'
+      ? minutesSinceCivilMidnight(
+          new Date().toISOString(),
+          getCivilDateInTimezone(zone, new Date(d.startsAt)),
+          zone,
+        )
+      : null
+  return {
+    state: TICKET_STATE[d.status],
+    stateLabel: statusLabel.value,
+    businessName: ORIGIN_LABEL[d.origin],
+    serviceName: d.serviceName,
+    meta: `${d.durationMinutes} min · ${formatMoney(d.priceAmount, d.currency)}`,
+    weekday: m.weekday,
+    month: m.month,
+    day: m.day,
+    time: m.time,
+    timeNote: `hasta ${m.endTime} · ${timezoneLabel(zone)}`,
+    professionalName: d.professionalFullName,
+    professionalLabel: v.value.Professional,
+    ruler: {
+      from: m.from,
+      to: m.to,
+      at: m.at,
+      now,
+      label: `El turno en el día: ${m.weekday.toLocaleLowerCase('es-CO')} ${m.day}, de ${m.time} a ${m.endTime}.`,
+    },
+  }
+})
+
+// El final del historial (#758): mientras el turno no ha ocurrido o está en curso,
+// la línea de tiempo termina en el propio turno, que es lo último que pasará; si
+// ya pasó, cierra con un rombo. Solo con el historial completo (sin más páginas),
+// para no dejar el turno delante de eventos que aún no se cargaron.
+type HistoryEnd = { kind: 'upcoming' | 'now'; title: string; meta: string } | { kind: 'close' }
+
+const historyEnd = computed((): HistoryEnd | null => {
+  if (!detail.value || !businessTimezone.value) return null
+  if (historyItems.value.length === 0 || historyNextCursor.value) return null
+  const d = detail.value
+  const m = ticketMoment(d.startsAt, d.endsAt, businessTimezone.value)
+  if (d.status === 'confirmed' && timePhase.value === null) {
+    const day = `${m.weekday} ${m.day} ${m.month}`.toLocaleLowerCase('es-CO')
+    return { kind: 'upcoming', title: 'El turno', meta: `Próximo · ${day} · ${m.time}` }
+  }
+  if (timePhase.value === 'in-progress') {
+    return { kind: 'now', title: 'En curso', meta: `hasta ${m.endTime}` }
+  }
+  return { kind: 'close' }
+})
+
+// Llegada (#758): la primera vez que la tarjeta tiene datos, la página corre un
+// guion finito (~900 ms, solo transform y opacity; el CSS lo apaga con
+// movimiento reducido). El rombo de la regla sale del borde izquierdo: la
+// distancia se mide una vez, porque depende del ancho real de la regla.
+const rootEl = ref<HTMLElement | null>(null)
+const arriving = ref(false)
+let arrivedOnce = false
+let arriveTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => ticket.value !== null,
+  async (hasTicket) => {
+    if (!hasTicket || arrivedOnce) return
+    arrivedOnce = true
+    arriving.value = true
+    await nextTick()
+    const mark = rootEl.value?.querySelector<HTMLElement>('.day-ruler__mark--mine')
+    if (mark) mark.style.setProperty('--arrive-mark-from', `${-mark.offsetLeft}px`)
+    arriveTimer = setTimeout(() => {
+      arriving.value = false
+    }, 1400)
+  },
+)
+
+onBeforeUnmount(() => clearTimeout(arriveTimer))
 
 // Reprogramar turno (HU-065, T2) y cancelar turno (HU-066, T6): ambas
 // acciones solo aplican sobre un turno `confirmed` (CA-066-08); ningún otro
@@ -730,8 +842,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 <template>
   <section
+    ref="rootEl"
     class="appointment-detail-page"
-    :class="`appointment-detail-page--${statusTone}`"
+    :class="[
+      `appointment-detail-page--${statusTone}`,
+      { 'appointment-detail-page--arrive': arriving },
+    ]"
     aria-labelledby="appointment-detail-page-title"
   >
     <p class="appointment-detail-page__back">
@@ -740,7 +856,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
     <!-- Carga (#741): como las demás rutas del panel desde #736, el sol grande
          centrado sobre un esqueleto con la forma real del detalle (cabecera,
-         ficha e historial), en vez de una línea sobre la pantalla vacía. -->
+         ficha e historial), en vez de una línea sobre la pantalla vacía. El
+         esqueleto usa las mismas clases de cabecera, acciones, cuerpo e
+         historial (#758): hereda la rejilla de cada ancho y los datos llegan sin
+         reacomodo. -->
     <div
       v-if="pageStatus === 'loading'"
       class="appointment-detail-page__loading"
@@ -749,33 +868,69 @@ function occurredAtLabel(entry: HistoryEntry): string {
     >
       <DiamondLoader layout="overlay" label="Cargando el detalle del turno…" />
       <div class="appointment-detail-page__skeleton" aria-hidden="true">
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
-        />
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
-        />
-        <div class="appointment-detail-page__skeleton-card">
-          <span
-            class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
-          />
-          <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
+        <div class="appointment-detail-page__hero">
+          <span class="appointment-detail-page__skeleton-monogram" />
+          <span class="appointment-detail-page__identity">
             <span
-              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--title"
+            />
+          </span>
+          <span class="appointment-detail-page__actions">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--button"
             />
             <span
-              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--button"
             />
           </span>
         </div>
-        <span
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--section"
-        />
-        <span
-          v-for="n in 2"
-          :key="`h${n}`"
-          class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--history"
-        />
+        <div class="appointment-detail-page__body">
+          <!-- La tarjeta: cabecera, troquel, hoja con la hora, regla y puntos guía. -->
+          <div class="appointment-detail-page__skeleton-card">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--kicker"
+            />
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--service"
+            />
+            <span class="appointment-detail-page__skeleton-perforation" />
+            <span class="appointment-detail-page__skeleton-when">
+              <span class="appointment-detail-page__skeleton-leaf" />
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--time"
+              />
+            </span>
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--ruler"
+            />
+            <span class="appointment-detail-page__skeleton-perforation" />
+            <span v-for="n in 4" :key="n" class="appointment-detail-page__skeleton-row">
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--label"
+              />
+              <span class="appointment-detail-page__skeleton-dots" />
+              <span
+                class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--value"
+              />
+            </span>
+          </div>
+          <div class="appointment-detail-page__history">
+            <span
+              class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--section"
+            />
+            <span class="appointment-detail-page__skeleton-events">
+              <span v-for="n in 2" :key="n" class="appointment-detail-page__skeleton-event">
+                <span class="appointment-detail-page__skeleton-diamond" />
+                <span
+                  class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--history"
+                />
+                <span
+                  class="appointment-detail-page__skeleton-bar appointment-detail-page__skeleton-bar--meta"
+                />
+              </span>
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -885,96 +1040,61 @@ function occurredAtLabel(entry: HistoryEntry): string {
       </header>
 
       <div class="appointment-detail-page__body">
-        <div
-          class="appointment-detail-page__sheet"
-          :class="{ 'appointment-detail-page__sheet--terminal': isTerminal }"
+        <AppointmentTicket
+          v-if="ticket"
+          class="appointment-detail-page__ticket"
+          v-bind="ticket"
+          label="Turno"
         >
-          <div v-if="timeSpan" class="appointment-detail-page__span" aria-hidden="true">
-            <p class="appointment-detail-page__span-date">
-              {{ timeSpan.date
-              }}<template v-if="businessTimezone">
-                · {{ timezoneLabel(businessTimezone) }}</template
-              >
-            </p>
-            <div class="appointment-detail-page__span-row">
-              <span class="appointment-detail-page__span-time">{{ timeSpan.start }}</span>
-              <span class="appointment-detail-page__span-track">
-                <i
-                  class="appointment-detail-page__span-line appointment-detail-page__span-line--start"
-                ></i>
-                <span class="appointment-detail-page__span-length"
-                  >{{ detail.durationMinutes }} min</span
-                >
-                <i
-                  class="appointment-detail-page__span-line appointment-detail-page__span-line--end"
-                ></i>
-              </span>
-              <span class="appointment-detail-page__span-time">{{ timeSpan.end }}</span>
-            </div>
-          </div>
-
-          <dl class="appointment-detail-page__facts">
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--time">
-              <dt>Hora</dt>
-              <dd>
-                {{ timeRangeLabel }}
-                <span v-if="businessTimezone">· {{ timezoneLabel(businessTimezone) }}</span>
-              </dd>
-            </div>
-            <div class="appointment-detail-page__fact">
+          <dl class="appointment-detail-page__leaders">
+            <div class="appointment-detail-page__leader">
               <dt>Persona atendida</dt>
               <dd>{{ detail.attendeeName }}</dd>
             </div>
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--service">
-              <dt>Servicio</dt>
-              <dd>
-                {{ detail.serviceName }} · {{ detail.durationMinutes }} min ·
-                {{ formatMoney(detail.priceAmount, detail.currency) }}
-              </dd>
-            </div>
-            <div class="appointment-detail-page__fact appointment-detail-page__fact--professional">
-              <dt>{{ v.Professional }}</dt>
-              <dd>{{ detail.professionalFullName }}</dd>
-            </div>
-            <div class="appointment-detail-page__fact">
+            <div class="appointment-detail-page__leader">
               <dt>Cliente que reservó</dt>
               <dd>{{ detail.customerFullName }}</dd>
             </div>
-            <div
-              v-if="detail.customerPhone || detail.customerEmail"
-              class="appointment-detail-page__fact"
-            >
-              <dt>Contacto</dt>
+            <div v-if="detail.customerPhone" class="appointment-detail-page__leader">
+              <dt>Teléfono</dt>
               <dd>
-                <span v-if="detail.customerPhone">{{ detail.customerPhone }}</span>
-                <span v-if="detail.customerPhone && detail.customerEmail"> · </span>
-                <span v-if="detail.customerEmail">{{ detail.customerEmail }}</span>
+                <a
+                  class="appointment-detail-page__contact"
+                  :href="`tel:${detail.customerPhone}`"
+                  :aria-label="`Llamar al ${detail.customerPhone}`"
+                  ><PhoneDisplay :value="detail.customerPhone"
+                /></a>
               </dd>
             </div>
-            <div
-              v-if="detail.homeService"
-              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
-            >
-              <dt>A domicilio</dt>
+            <div v-if="detail.customerEmail" class="appointment-detail-page__leader">
+              <dt>Correo</dt>
               <dd>
-                <span>{{ detail.homeService.address }}</span>
-                <template v-if="homeServiceMapsUrl">
-                  {{ ' ' }}·
-                  <a :href="homeServiceMapsUrl" target="_blank" rel="noopener noreferrer"
-                    >Abrir en Google Maps (nueva pestaña)</a
-                  >
-                </template>
+                <a
+                  class="appointment-detail-page__contact"
+                  :href="`mailto:${detail.customerEmail}`"
+                  :aria-label="`Escribir a ${detail.customerEmail}`"
+                  >{{ detail.customerEmail }}</a
+                >
               </dd>
-            </div>
-            <div
-              v-if="detail.customerNote"
-              class="appointment-detail-page__fact appointment-detail-page__fact--wide"
-            >
-              <dt>Nota del cliente</dt>
-              <dd>{{ detail.customerNote }}</dd>
             </div>
           </dl>
-        </div>
+          <div v-if="detail.homeService" class="appointment-detail-page__block">
+            <p class="appointment-detail-page__block-label">A domicilio</p>
+            <p class="appointment-detail-page__block-value">{{ detail.homeService.address }}</p>
+            <a
+              v-if="homeServiceMapsUrl"
+              class="appointment-detail-page__contact"
+              :href="homeServiceMapsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Abrir en Google Maps (nueva pestaña)</a
+            >
+          </div>
+          <div v-if="detail.customerNote" class="appointment-detail-page__block">
+            <p class="appointment-detail-page__block-label">Nota del cliente</p>
+            <p class="appointment-detail-page__block-value">{{ detail.customerNote }}</p>
+          </div>
+        </AppointmentTicket>
 
         <section
           class="appointment-detail-page__history"
@@ -1012,7 +1132,15 @@ function occurredAtLabel(entry: HistoryEntry): string {
               Sin eventos registrados todavía.
             </p>
 
-            <ol v-else class="appointment-detail-page__history-list" aria-label="Eventos del turno">
+            <ol
+              v-else
+              class="appointment-detail-page__history-list"
+              :class="{
+                'appointment-detail-page__history-list--railed': historyEnd,
+                'appointment-detail-page__history-list--upcoming': historyEnd?.kind === 'upcoming',
+              }"
+              aria-label="Eventos del turno"
+            >
               <li
                 v-for="entry in historyItems"
                 :key="entry.id"
@@ -1040,10 +1168,40 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 >
                   <li v-for="change in entry.changes" :key="change.fieldName">
                     {{ historyFieldLabel(change.fieldName, v) }}:
-                    {{ change.previousValue ?? '—' }} →
-                    {{ change.newValue ?? '—' }}
+                    {{
+                      historyChangeValue(
+                        change.fieldName,
+                        change.previousValue,
+                        v,
+                        businessTimezone,
+                      )
+                    }}
+                    →
+                    {{ historyChangeValue(change.fieldName, change.newValue, v, businessTimezone) }}
                   </li>
                 </ul>
+              </li>
+              <li
+                v-if="historyEnd && historyEnd.kind !== 'close'"
+                class="appointment-detail-page__history-item appointment-detail-page__history-end"
+                :class="`appointment-detail-page__history-end--${historyEnd.kind}`"
+              >
+                <span
+                  class="appointment-detail-page__history-icon"
+                  aria-hidden="true"
+                  v-html="factIcon('calendar')"
+                />
+                <div class="appointment-detail-page__history-main">
+                  <span class="appointment-detail-page__history-event">{{ historyEnd.title }}</span>
+                  <span class="appointment-detail-page__history-meta">{{ historyEnd.meta }}</span>
+                </div>
+              </li>
+              <li
+                v-else-if="historyEnd"
+                class="appointment-detail-page__history-item appointment-detail-page__history-end appointment-detail-page__history-end--close"
+                aria-hidden="true"
+              >
+                <span class="appointment-detail-page__history-icon" />
               </li>
             </ol>
 
@@ -1601,13 +1759,11 @@ function occurredAtLabel(entry: HistoryEntry): string {
 </template>
 
 <style scoped>
-/* Detalle de turno sobre la tinta del cascarón (DEC-146, issue #471): sustituye el
-   lienzo marfil de la lámina #191 por el lenguaje del panel — cabecera editorial,
-   ficha de pergamino con cinta métrica de latón y línea de tiempo con marcas de
-   latón. Un turno terminal cambia de material (contorno sobre tinta), no de peso
-   (§6.7). Los colores de estado son los de la agenda diaria. */
+/* Detalle de turno sobre la tinta del cascarón (DEC-146, issue #471): cabecera
+   editorial con el monograma de la familia, la tarjeta de turno compartida
+   (DEC-189, #757) con sus filas de puntos guía y la línea de tiempo con marcas de
+   latón. El estado vive en el sello de la tarjeta. */
 .appointment-detail-page {
-  --tone: var(--color-appt-confirmed);
   --rule: color-mix(in srgb, var(--color-on-strong) 16%, transparent);
 
   display: flex;
@@ -1618,18 +1774,6 @@ function occurredAtLabel(entry: HistoryEntry): string {
   padding: 20px 16px 24px;
   /* Transparente: la tinta y el fondo animado los pone el cascarón. */
   background: transparent;
-}
-
-.appointment-detail-page--completed {
-  --tone: var(--color-appt-completed);
-}
-
-.appointment-detail-page--no-show {
-  --tone: var(--color-appt-no-show);
-}
-
-.appointment-detail-page--cancelled {
-  --tone: var(--color-appt-cancelled);
 }
 
 @media (min-width: 1024px) {
@@ -1651,13 +1795,26 @@ function occurredAtLabel(entry: HistoryEntry): string {
     margin-bottom: auto;
     padding-bottom: var(--space-6);
   }
+
+  /* La carga se coloca igual que el detalle, para que llegue sin moverse (#758). */
+  .appointment-detail-page:has(> .appointment-detail-page__loading)
+    > .appointment-detail-page__back {
+    margin-top: auto;
+  }
+
+  .appointment-detail-page > .appointment-detail-page__loading {
+    margin-bottom: auto;
+    padding-bottom: var(--space-6);
+  }
 }
 
+/* La tarjeta conserva su proporción (hasta 640 px) y el historial toma el resto. */
 .appointment-detail-page__body {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  grid-template-columns: minmax(0, 640px) minmax(280px, 1fr);
   gap: var(--space-12);
-  align-items: start;
+  /* El historial toma el alto de la tarjeta (#758); la tarjeta conserva el suyo. */
+  align-items: stretch;
 }
 
 .appointment-detail-page__back {
@@ -1706,24 +1863,115 @@ function occurredAtLabel(entry: HistoryEntry): string {
 .appointment-detail-page__skeleton {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-block: var(--space-4);
+  gap: var(--space-6);
+}
+
+.appointment-detail-page__skeleton-monogram {
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 4px;
+}
+
+.appointment-detail-page__skeleton-bar--button {
+  width: 188px;
+  height: 44px;
+  border-radius: var(--radius-md);
+}
+
+.appointment-detail-page__skeleton-bar--button + .appointment-detail-page__skeleton-bar--button {
+  width: 148px;
+}
+
+.appointment-detail-page__skeleton-bar--ruler {
+  width: 86%;
+  height: 34px;
+  margin-block: var(--space-3) var(--space-1);
+}
+
+.appointment-detail-page__skeleton-bar--meta {
+  width: 52%;
+  height: 12px;
+}
+
+.appointment-detail-page__skeleton-events {
+  display: flex;
+  flex-direction: column;
+}
+
+.appointment-detail-page__skeleton-event {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 72px;
+  padding: 2px 0 var(--space-6) var(--space-8);
+  border-left: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+}
+
+.appointment-detail-page__skeleton-event:last-child {
+  border-left-color: transparent;
+}
+
+.appointment-detail-page__skeleton-diamond {
+  position: absolute;
+  top: 3px;
+  left: -9px;
+  width: 17px;
+  height: 17px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 2px;
+  transform: rotate(45deg);
 }
 
 .appointment-detail-page__skeleton-card {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
+  align-self: start;
+  width: 100%;
+  max-width: 640px;
+  padding: 18px 22px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 4px;
+}
+
+.appointment-detail-page__skeleton-perforation {
+  display: block;
+  margin-inline: -22px;
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+}
+
+.appointment-detail-page__skeleton-when {
+  display: flex;
   gap: var(--space-4);
-  margin-block: var(--space-2) var(--space-5);
-  padding: var(--space-5);
-  border: 1px dashed color-mix(in srgb, var(--color-on-strong) 18%, transparent);
-  border-radius: var(--radius-lg);
+  align-items: center;
+}
+
+.appointment-detail-page__skeleton-leaf {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+  border-radius: 3px;
 }
 
 .appointment-detail-page__skeleton-row {
   display: flex;
-  flex-direction: column;
   gap: var(--space-2);
+  align-items: center;
+}
+
+.appointment-detail-page__skeleton-dots {
+  flex: 1;
+  height: 2px;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 45%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-size: 6px 2px;
 }
 
 .appointment-detail-page__skeleton-bar {
@@ -1743,18 +1991,25 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 28px;
 }
 
+.appointment-detail-page__skeleton-bar--service {
+  width: 48%;
+  height: 24px;
+}
+
 .appointment-detail-page__skeleton-bar--time {
-  width: 72%;
-  height: 26px;
+  width: 42%;
+  height: 34px;
 }
 
 .appointment-detail-page__skeleton-bar--label {
-  width: 28%;
+  flex: none;
+  width: 24%;
   height: 12px;
 }
 
 .appointment-detail-page__skeleton-bar--value {
-  width: 58%;
+  flex: none;
+  width: 30%;
 }
 
 .appointment-detail-page__skeleton-bar--section {
@@ -1812,20 +2067,37 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-bottom: 1px solid var(--rule);
 }
 
-/* Retrato cuadrado con filete de latón y monograma (§6.7). */
+/* Monograma de la familia (#757): una tarjeta cuadrada con filete de latón, las
+   iniciales en serif y el rombo de latón asomando bajo el borde, como un sello. */
 .appointment-detail-page__avatar {
+  position: relative;
   display: grid;
-  flex: 0 0 72px;
+  flex: 0 0 68px;
   place-items: center;
-  width: 72px;
-  height: 72px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
+  width: 68px;
+  height: 68px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
   color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
-  border: 0;
-  border-radius: 50%;
-  font-weight: 600;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.appointment-detail-page__avatar::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 2px solid var(--color-canvas);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .appointment-detail-page__identity {
@@ -1847,73 +2119,18 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-on-strong);
 }
 
+/* El estado se ve en el sello de la tarjeta (#757); aquí queda para el lector
+   de pantalla, que lo anuncia junto al nombre. */
 .appointment-detail-page__status {
-  display: inline-flex;
-  align-items: center;
-  margin: 0;
-}
-
-/* La palabra de estado lleva el color del estado, además del texto. */
-.appointment-detail-page__status :deep(.base-badge) {
-  gap: var(--space-2);
-  height: auto;
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 20px;
-  letter-spacing: 0;
-  color: var(--tone);
-  text-transform: none;
-  background-color: transparent;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
   border: 0;
-}
-
-/* El icono del estado, como en la agenda del día: el color nunca va solo. */
-.appointment-detail-page__status :deep(.base-badge)::before {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  content: '';
-  background-color: currentColor;
-  mask: var(--tone-icon) center / contain no-repeat;
-}
-
-/* Marcas de estado compartidas (styles/statusMarks.css): el rombo en cada forma. */
-.appointment-detail-page {
-  --tone-icon: var(--mark-confirmed);
-}
-
-.appointment-detail-page--completed {
-  --tone-icon: var(--mark-completed);
-}
-
-.appointment-detail-page--no-show {
-  --tone-icon: var(--mark-no-show);
-}
-
-.appointment-detail-page--current {
-  --tone: var(--color-appt-in-progress);
-  --tone-icon: var(--mark-in-progress);
-}
-
-.appointment-detail-page--to-record {
-  --tone: var(--color-appt-pending);
-  --tone-icon: var(--mark-to-record);
-}
-
-.appointment-detail-page--cancelled {
-  --tone-icon: var(--mark-cancelled);
-}
-
-/* En curso: la palabra en tinta (el Sol no da contraste como texto) y el disco
-   en Sol, como en la agenda. */
-.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge) {
-  color: var(--color-text-primary);
-}
-
-.appointment-detail-page--current .appointment-detail-page__status :deep(.base-badge)::before {
-  background-color: var(--color-sun);
 }
 
 /* Cancelado: el nombre tachado, como en la agenda del día. */
@@ -1998,206 +2215,137 @@ function occurredAtLabel(entry: HistoryEntry): string {
   height: 100%;
 }
 
-/* ── Ficha del turno ────────────────────────────────────────────────────── */
+/* ── Tarjeta del turno (#757) ──────────────────────────────────────────── */
 
-/* Superficies sobre tinta: la ficha usa los tokens que el modo Marfil ya redefine
-   (`--color-on-strong*`, acento de marca), así que en Tinta es oscura, en Marfil
-   clara y en Automático sigue al sistema, sin hoja de estilos paralela (§6.9).
-   Un turno vigente lleva un velo tenue del color del texto; uno terminal cambia de
-   material a contorno puro con el color del estado (§6.7). */
-.appointment-detail-page__sheet {
-  --sx-text: var(--color-text-primary);
-  --sx-muted: var(--color-text-secondary);
-  --sx-label: var(--color-text-secondary);
-  --sx-line: var(--color-border-subtle);
+/* La tarjeta de turno compartida (DEC-189) sobre el lienzo del panel. Las muescas
+   del troquel se calan con el color de lo que hay detrás. */
+.appointment-detail-page__ticket {
+  --ticket-backdrop: var(--color-canvas);
 
-  position: relative;
-  min-width: 0;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
-  border-left: 4px solid var(--tone);
-  border-radius: 10px;
-  overflow: hidden;
+  align-self: start;
+  width: 100%;
+  max-width: 640px;
 }
 
-.appointment-detail-page__sheet--terminal {
-  background-color: transparent;
-  border-color: var(--color-border-subtle);
-  border-left-color: var(--tone);
-  border-style: dashed;
-}
-
-/* Cinta métrica de latón en el borde superior: marcas cada 10 px y una más larga
-   cada 50, como la de la hoja de datos de la reserva pública. */
-.appointment-detail-page__sheet::before {
-  content: none;
-  position: absolute;
-  inset: 0 0 auto;
-  height: 11px;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--sx-label), var(--sx-label)) top / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 10px) top / 100% 5px
-      no-repeat,
-    repeating-linear-gradient(90deg, var(--sx-label) 0 1px, transparent 1px 50px) top / 100% 10px
-      no-repeat;
-  transform-origin: left;
-  animation: none;
-}
-
-/* Franja de tiempo: inicio, regla con la duración y fin. Decorativa. */
-.appointment-detail-page__span {
-  padding: var(--space-8) var(--space-6) var(--space-4);
-  border-bottom: 1px solid var(--sx-line);
-}
-
-.appointment-detail-page__span-date {
-  margin: 0 0 var(--space-3);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
-  line-height: 20px;
-}
-
-.appointment-detail-page__span-row {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-}
-
-@media (min-width: 1024px) {
-  .appointment-detail-page__title {
-    font-size: 48px;
-  }
-}
-
-.appointment-detail-page__span-time {
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-page);
-  line-height: 1;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  color: var(--sx-text);
-  font-weight: 600;
-}
-
-.appointment-detail-page__span-track {
-  display: flex;
-  flex: 1;
-  gap: var(--space-3);
-  align-items: center;
-  min-width: 0;
-}
-
-.appointment-detail-page__span-line {
-  position: relative;
-  flex: 1;
-  height: 1px;
-  min-width: 12px;
-  background-color: var(--sx-label);
-}
-
-.appointment-detail-page__span-line::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  background-color: var(--sx-label);
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.appointment-detail-page__span-line--start::before {
-  left: 0;
-}
-
-.appointment-detail-page__span-line--end::before {
-  right: 0;
-}
-
-.appointment-detail-page__span-length {
-  flex: none;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--color-text-secondary);
-  line-height: 16px;
-}
-
-/* Hechos en cuadrícula, con el rótulo sobre el valor: tres columnas en escritorio,
-   dos en tablet y una en móvil. «Hora» ya la dice la franja de arriba; su fila queda
-   solo para el lector de pantalla. */
-.appointment-detail-page__facts {
+/* Los datos de la persona y del contacto, con puntos guía como la carta y los
+   correos (#747, #755): etiqueta, puntos de latón y valor. */
+.appointment-detail-page__leaders {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0 var(--space-6);
-  padding: var(--space-2) var(--space-6) var(--space-4);
+  padding: var(--space-3) 22px var(--space-2);
   margin: 0;
+  border-top: 1px dashed var(--color-brass-line);
 }
 
-.appointment-detail-page__fact {
+.appointment-detail-page__leader {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  order: 3;
-  min-width: 0;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--sx-line);
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 0;
 }
 
-.appointment-detail-page__fact--service {
-  grid-column: span 2;
-  order: 1;
-}
-
-.appointment-detail-page__fact--professional {
-  order: 2;
-}
-
-.appointment-detail-page__fact--wide {
-  grid-column: 1 / -1;
-  order: 4;
-}
-
-.appointment-detail-page__fact--time {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  clip-path: inset(50%);
-  border: 0;
-}
-
-.appointment-detail-page__fact dt {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+.appointment-detail-page__leader dt {
+  flex: none;
+  max-width: 55%;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--color-text-secondary);
-  line-height: 16px;
 }
 
-.appointment-detail-page__fact dd {
+.appointment-detail-page__leader::after {
+  order: 1;
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(-3px);
+}
+
+.appointment-detail-page__leader dd {
+  order: 2;
+  min-width: 0;
   margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: var(--font-size-body-line);
   overflow-wrap: anywhere;
-  color: var(--sx-text);
+  text-align: right;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
-.appointment-detail-page__fact dd a {
+/* Lo largo (dirección, nota) va debajo de su etiqueta, sin puntos guía. */
+.appointment-detail-page__block {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) 22px var(--space-3);
+}
+
+.appointment-detail-page__block p {
+  margin: 0;
+}
+
+.appointment-detail-page__block-label {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.appointment-detail-page__block-value {
+  font-size: 15px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+/* Llamar, escribir y abrir el mapa: el subrayado de latón del enlace de la familia. */
+.appointment-detail-page__contact {
   color: inherit;
-  text-underline-offset: 3px;
+  text-decoration: underline;
+  text-decoration-color: var(--color-brass-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* El teléfono va partido en bandera, prefijo y número (PhoneDisplay, inline-flex):
+   la decoración del enlace no atraviesa una caja atómica, así que la línea de
+   latón la dibuja el propio número. */
+.appointment-detail-page__contact :deep(.phone-display__number) {
+  text-decoration: underline;
+  text-decoration-color: var(--color-brass-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.appointment-detail-page__contact:hover :deep(.phone-display__number) {
+  text-decoration-color: var(--color-brass-body);
+  text-decoration-thickness: 2px;
+}
+
+.appointment-detail-page__contact:hover {
+  text-decoration-color: var(--color-brass-body);
+  text-decoration-thickness: 2px;
+}
+
+/* El doble anillo de los botones de la familia, con el papel de la tarjeta por
+   dentro (#758). */
+.appointment-detail-page__contact:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-focus);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .appointment-detail-page__contact {
+    transition: text-decoration-color 160ms ease;
+  }
 }
 
 /* ── Historial: línea de tiempo ─────────────────────────────────────────── */
@@ -2213,19 +2361,74 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-title {
   margin: 0;
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--font-size-title-section);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.1;
   color: var(--color-on-strong);
 }
 
 .appointment-detail-page__history-list {
   display: flex;
+  flex: 1 0 auto;
   flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
+}
+
+/* El riel llega hasta el final de la columna (#758): el último evento estira su
+   filete hasta el hito del turno o el rombo de cierre. Hacia un turno que aún no
+   ocurre, el tramo va punteado en latón: es tiempo por venir. */
+.appointment-detail-page__history-list--railed
+  > .appointment-detail-page__history-item:nth-last-child(2) {
+  flex-grow: 1;
+}
+
+.appointment-detail-page__history-list--upcoming
+  > .appointment-detail-page__history-item:nth-last-child(2) {
+  border-left-style: dashed;
+  border-left-color: var(--color-brass-line);
+}
+
+.appointment-detail-page__history-end {
+  min-height: 0;
+}
+
+.appointment-detail-page__history-end .appointment-detail-page__history-event {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.appointment-detail-page__history-end .appointment-detail-page__history-meta {
+  color: var(--color-brass-text);
+}
+
+.appointment-detail-page__history-end--upcoming .appointment-detail-page__history-icon,
+.appointment-detail-page__history-end--now .appointment-detail-page__history-icon {
+  color: var(--color-brass-text);
+  border-color: var(--color-brass-line);
+}
+
+.appointment-detail-page__history-end--upcoming .appointment-detail-page__history-icon {
+  border-style: dashed;
+}
+
+.appointment-detail-page__history-end--close {
+  height: 10px;
+  padding: 0;
+}
+
+.appointment-detail-page__history-end--close .appointment-detail-page__history-icon {
+  top: 0;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background-color: var(--color-brass-line);
+  border: 0;
+  border-radius: 1px;
 }
 
 .appointment-detail-page__history-item {
@@ -2294,12 +2497,31 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-on-strong-soft);
 }
 
+/* Cada cambio lleva el rombo de latón de la familia, no la viñeta ○ que el
+   navegador pone a una lista anidada (#757). */
 .appointment-detail-page__history-changes {
-  padding-left: var(--space-4);
+  padding: 0;
   margin: var(--space-2) 0 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
   color: var(--color-on-strong-soft);
+  list-style: none;
+}
+
+.appointment-detail-page__history-changes li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.appointment-detail-page__history-changes li::before {
+  position: absolute;
+  top: 0.62em;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  content: '';
+  background: var(--color-brass-line);
+  transform: rotate(45deg);
 }
 
 .appointment-detail-page__dialog-form {
@@ -2765,6 +2987,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
     flex-basis: 56px;
     width: 56px;
     height: 56px;
+    font-size: 25px;
   }
 
   /* La serif necesita ~20 % más que la sans de antes para leerse igual (#726). */
@@ -2798,25 +3021,19 @@ function occurredAtLabel(entry: HistoryEntry): string {
     gap: var(--space-6);
   }
 
-  .appointment-detail-page__span {
-    padding: var(--space-8) var(--space-4) var(--space-4);
+  .appointment-detail-page__skeleton {
+    gap: var(--space-4);
   }
 
-  .appointment-detail-page__span-time {
-    font-size: var(--font-size-title-item);
+  .appointment-detail-page__skeleton-monogram {
+    flex-basis: 56px;
+    width: 56px;
+    height: 56px;
   }
 
-  .appointment-detail-page__span-row {
-    gap: var(--space-3);
-  }
-
-  .appointment-detail-page__facts {
-    grid-template-columns: 1fr;
-    padding: var(--space-1) var(--space-4) var(--space-3);
-  }
-
-  .appointment-detail-page__fact--service {
-    grid-column: auto;
+  .appointment-detail-page__skeleton-bar--button,
+  .appointment-detail-page__skeleton-bar--button + .appointment-detail-page__skeleton-bar--button {
+    width: 100%;
   }
 
   .appointment-detail-page__history {
@@ -2884,24 +3101,151 @@ function occurredAtLabel(entry: HistoryEntry): string {
     gap: var(--space-8);
   }
 
-  .appointment-detail-page__facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .appointment-detail-page__dialog-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .appointment-detail-page__sheet::before,
   .appointment-detail-page__cancel-time-text::after {
     animation: none;
   }
 }
 
-:global(:root[data-motion='reduced']) .appointment-detail-page__sheet::before,
 :global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after {
   animation: none;
+}
+/* ── Llegada (#758) ─────────────────────────────────────────────────────────
+   Una vez, cuando la tarjeta recibe sus datos (~900 ms, solo transform y
+   opacity): la cabecera se asienta (0–320), la tarjeta sube (60–520), el rombo
+   de la regla corre desde el borde hasta la hora (300–820), el sello aterriza
+   (380–760) y las filas de puntos guía y los eventos del historial entran
+   escalonados (440–920). Con movimiento reducido no existe: el primer cuadro ya
+   es el final. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__hero {
+    animation: detail-arrive-rise 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__ticket {
+    animation: detail-arrive-ticket 460ms 60ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    :deep(.appointment-ticket__seal) {
+    animation: detail-arrive-stamp 380ms 380ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    :deep(.day-ruler__mark--mine) {
+    animation: detail-arrive-slide 520ms 300ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader,
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__block {
+    animation: detail-arrive-rise 300ms 440ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(2) {
+    animation-delay: 500ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(3) {
+    animation-delay: 560ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__leader:nth-child(4),
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__block {
+    animation-delay: 620ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item {
+    animation: detail-arrive-step 320ms 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(2) {
+    animation-delay: 560ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(3) {
+    animation-delay: 640ms;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-detail-page--arrive
+    .appointment-detail-page__history-item:nth-child(n + 4) {
+    animation-delay: 600ms;
+  }
+}
+
+@keyframes detail-arrive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes detail-arrive-ticket {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes detail-arrive-step {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+/* `scale` y `rotate` sueltos se suman al giro propio del sello sin pisarlo. */
+@keyframes detail-arrive-stamp {
+  from {
+    opacity: 0;
+    scale: 1.6;
+    rotate: -6deg;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 0.94;
+  }
+}
+
+/* `translate` suelto se suma al centrado y al giro del rombo. */
+@keyframes detail-arrive-slide {
+  from {
+    opacity: 0;
+    translate: var(--arrive-mark-from, 0) 0;
+  }
+
+  25% {
+    opacity: 1;
+  }
 }
 </style>

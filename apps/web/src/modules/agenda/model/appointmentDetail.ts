@@ -2,7 +2,12 @@
 // texto que `booking.EventType`/`booking.ActorType` en el backend (nunca
 // números, DEC-016).
 import type { Vocabulary } from '@/shared/model'
-import type { AppointmentOrigin, AppointmentStatus, HomeService } from './dailyAgenda'
+import {
+  appointmentStatusLabel,
+  type AppointmentOrigin,
+  type AppointmentStatus,
+  type HomeService,
+} from './dailyAgenda'
 
 // AppointmentDetail (CA-064-01 a CA-064-04) es la lectura completa de un
 // turno: nunca trae `customerId` ni ningún identificador de actor
@@ -102,4 +107,43 @@ const FIXED_FIELD_LABELS: Record<string, string> = {
 export function historyFieldLabel(fieldName: string, v: Vocabulary): string {
   if (fieldName === 'professional_id') return v.Professional
   return FIXED_FIELD_LABELS[fieldName] ?? fieldName
+}
+
+const STATUS_VALUES: readonly string[] = [
+  'confirmed',
+  'completed',
+  'no_show',
+  'cancelled_by_customer',
+  'cancelled_by_professional',
+]
+
+function isStatusValue(value: string): value is AppointmentStatus {
+  return STATUS_VALUES.includes(value)
+}
+
+// Valor de un cambio del historial tal como lo lee una persona (#757): el estado
+// con su etiqueta en español y las horas en la zona del negocio. Lo que no se
+// reconoce (texto libre como el motivo) se muestra tal cual; nunca se inventa.
+export function historyChangeValue(
+  fieldName: string,
+  value: string | null,
+  v: Vocabulary,
+  timezone: string | null,
+): string {
+  if (value === null || value === '') return '—'
+  if (fieldName === 'status' && isStatusValue(value)) return appointmentStatusLabel(value, v)
+  if ((fieldName === 'starts_at' || fieldName === 'ends_at') && timezone) {
+    const instant = new Date(value)
+    if (!Number.isNaN(instant.getTime())) {
+      return new Intl.DateTimeFormat('es-CO', {
+        timeZone: timezone,
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(instant)
+    }
+  }
+  return value
 }
