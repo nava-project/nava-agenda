@@ -2,9 +2,9 @@ package notification
 
 import (
 	"math"
-	"regexp"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
