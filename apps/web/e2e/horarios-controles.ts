@@ -14,15 +14,23 @@ export async function selectProfessional(page: Page, fullName: string): Promise<
   await expect(page.locator('#schedules-professional-select')).toContainText(fullName)
 }
 
-// Fija una hora HH:MM en un BaseTimePicker cuyo rótulo es `label`.
+// Fija una hora HH:MM (24 h) en un BaseTimePicker cuyo rótulo es `label`. El
+// selector es de 12 h (#722): se escribe la hora de 1 a 12 y se elige a. m./p. m.
+export async function fillTime(picker: Locator, time: string) {
+  const h24 = Number(time.slice(0, 2))
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12
+  await picker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(String(h12))
+  await picker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(time.slice(3))
+  await picker.getByRole('radio', { name: h24 < 12 ? 'a. m.' : 'p. m.', exact: true }).click()
+}
+
 export async function pickTime(scope: Locator, page: Page, label: string, time: string, index = 0) {
   await scope
     .getByRole('button', { name: new RegExp(label) })
     .nth(index)
     .click()
   const picker = page.getByRole('dialog', { name: label, exact: true })
-  await picker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(time.slice(0, 2))
-  await picker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(time.slice(3))
+  await fillTime(picker, time)
   await picker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
 }
 

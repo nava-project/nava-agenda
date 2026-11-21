@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page, type BrowserContext } from '@pla
 import axe from 'axe-core'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fillTime } from './horarios-controles'
 
 // #100: bloqueos por fechas explícitas, excepciones y edición de serie por
 // alcance, sobre API y PostgreSQL reales. Reutiliza los datos dedicados de
@@ -242,8 +243,7 @@ test('series por fechas, excepciones y edición por alcance con API real', async
     ] as const) {
       await scope.getByRole('button', { name: new RegExp(label) }).click()
       const timePicker = page.getByRole('dialog', { name: label, exact: true })
-      await timePicker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(hour)
-      await timePicker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(minutes)
+      await fillTime(timePicker, `${hour}:${minutes}`)
       await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
     }
     await pickDate(page, scope, /Vigente desde/, '2099-01-01')

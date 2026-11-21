@@ -56,8 +56,8 @@ describe('OpeningHoursPanel', () => {
     expect(day(wrapper, 0).findAll('.opening__interval')).toHaveLength(2)
     expect(day(wrapper, 1).classes()).toContain('opening__day--closed')
     expect(day(wrapper, 1).text()).toContain('Cerrado')
-    // 24:00 se edita como 00:00 (el selector llega hasta 23:59).
-    expect(day(wrapper, 4).findAll('.base-time-picker')[1].text()).toContain('00:00')
+    // 24:00 se edita como 00:00 y se lee «12:00 a. m.» (el selector llega hasta 11:59 p. m.).
+    expect(day(wrapper, 4).findAll('.base-time-picker')[1].text()).toContain('12:00 a. m.')
     expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
     expect(await axe(wrapper.element)).toHaveNoViolations()
   })

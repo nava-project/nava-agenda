@@ -1,6 +1,12 @@
 <script setup lang="ts">
+// Selector de hora compartido (#722). Todo Agenda le muestra la hora al dueño en
+// 12 h es-CO («9:00 a. m.»), así que el disparador y el diálogo también: hora de
+// 1 a 12, minutos y «a. m. / p. m.». El modelo sigue siendo `HH:MM` de 24 h, sin
+// cambiar la API del componente. Quien escriba la hora en 24 h no se equivoca:
+// «14» pasa a «2» con «p. m.» y «0» a «12» con «a. m.».
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { usePickerPopover } from '@/shared/composables/usePickerPopover'
+import { formatClock } from '@/shared/model/openingHours'
 
 const props = withDefaults(
   defineProps<{
@@ -26,59 +32,117 @@ const trigger = ref<HTMLButtonElement | null>(null)
 const panel = ref<HTMLElement | null>(null)
 const open = ref(false)
 type Part = 'hour' | 'minute'
-const hourText = ref('09')
+type Meridiem = 'am' | 'pm'
+const MERIDIEMS: readonly { value: Meridiem; label: string }[] = [
+  { value: 'am', label: 'a. m.' },
+  { value: 'pm', label: 'p. m.' },
+]
+const hourText = ref('9')
 const minuteText = ref('00')
+const meridiem = ref<Meridiem>('am')
 const pad = (value: number) => String(value).padStart(2, '0')
-const validPart = (text: string, max: number) => /^\d{1,2}$/.test(text) && Number(text) <= max
-const validHour = computed(() => validPart(hourText.value, 23))
-const validMinute = computed(() => validPart(minuteText.value, 59))
+const digits = (text: string) => /^\d{1,2}$/.test(text)
+const validHour = computed(
+  () => digits(hourText.value) && Number(hourText.value) >= 1 && Number(hourText.value) <= 12,
+)
+const validMinute = computed(() => digits(minuteText.value) && Number(minuteText.value) <= 59)
 const validTime = computed(() => validHour.value && validMinute.value)
 const hour = computed(() => Number(hourText.value))
 const minute = computed(() => Number(minuteText.value))
+const meridiemLabel = computed(() => (meridiem.value === 'am' ? 'a. m.' : 'p. m.'))
+const display = computed(() => (props.modelValue ? formatClock(props.modelValue) : ''))
 const labelledBy = computed(() => `${labelId} ${triggerId.value}`)
 const { style } = usePickerPopover(open, root, trigger, panel, close)
 
-function choose(part: Part, value: number) {
-  if (part === 'hour') hourText.value = pad(value)
-  else minuteText.value = pad(value)
+/** Hora de 24 h (0–23) a partir de la de 12 h y su a. m./p. m. */
+const to24 = (h12: number, m: Meridiem) => (h12 % 12) + (m === 'pm' ? 12 : 0)
+
+function setFrom24(h24: number) {
+  const normalized = ((h24 % 24) + 24) % 24
+  meridiem.value = normalized < 12 ? 'am' : 'pm'
+  hourText.value = String(normalized % 12 === 0 ? 12 : normalized % 12)
 }
+
+function focusMinutes() {
+  const input = panel.value?.querySelector<HTMLInputElement>(`#minute-input-${uid}`)
+  input?.focus({ preventScroll: true })
+  input?.select()
+}
+
 function edit(part: Part, event: Event) {
   const input = event.target as HTMLInputElement
   // Solo dígitos: letras y signos no llegan a mostrarse en el campo.
   const text = input.value.replace(/\D/g, '')
   if (text !== input.value) input.value = text
-  if (part === 'hour') hourText.value = text
-  else minuteText.value = text
-  if (validPart(text, part === 'hour' ? 23 : 59)) {
-    if (part === 'hour' && text.length === 2) {
-      const input = panel.value?.querySelector<HTMLInputElement>(`#minute-input-${uid}`)
-      input?.focus({ preventScroll: true })
-      input?.select()
-    }
+  if (part === 'minute') {
+    minuteText.value = text
+    return
   }
+  hourText.value = text
+  if (!digits(text)) return
+  const typed = Number(text)
+  // Hora escrita en 24 h: se traduce a 12 h y elige a. m./p. m. por sí sola.
+  if ((typed === 0 && text.length === 2) || (typed >= 13 && typed <= 23)) {
+    setFrom24(typed)
+    input.value = hourText.value
+    focusMinutes()
+    return
+  }
+  if (text.length === 2 && validHour.value) focusMinutes()
 }
+
 function partKeydown(part: Part, event: KeyboardEvent) {
-  const max = part === 'hour' ? 23 : 59
-  const text = part === 'hour' ? hourText.value : minuteText.value
-  let value = validPart(text, max) ? Number(text) : 0
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    apply()
+    return
+  }
+  if (part === 'hour') {
+    // Las flechas recorren el reloj completo: de 11 a. m. a 12 p. m. y de 11 p. m. a 12 a. m.
+    const current = validHour.value ? to24(hour.value, meridiem.value) : 0
+    const steps: Record<string, number> = { ArrowUp: 1, ArrowDown: -1, PageUp: 5, PageDown: -5 }
+    if (event.key in steps) setFrom24(current + steps[event.key]!)
+    else if (event.key === 'Home') hourText.value = '1'
+    else if (event.key === 'End') hourText.value = '12'
+    else return
+    event.preventDefault()
+    return
+  }
+  let value = validMinute.value ? minute.value : 0
   if (event.key === 'ArrowDown') value -= 1
   else if (event.key === 'ArrowUp') value += 1
   else if (event.key === 'PageDown') value -= 5
   else if (event.key === 'PageUp') value += 5
   else if (event.key === 'Home') value = 0
-  else if (event.key === 'End') value = max
-  else if (event.key === 'Enter') {
+  else if (event.key === 'End') value = 59
+  else return
+  event.preventDefault()
+  minuteText.value = pad((value + 60) % 60)
+}
+
+function chooseMeridiem(value: Meridiem, focus = false) {
+  meridiem.value = value
+  if (focus) {
+    void nextTick(() =>
+      panel.value?.querySelector<HTMLElement>(`[data-meridiem="${value}"]`)?.focus(),
+    )
+  }
+}
+
+function meridiemKeydown(event: KeyboardEvent) {
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+    event.preventDefault()
+    chooseMeridiem(meridiem.value === 'am' ? 'pm' : 'am', true)
+  } else if (event.key === 'Enter') {
     event.preventDefault()
     apply()
-    return
-  } else return
-  event.preventDefault()
-  choose(part, (value + max + 1) % (max + 1))
+  }
 }
+
 async function show() {
   if (props.disabled) return
   const current = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(props.modelValue) ? props.modelValue : '09:00'
-  hourText.value = current.slice(0, 2)
+  setFrom24(Number(current.slice(0, 2)))
   minuteText.value = current.slice(3)
   open.value = true
   await nextTick()
@@ -92,7 +156,7 @@ function close(restoreFocus = true) {
 }
 function apply() {
   if (!validTime.value || props.disabled) return
-  emit('update:modelValue', `${pad(hour.value)}:${pad(minute.value)}`)
+  emit('update:modelValue', `${pad(to24(hour.value, meridiem.value))}:${pad(minute.value)}`)
   close()
 }
 function clear() {
@@ -153,7 +217,7 @@ watch(
       @keydown.up.prevent="show"
     >
       <span :class="{ 'base-time-picker__placeholder': !modelValue }">{{
-        modelValue || 'Elegir hora'
+        display || 'Elegir hora'
       }}</span>
       <svg
         viewBox="0 0 16 16"
@@ -184,7 +248,7 @@ watch(
           <header class="base-time-picker__header">
             <div>
               <h3 :id="titleId">{{ label }}</h3>
-              <p :id="hintId">Formato de 24 horas</p>
+              <p :id="hintId">Formato de 12 horas</p>
             </div>
             <button
               type="button"
@@ -206,9 +270,10 @@ watch(
                 maxlength="2"
                 autocomplete="off"
                 role="spinbutton"
-                aria-valuemin="0"
-                aria-valuemax="23"
+                aria-valuemin="1"
+                aria-valuemax="12"
                 :aria-valuenow="validHour ? hour : undefined"
+                :aria-valuetext="validHour ? `${hour} ${meridiemLabel}` : undefined"
                 :aria-invalid="!validHour"
                 :aria-describedby="!validTime ? `time-error-${uid}` : undefined"
                 @input="edit('hour', $event)"
@@ -237,14 +302,36 @@ watch(
                 @focus="($event.target as HTMLInputElement).select()"
               />
             </div>
+            <div
+              class="base-time-picker__meridiem"
+              role="radiogroup"
+              :aria-label="`Mañana o tarde de ${label.toLowerCase()}`"
+            >
+              <button
+                v-for="m in MERIDIEMS"
+                :key="m.value"
+                type="button"
+                role="radio"
+                class="base-time-picker__meridiem-option"
+                :class="{ 'base-time-picker__meridiem-option--on': meridiem === m.value }"
+                :data-meridiem="m.value"
+                :aria-checked="meridiem === m.value"
+                :tabindex="meridiem === m.value ? 0 : -1"
+                @click="chooseMeridiem(m.value)"
+                @keydown="meridiemKeydown"
+              >
+                {{ m.label }}
+              </button>
+            </div>
           </div>
+
           <p
             v-if="!validTime"
             :id="`time-error-${uid}`"
             class="base-time-picker__error"
             role="alert"
           >
-            Hora de 00 a 23 y minutos de 00 a 59.
+            Hora de 1 a 12 y minutos de 00 a 59.
           </p>
           <footer class="base-time-picker__footer">
             <button type="button" @click="close()">Cancelar</button>
@@ -373,7 +460,7 @@ watch(
 }
 .base-time-picker__columns {
   display: grid;
-  grid-template-columns: 1fr 12px 1fr;
+  grid-template-columns: 1fr 12px 1fr 52px;
   gap: 4px;
   margin-top: 4px;
 }
@@ -394,7 +481,8 @@ watch(
   height: 44px;
   padding: 0;
   text-align: center;
-  font: 500 24px/1 var(--font-family-base);
+  /* Las cifras en la serif de la familia, como la hora de la tarjeta de turno. */
+  font: 400 28px/1 var(--font-display, var(--font-family-base));
   font-variant-numeric: tabular-nums;
   color: var(--color-on-strong);
   background: var(--color-field-strong-raised);
@@ -411,6 +499,41 @@ watch(
 .base-time-picker__column input::selection {
   background: var(--color-text-primary);
   color: var(--color-surface);
+}
+/* «a. m. / p. m.»: dos mitades de una ranura; la elegida en latón con su rombo,
+   como el resto de selecciones de la familia. */
+.base-time-picker__meridiem {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  align-self: end;
+  height: 66px;
+  margin-left: 4px;
+}
+.base-time-picker__dialog .base-time-picker__meridiem-option {
+  position: relative;
+  min-height: 0;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--color-field-strong-border);
+  border-radius: 3px;
+}
+.base-time-picker__dialog .base-time-picker__meridiem-option--on {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-brass-body) 16%, var(--color-field-strong));
+  border-color: var(--color-brass-line);
+}
+.base-time-picker__meridiem-option--on::after {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  content: '';
+  background: var(--color-brass-body);
+  rotate: 45deg;
 }
 .base-time-picker__error {
   margin: 12px 0 0;
@@ -440,6 +563,7 @@ watch(
 }
 .base-time-picker__trigger:focus-visible,
 .base-time-picker__dialog button:focus-visible,
+.base-time-picker__dialog .base-time-picker__meridiem-option:focus-visible,
 .base-time-picker__column input:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

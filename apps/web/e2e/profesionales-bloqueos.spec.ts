@@ -2,6 +2,7 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 import axe from 'axe-core'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fillTime } from './horarios-controles'
 
 // #286: API y PostgreSQL reales. Datos dedicados en
 // database/testdata/ui_bloqueos_profesionales_286.sql; no comparte personas ni
@@ -98,8 +99,7 @@ async function pickBlockTime(page: Page, label: string, time: string) {
     .getByRole('button', { name: new RegExp(label) })
     .click()
   const picker = page.getByRole('dialog', { name: label, exact: true })
-  await picker.getByRole('spinbutton', { name: 'Hora', exact: true }).fill(time.slice(0, 2))
-  await picker.getByRole('spinbutton', { name: 'Minutos', exact: true }).fill(time.slice(3))
+  await fillTime(picker, time)
   await picker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
 }
 
@@ -306,12 +306,15 @@ test('bloqueos dentro de Profesionales: ciclo real, aislamiento, errores y evide
       await page.keyboard.press('ArrowUp')
       await expect(minutes).toHaveValue('38')
       await minutes.fill('37')
+      await timePicker.getByRole('radio', { name: 'a. m.', exact: true }).click()
       await checkAxe(page, '.base-time-picker__dialog')
       await page.screenshot({
         path: path.join(evidence, `${testInfo.project.name}-${viewport.width}-minutos.png`),
       })
       await timePicker.getByRole('button', { name: 'Aplicar hora', exact: true }).click()
-      await expect(dialog.getByRole('button', { name: /Hora de inicio/ })).toContainText('09:37')
+      await expect(dialog.getByRole('button', { name: /Hora de inicio/ })).toContainText(
+        '9:37 a. m.',
+      )
 
       expect(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false)
       await page.keyboard.press('Escape')
