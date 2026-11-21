@@ -122,6 +122,45 @@ pipeline {
         }
       }
     }
+
+    // Solo en el Jenkins LOCAL de evaluación (tools/ci/local, NAVA_ENTORNO=local): las
+    // etapas que en la VPS hace el job agenda/deploy. En la VPS no aparecen. Llegar aquí
+    // exige que todo lo anterior esté en verde.
+    stage('Desplegar (aprobación manual)') {
+      when {
+        allOf {
+          environment name: 'NAVA_ENTORNO', value: 'local'
+          expression { params.DESPLEGAR == true }
+        }
+      }
+      steps {
+        input message: '¿Aprobar el despliegue de este commit?', ok: 'Aprobar'
+        echo 'Aprobado. En local no hay servidor ni credenciales: el despliegue se omite. En la VPS lo hace agenda/deploy (respaldo, migraciones Atlas y docker compose up).'
+      }
+    }
+
+    stage('Smoke') {
+      when {
+        allOf {
+          environment name: 'NAVA_ENTORNO', value: 'local'
+          expression { params.DESPLEGAR == true }
+        }
+      }
+      steps {
+        echo 'Sin despliegue en local: el smoke se omite. En la VPS comprueba /health y la portada por HTTPS público.'
+      }
+    }
+
+    stage('Limpieza') {
+      when { environment name: 'NAVA_ENTORNO', value: 'local' }
+      steps {
+        // Contenedores de checks huérfanos e imágenes colgantes que dejó este pipeline.
+        sh '''
+          docker ps -aq --filter label=nava-ci=1 | xargs -r docker rm -f -v
+          docker image prune -f --filter label=org.opencontainers.image.revision
+        '''
+      }
+    }
   }
 
   post {

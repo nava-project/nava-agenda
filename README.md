@@ -41,6 +41,17 @@ Las pruebas son las mismas del CI: `tools/ci/run.sh go --postgres`, `tools/ci/ru
 - **Producción:** [agenda.nava.wtf](https://agenda.nava.wtf).
 - **Jenkins:** `agenda/ci` revisa cada PR y cada push a `main`. Cuando pasa en `main`, lanza `agenda/deploy` con ese SHA, que migra la base, recrea los contenedores, corre las pruebas de humo y verifica el HTTPS público.
 
+## Pipeline en local (evaluación)
+
+El mismo pipeline de Jenkins corre en tu máquina, sin credenciales, sobre tu copia clonada. Solo necesitas Git y Docker (Linux, macOS o Windows con WSL 2).
+
+```bash
+git clone https://github.com/nava-project/nava-agenda.git && cd nava-agenda
+tools/ci/local/up.sh            # Jenkins en http://localhost:8090 (admin / nava-local)
+```
+
+En el job `nava-agenda`, «Construir con parámetros» → «Construir». Cada build lee el último commit de la rama `main` de tu copia, así que un commit local (por ejemplo, una prueba rota a propósito) se ve en el siguiente build. Si una prueba falla, el pipeline se detiene antes de construir las imágenes. El despliegue pide aprobación manual (`DESPLEGAR`) y en local se omite. `tools/ci/local/down.sh --borrar` lo detiene y borra sus datos.
+
 ## Documentación
 
 Las decisiones, las reglas, las historias, la arquitectura y los runbooks están en la bóveda de Nava: [nava-docs/agenda](https://github.com/nava-project/nava-docs/tree/main/agenda).

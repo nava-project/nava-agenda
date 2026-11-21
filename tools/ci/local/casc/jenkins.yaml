@@ -1,0 +1,74 @@
+# Configuración como código del Jenkins LOCAL de evaluación (DEC-177).
+# Usuario y contraseña locales y sintéticos (NAVA_JENKINS_USER / NAVA_JENKINS_PASSWORD,
+# por defecto admin / nava-local). No hay ningún secreto de producción.
+
+jenkins:
+  systemMessage: >-
+    Jenkins LOCAL de evaluación de Nava Agenda. Corre el mismo Jenkinsfile que la VPS
+    sobre la copia clonada (/repo). Sin credenciales de producción: el despliegue se omite.
+  numExecutors: 2
+  mode: NORMAL
+  slaveAgentPort: -1
+  markupFormatter: plainText
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${NAVA_JENKINS_USER}"
+          name: "Evaluación"
+          password: "${NAVA_JENKINS_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  # Modo local: el Jenkinsfile corre todos los checks siempre (NAVA_CI_TODO) y muestra
+  # las etapas de despliegue, smoke y limpieza (NAVA_ENTORNO=local).
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "NAVA_ENTORNO"
+            value: "local"
+          - key: "NAVA_CI_TODO"
+            value: "1"
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          # El Jenkinsfile compila la imagen web con la clave de navegador de Google Maps.
+          # En local no hay clave: la imagen se construye igual y el mapa no carga.
+          - string:
+              scope: GLOBAL
+              id: "maps-browser-key"
+              secret: "sin-clave-en-local"
+              description: "Marcador local: sin clave de Google Maps"
+
+security:
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: false
+
+unclassified:
+  location:
+    url: "http://localhost:8090/"
+
+jobs:
+  - script: >
+      pipelineJob('nava-agenda') {
+        displayName('Nava Agenda · CI/CD')
+        description('Pipeline de Nava Agenda sobre la copia clonada (/repo, rama ' + (System.getenv('NAVA_RAMA') ?: 'main') + '). Jenkinsfile en la raíz del repo.')
+        parameters {
+          booleanParam('DESPLEGAR', false, 'Pide la aprobación manual del despliegue. En local no hay servidor: tras aprobar, el despliegue se omite con un mensaje.')
+        }
+        logRotator { numToKeep(20) }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('file:///repo') }
+                branch('*/' + (System.getenv('NAVA_RAMA') ?: 'main'))
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(false)
+          }
+        }
+      }
