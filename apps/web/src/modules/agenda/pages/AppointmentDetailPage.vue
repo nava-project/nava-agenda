@@ -2260,12 +2260,31 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color: var(--color-on-strong-soft);
 }
 
+/* Cada cambio lleva el rombo de latón de la familia, no la viñeta ○ que el
+   navegador pone a una lista anidada (#757). */
 .appointment-detail-page__history-changes {
-  padding-left: var(--space-4);
+  padding: 0;
   margin: var(--space-2) 0 0;
   font-family: var(--font-family-base);
   font-size: var(--font-size-body-sm);
   color: var(--color-on-strong-soft);
+  list-style: none;
+}
+
+.appointment-detail-page__history-changes li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.appointment-detail-page__history-changes li::before {
+  position: absolute;
+  top: 0.62em;
+  left: 2px;
+  width: 6px;
+  height: 6px;
+  content: '';
+  background: var(--color-brass-line);
+  transform: rotate(45deg);
 }
 
 .appointment-detail-page__dialog-form {
