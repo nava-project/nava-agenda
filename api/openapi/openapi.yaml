@@ -9,7 +9,7 @@
 openapi: 3.1.2
 info:
   title: API de Nava Agenda
-  version: 2.0.0
+  version: 2.1.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -212,6 +212,8 @@ paths:
     $ref: './paths/private-appointments.yaml#/~1private~1appointments'
   /private/professionals/{professionalId}/appointments/daily-agenda:
     $ref: './paths/private-appointments.yaml#/~1private~1professionals~1{professionalId}~1appointments~1daily-agenda'
+  /private/professionals/{professionalId}/services/{serviceId}/availability:
+    $ref: './paths/private-appointments.yaml#/~1private~1professionals~1{professionalId}~1services~1{serviceId}~1availability'
   /private/appointments/{appointmentId}:
     $ref: './paths/private-appointments.yaml#/~1private~1appointments~1{appointmentId}'
   /private/appointments/{appointmentId}/history:

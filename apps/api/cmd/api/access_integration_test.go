@@ -121,6 +121,7 @@ func TestAccess_HTTP_EmployeeOnlyReachesTheirOwnProfessional(t *testing.T) {
 		{"no quita servicios a otro", http.MethodDelete, "/professionals/" + accessProfessionalOtro + "/services/" + accessServiceE, nil, http.StatusForbidden, "forbidden"},
 		{"lee su agenda", http.MethodGet, "/professionals/" + accessProfessionalPropio + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusOK, ""},
 		{"no lee la agenda de otro", http.MethodGet, "/professionals/" + accessProfessionalOtro + "/appointments/daily-agenda?date=2030-01-10", nil, http.StatusForbidden, "forbidden"},
+		{"no lee los inicios libres de otro", http.MethodGet, "/professionals/" + accessProfessionalOtro + "/services/" + accessServiceE + "/availability?from=2030-01-10", nil, http.StatusForbidden, "forbidden"},
 		{"no fija la ventana de otro", http.MethodDelete, "/settings/booking-policy/professionals/" + accessProfessionalOtro, nil, http.StatusForbidden, "forbidden"},
 		{"lee la marca", http.MethodGet, "/settings/brand", nil, http.StatusOK, ""},
 		{"no cambia la marca", http.MethodPatch, "/settings/brand", map[string]any{"brandAccent": "ruby"}, http.StatusForbidden, "forbidden"},

@@ -5,6 +5,19 @@ Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-proj
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
+## 2.1.0 · 2026-11-21
+
+### Agregado
+
+- `GET /private/professionals/{professionalId}/services/{serviceId}/availability`
+  (`listManualAvailability`, issue #717): los inicios libres para registrar un turno
+  manual, en un tramo de fechas civiles `from`–`to` (máximo 31 días). Usa el mismo
+  cálculo que la disponibilidad pública, sin la anticipación mínima ni la ventana
+  máxima (`RN-DIS-04`), y no depende de que el enlace público esté publicado. Nunca
+  ofrece un inicio en el pasado: el primero posible es «ahora» truncado al minuto.
+  Rango inválido: `422`. Servicio no asignado o ajeno: `404`, igual que `POST /private/appointments`. Respuesta con el esquema `AvailabilityResponse`.
+  Compatible: operación nueva.
+
 ## 2.0.0 · 2026-11-18
 
 Cierre de la transición de `DEC-183` (issue #685): el contrato deja solo los nombres

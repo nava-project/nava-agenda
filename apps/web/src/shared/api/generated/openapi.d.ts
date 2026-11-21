@@ -1571,6 +1571,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/private/professionals/{professionalId}/services/{serviceId}/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Listar los inicios libres para un turno manual
+         * @description Inicios donde el servicio activo `serviceId` completo cabe con el profesional `professionalId`, en las fechas civiles de `from` a `to` (zona IANA del negocio, RN-DIS-07), para elegir la hora de un turno manual (issue #717). Es la contraparte privada de `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability` y usa el mismo cálculo: jornada efectiva (recurrente, excepciones y festivos), menos bloqueos vigentes y citas que ocupan agenda, con la duración del servicio y la rejilla del profesional anclada al inicio de cada tramo (DEC-135, DEC-169). A diferencia de la lectura pública, no aplica la anticipación mínima ni la ventana máxima (RN-DIS-04, excepción de la cita manual) y no depende de que el enlace público esté publicado. Nunca ofrece un inicio anterior a «ahora menos la duración»: un turno que ya empezó y no ha terminado se puede registrar, uno que ya terminó no (para ese queda la hora escrita a mano). La rejilla solo propone inicios: la creación manual acepta cualquier minuto válido (DEC-006). Es de solo lectura y no aparta ninguna franja (RN-DIS-03).
+         */
+        get: operations["listManualAvailability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/private/appointments/{appointmentId}": {
         parameters: {
             query?: never;
@@ -5645,6 +5665,16 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Inicios libres del servicio con el profesional en el tramo de fechas pedido, sin las reglas de la reserva pública. */
+        ManualAvailabilitySuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["AvailabilityResponse"];
+            };
+        };
         /** @description Detalle completo de un turno, incluido contacto y nota. */
         AppointmentDetailSuccess: {
             headers: {
@@ -8220,6 +8250,52 @@ export interface operations {
             403: components["responses"]["ForbiddenProblem"];
             /** @description `professionalId` con forma inválida, inexistente o de otro negocio (RN-TEN-01), sin distinguir la causa. */
             404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            500: components["responses"]["InternalErrorProblem"];
+        };
+    };
+    listManualAvailability: {
+        parameters: {
+            query: {
+                /** @description Primera fecha civil `AAAA-MM-DD` del tramo, en la zona del negocio. */
+                from: string;
+                /** @description Última fecha civil `AAAA-MM-DD` del tramo, incluida. Sin ella, el tramo es solo `from`. Debe ser igual o posterior a `from`, y el tramo no pasa de 31 días. */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Identificador del profesional del turno. */
+                professionalId: string;
+                /** @description Identificador del servicio activo asignado al profesional (DEC-072), el mismo que exige `POST /private/appointments`. */
+                serviceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["ManualAvailabilitySuccess"];
+            400: components["responses"]["InvalidRequestProblem"];
+            401: components["responses"]["UnauthorizedProblem"];
+            403: components["responses"]["ForbiddenProblem"];
+            /** @description `professionalId` o `serviceId` con forma inválida, inexistente, de otro negocio (RN-TEN-01), o servicio inactivo o sin asignación vigente al profesional (DEC-072), sin distinguir la causa: la misma respuesta que `POST /private/appointments`. */
+            404: {
+                headers: {
+                    "X-Request-Id": components["headers"]["XRequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description `to` anterior a `from`, o un tramo de más de 31 días. Una fecha mal formada responde `400`. */
+            422: {
                 headers: {
                     "X-Request-Id": components["headers"]["XRequestId"];
                     [name: string]: unknown;

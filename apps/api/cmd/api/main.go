@@ -708,6 +708,18 @@ func buildRouter(db *database.DB, logger *slog.Logger, cfg config.Config) (*chi.
 	listDailyAgendaHandler := bookinghttpapi.NewListDailyAgendaHandler(agendaService)
 	private.Get("/professionals/{professionalId}/appointments/daily-agenda", listDailyAgendaHandler.ServeHTTP)
 
+	// #717: inicios libres para registrar un turno manual. Las franjas salen del
+	// MISMO AvailabilityService de HU-094 (publicAvailabilityService satisface
+	// booking.ManualSlotsPort, igual que RescheduleSlotsPort), sin la
+	// anticipación mínima ni la ventana máxima de la reserva (RN-DIS-04); la
+	// asignación se verifica con el mismo adaptador de catálogo que HU-061.
+	manualAvailabilityService := booking.NewManualAvailabilityService(
+		catalog.NewManualBookingCatalog(catalogService, assignmentService),
+		publicAvailabilityService,
+	)
+	private.Get("/professionals/{professionalId}/services/{serviceId}/availability",
+		bookinghttpapi.NewListManualAvailabilityHandler(manualAvailabilityService).ServeHTTP)
+
 	// HU-064: detalle e historial de un turno. Mismo criterio de
 	// colaboración por puerto pequeño que ManualBookingService/AgendaService:
 	// DetailService solo conoce staff.NewProfessionalNameLookup(staffService) y

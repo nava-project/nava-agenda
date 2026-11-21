@@ -1134,3 +1134,129 @@
         $ref: '../components/responses/CorrectAppointmentStatusValidationProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
+/private/professionals/{professionalId}/services/{serviceId}/availability:
+  get:
+    tags: [Booking]
+    summary: Listar los inicios libres para un turno manual
+    description: >
+      Inicios donde el servicio activo `serviceId` completo cabe con el
+      profesional `professionalId`, en las fechas civiles de `from` a `to`
+      (zona IANA del negocio, RN-DIS-07), para elegir la hora de un turno
+      manual (issue #717). Es la contraparte privada de
+      `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`
+      y usa el mismo cálculo: jornada efectiva (recurrente, excepciones y
+      festivos), menos bloqueos vigentes y citas que ocupan agenda, con la
+      duración del servicio y la rejilla del profesional anclada al inicio de
+      cada tramo (DEC-135, DEC-169). A diferencia de la lectura pública, no
+      aplica la anticipación mínima ni la ventana máxima (RN-DIS-04, excepción
+      de la cita manual) y no depende de que el enlace público esté publicado.
+      Nunca ofrece un inicio en el pasado: el primero posible es «ahora»
+      truncado al minuto, el mismo redondeo de la agenda (un inicio igual a
+      ese minuto entra; uno de un minuto antes, no). Para un turno que ya
+      empezó queda la hora escrita a mano. La rejilla solo
+      propone inicios: la creación manual acepta cualquier minuto válido
+      (DEC-006). Es de solo lectura y no aparta ninguna franja (RN-DIS-03).
+    operationId: listManualAvailability
+    security:
+      - SessionCookie: []
+    x-business-rules: [RN-TEN-01, RN-CIT-02, RN-DIS-01, RN-DIS-02, RN-DIS-03, RN-DIS-04, RN-DIS-05, RN-DIS-06, RN-DIS-07, RN-BLQ-01, RN-CON-01]
+    x-decisions: [DEC-005, DEC-006, DEC-072, DEC-073, DEC-135, DEC-169, DEC-190]
+    parameters:
+      - name: professionalId
+        in: path
+        required: true
+        description: Identificador del profesional del turno.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          profesional:
+            value: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+      - name: serviceId
+        in: path
+        required: true
+        description: >
+          Identificador del servicio activo asignado al profesional (DEC-072),
+          el mismo que exige `POST /private/appointments`.
+        schema:
+          type: string
+          format: uuid
+        examples:
+          servicio:
+            value: 3a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+      - name: from
+        in: query
+        required: true
+        description: Primera fecha civil `AAAA-MM-DD` del tramo, en la zona del negocio.
+        schema:
+          type: string
+          format: date
+        examples:
+          hoy:
+            value: "2026-11-23"
+      - name: to
+        in: query
+        required: false
+        description: >
+          Última fecha civil `AAAA-MM-DD` del tramo, incluida. Sin ella, el
+          tramo es solo `from`. Debe ser igual o posterior a `from`, y el
+          tramo no pasa de 31 días.
+        schema:
+          type: string
+          format: date
+        examples:
+          dosSemanas:
+            value: "2026-12-06"
+    responses:
+      "200":
+        $ref: '../components/responses/ManualAvailabilitySuccess.yaml'
+      "401":
+        $ref: '../components/responses/UnauthorizedProblem.yaml'
+      "403":
+        $ref: '../components/responses/ForbiddenProblem.yaml'
+      "404":
+        description: >
+          `professionalId` o `serviceId` con forma inválida, inexistente, de
+          otro negocio (RN-TEN-01), o servicio inactivo o sin asignación vigente
+          al profesional (DEC-072), sin distinguir la causa: la misma respuesta
+          que `POST /private/appointments`.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers/XRequestId.yaml'
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/Problem.yaml'
+            examples:
+              servicioNoAsignado:
+                value:
+                  type: /api/v1/problems/not-found
+                  title: No encontrado
+                  status: 404
+                  detail: no existe un servicio activo asignado a ese profesional
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: not-found
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      "422":
+        description: >
+          `from` ausente, `from` o `to` mal formados, `to` anterior a `from`, o
+          un tramo de más de 31 días.
+        headers:
+          X-Request-Id:
+            $ref: '../components/headers/XRequestId.yaml'
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/Problem.yaml'
+            examples:
+              tramoInvertido:
+                value:
+                  type: /api/v1/problems/validation-error
+                  title: Error de validación
+                  status: 422
+                  detail: la fecha final no puede ser anterior a la inicial
+                  instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+                  code: validation-error
+                  requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
+      "500":
+        $ref: '../components/responses/InternalErrorProblem.yaml'

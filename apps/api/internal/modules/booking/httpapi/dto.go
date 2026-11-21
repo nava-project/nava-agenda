@@ -292,3 +292,19 @@ type AppointmentHistoryChangeResponse struct {
 	PreviousValue *string `json:"previousValue"`
 	NewValue      *string `json:"newValue"`
 }
+
+// ManualAvailabilitySlotResponse es un inicio libre de
+// GET /private/professionals/{professionalId}/services/{serviceId}/availability
+// (#717), con la forma de AvailabilitySlotResponse del contrato.
+type ManualAvailabilitySlotResponse struct {
+	StartsAt time.Time `json:"startsAt"`
+}
+
+// ManualAvailabilityResponse refleja el esquema AvailabilityResponse del
+// contrato, el mismo de la lectura pública.
+type ManualAvailabilityResponse struct {
+	Slots           []ManualAvailabilitySlotResponse `json:"slots"`
+	DurationMinutes int                              `json:"durationMinutes"`
+	Timezone        string                           `json:"timezone"`
+	SlotGridMinutes int                              `json:"slotGridMinutes"`
+}
