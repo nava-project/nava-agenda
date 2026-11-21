@@ -62,6 +62,15 @@ describe('OpeningHoursPanel', () => {
     expect(await axe(wrapper.element)).toHaveNoViolations()
   })
 
+  it('los días cerrados llevan puntos guía decorativos y los abiertos no (#759)', async () => {
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    const leaders = wrapper.findAll('.opening__day').map((d) => d.find('.opening__closed-leader'))
+    expect(leaders.map((l) => l.exists())).toEqual([false, true, true, true, false, true, true])
+    expect(leaders[1]!.attributes('aria-hidden')).toBe('true')
+  })
+
   it('abrir un día le pone un horario y guarda la semana completa, con 00:00 como 24:00', async () => {
     saveMock.mockImplementation(async (settings) => ({ kind: 'success', settings }))
     const wrapper = mountPanel()
@@ -82,7 +91,11 @@ describe('OpeningHoursPanel', () => {
       closedOnHolidays: false,
     })
     expect(wrapper.get('.opening__feedback').text()).toContain('Tus clientes ya ven este horario')
+    // El aviso de guardado lleva el rombo que se posa (#759); vuelve a reposo al editar.
+    expect(wrapper.get('.opening__feedback').classes()).toContain('opening__feedback--saved')
     expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
+    await day(wrapper, 6).get('input[type="checkbox"]').setValue(true)
+    expect(wrapper.get('.opening__feedback').classes()).not.toContain('opening__feedback--saved')
   })
 
   it('no envía un día con horarios que se cruzan y lo señala junto al día', async () => {

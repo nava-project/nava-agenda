@@ -348,9 +348,6 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
   font-weight: 600;
 }
 
-.location-picker__hint,
-.location-picker__notice,
-.location-picker__chosen,
 /* Cubre el lienzo (y el aviso del proveedor, si lo pintó) con el papel de la familia. */
 .location-picker__fallback {
   position: absolute;
@@ -409,6 +406,9 @@ const describedBy = computed(() => [hintId, props.error ? errorId : ''].filter(B
   }
 }
 
+.location-picker__hint,
+.location-picker__notice,
+.location-picker__chosen,
 .location-picker__warning,
 .location-picker__error {
   margin: 0;

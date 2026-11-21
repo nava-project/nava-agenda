@@ -29,7 +29,6 @@ const ROUND_ALLOWED: Record<string, string> = {
   '.location-picker__activate-hint': 'píldora de texto',
   '.schedules-switch__thumb': 'perilla de interruptor (control)',
   '.offer-switch__thumb': 'perilla de interruptor (control)',
-  '.switch-field__thumb': 'perilla de interruptor (control)',
   '.catalog-page__lifecycle-thumb': 'perilla de interruptor (control)',
   '.schedules-page__segment-add': 'botón de añadir (control, no marcador)',
   '.bk-days__nav': 'flechas del carrusel de días (control)',

@@ -162,9 +162,12 @@ onMounted(load)
                 :aria-describedby="`opening-${d.day}`"
                 @change="toggleDay(d, ($event.target as HTMLInputElement).checked)"
               />
-              <span>{{ d.open ? 'Abierto' : 'Cerrado' }}</span>
+              <span class="opening__state">{{ d.open ? 'Abierto' : 'Cerrado' }}</span>
             </label>
           </div>
+
+          <!-- Día cerrado: puntos guía en lugar del hueco, como una línea de libreta. -->
+          <span v-if="!d.open" class="opening__closed-leader" aria-hidden="true" />
 
           <div v-if="d.open" class="opening__intervals">
             <div
@@ -239,7 +242,12 @@ onMounted(load)
         </BaseButton>
       </div>
 
-      <p class="opening__feedback" role="status" aria-live="polite">
+      <p
+        class="opening__feedback"
+        :class="{ 'opening__feedback--saved': feedback === 'saved' && !saving }"
+        role="status"
+        aria-live="polite"
+      >
         <template v-if="saving">Guardando…</template>
         <template v-else-if="feedback === 'saved'">
           {{
@@ -322,8 +330,9 @@ onMounted(load)
 }
 
 .opening__day-name {
-  font-size: var(--font-size-body);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
   line-height: 24px;
   color: var(--color-text-primary);
 }
@@ -341,13 +350,51 @@ onMounted(load)
   cursor: pointer;
 }
 
+/* La casilla es un rombo de latón (#759): hueco si el día está cerrado, lleno
+   con un filo de papel si abre. Sigue siendo un checkbox nativo, así que el
+   teclado, el lector de pantalla y el foco no cambian; el foco sigue la forma. */
 .opening__toggle input {
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  /* Casilla en tinta: el acento queda para «Guardar». */
-  accent-color: var(--color-text-primary);
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin: 4px;
+  appearance: none;
+  background: transparent;
+  border: 1.5px solid var(--color-brass-line);
+  border-radius: 0;
+  rotate: 45deg;
   cursor: pointer;
+}
+
+.opening__toggle input:checked {
+  background: var(--color-brass-body);
+  border-color: var(--color-brass-text);
+  box-shadow: inset 0 0 0 2px var(--color-surface);
+}
+
+.opening__toggle input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.opening__toggle:hover input:not(:checked) {
+  background: color-mix(in srgb, var(--color-brass-body) 22%, transparent);
+}
+
+.opening__state {
+  color: var(--color-text-secondary);
+}
+
+.opening__day:not(.opening__day--closed) .opening__state {
+  color: var(--color-brass-text);
+  font-weight: 600;
+}
+
+.opening__closed-leader {
+  align-self: center;
+  height: 0;
+  margin-top: 2px;
+  border-bottom: 2px dotted color-mix(in srgb, var(--color-brass-line) 45%, transparent);
 }
 
 .opening__intervals {
@@ -391,6 +438,10 @@ onMounted(load)
   text-decoration-thickness: 2px;
 }
 
+.opening__add {
+  text-decoration-color: var(--color-brass-line);
+}
+
 .opening__remove:focus-visible,
 .opening__add:focus-visible {
   outline: 2px solid var(--color-focus);
@@ -410,6 +461,67 @@ onMounted(load)
   gap: 12px;
 }
 
+/* Sin cambios que guardar, «Guardar horario» espera en reposo: contorno de
+   latón punteado, no el acento desvaído (que se leía como un error). */
+.opening__actions .base-button--primary:disabled:not(.base-button--loading) {
+  background: transparent;
+  border: 1px dashed var(--color-brass-line);
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+/* «Guardado»: un rombo de latón que se posa con resorte junto al aviso. */
+.opening__feedback--saved {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.opening__feedback--saved::before {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  content: '';
+  background: var(--color-brass-body);
+  rotate: 45deg;
+  translate: 0 -1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .opening__feedback--saved {
+    animation: opening-saved-in 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .opening__feedback--saved::before {
+    animation: opening-saved-mark 520ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+
+  :root:not([data-motion='reduced']) .opening__toggle input {
+    transition:
+      background-color 160ms ease,
+      scale 160ms ease;
+  }
+
+  :root:not([data-motion='reduced']) .opening__toggle:active input {
+    scale: 0.8;
+  }
+}
+
+@keyframes opening-saved-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@keyframes opening-saved-mark {
+  from {
+    opacity: 0;
+    scale: 0.2;
+    rotate: -45deg;
+  }
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -423,6 +535,10 @@ onMounted(load)
 @media (max-width: 640px) {
   .opening__day {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .opening__closed-leader {
+    display: none;
   }
 
   .opening__interval {

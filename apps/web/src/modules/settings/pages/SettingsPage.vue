@@ -985,18 +985,21 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
               <ul v-if="isTeamPanel" class="settings-page__preview-list">
                 <li>
                   <span class="settings-page__preview-tag">Menú</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span class="settings-page__preview-dock">{{
                     draftVocabulary.Professionals
                   }}</span>
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Botón</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span class="settings-page__preview-button"
                     >+ Agregar {{ draftVocabulary.professional }}</span
                   >
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Aviso</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span
                     >Aún no tienes {{ draftVocabulary.professionalsRegistered }} en
                     {{ draftVocabulary.theBusiness }}.</span
@@ -1004,16 +1007,19 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Agenda</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Elige {{ draftVocabulary.toTheProfessional }} y el servicio.</span>
                 </li>
               </ul>
               <ul v-else class="settings-page__preview-list">
                 <li>
                   <span class="settings-page__preview-tag">Perfil</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Mi perfil de {{ draftVocabulary.professional }}</span>
                 </li>
                 <li>
                   <span class="settings-page__preview-tag">Reserva</span>
+                  <span class="settings-page__preview-leader" aria-hidden="true" />
                   <span>Tus clientes reservan en {{ draftVocabulary.theBusiness }}.</span>
                 </li>
               </ul>
@@ -1922,18 +1928,45 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 /* Vista previa del vocabulario: superficie hundida, sin filete de acento. Se
    actualiza al escribir; no destella (v2: nada parpadea). */
+/* La vista previa como una ficha de la familia (#759): rótulo de latón con su
+   rombo (hueco; se llena cuando hay cambios sin guardar) y cada línea con
+   puntos guía entre el lugar del panel y cómo se leerá. */
 .settings-page__preview {
   padding: 16px 18px 18px;
   background: var(--color-surface-muted);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 35%, transparent);
+  border-radius: 4px;
 }
 
 .settings-page__preview-kicker {
-  margin: 0 0 12px;
-  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--color-brass-text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 18px;
+}
+
+.settings-page__preview-kicker::before {
+  width: 7px;
+  height: 7px;
+  content: '';
+  border: 1.5px solid currentColor;
+  rotate: 45deg;
+}
+
+.settings-page__preview--changed .settings-page__preview-kicker::before {
+  background: currentColor;
+}
+
+.settings-page__preview-leader {
+  flex: 1 1 24px;
+  min-width: 24px;
+  align-self: center;
+  height: 0;
+  border-bottom: 2px dotted color-mix(in srgb, var(--color-brass-line) 50%, transparent);
 }
 
 .settings-page__preview-list {
@@ -1949,13 +1982,17 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 
 .settings-page__preview-list li {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 14px;
+  gap: 4px 10px;
+}
+
+.settings-page__preview-list li > :last-child {
+  max-width: 70%;
+  text-align: right;
 }
 
 .settings-page__preview-tag {
-  flex: 0 0 56px;
+  flex: 0 0 auto;
   color: var(--color-text-secondary);
   font-size: var(--font-size-caption);
 }
