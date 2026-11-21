@@ -112,7 +112,12 @@ func (f *fakePublicAppointmentPort) CreatePublicAppointment(
 }
 
 type confirmationEmailCall struct {
-	email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink string
+	email, businessName, serviceName, professionalName, attendeeName string
+	startsAt                                                         time.Time
+	durationMinutes                                                  int
+	address                                                          string
+	atHome                                                           bool
+	accessLink                                                       string
 }
 
 type fakeConfirmationEmailPort struct {
@@ -120,8 +125,15 @@ type fakeConfirmationEmailPort struct {
 	calls []confirmationEmailCall
 }
 
-func (f *fakeConfirmationEmailPort) SendConfirmation(_ context.Context, email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink string) error {
-	f.calls = append(f.calls, confirmationEmailCall{email, businessName, serviceName, attendeeName, startsAtFormatted, accessLink})
+func (f *fakeConfirmationEmailPort) SendConfirmation(
+	_ context.Context,
+	email, businessName, serviceName, professionalName, attendeeName string,
+	startsAt time.Time, durationMinutes int,
+	address string, atHome bool,
+	accessLink string,
+) error {
+	f.calls = append(f.calls, confirmationEmailCall{email, businessName, serviceName, professionalName, attendeeName,
+		startsAt, durationMinutes, address, atHome, accessLink})
 	return f.err
 }
 
@@ -191,6 +203,52 @@ func TestConfirmAppointment_ValidSlotAndIdentity_ProceedsAndSendsEmail(t *testin
 	}
 	if email.calls[0].accessLink == "" {
 		t.Fatal("expected a non-empty access link when webBaseURL is configured")
+	}
+}
+
+// #755: la tarjeta del correo lleva quién atiende, la duración, el lugar y la
+// hora en la zona del negocio.
+func TestConfirmAppointment_EmailCarriesProfessionalDurationPlaceAndLocalTime(t *testing.T) {
+	loc, _ := time.LoadLocation("America/Bogota")
+	now := time.Date(2026, time.September, 14, 8, 0, 0, 0, loc)
+	startsAt := time.Date(2026, time.September, 14, 9, 0, 0, 0, loc)
+
+	svc, profiles, _, _, email := newConfirmationFixture(now)
+	profiles.profile.Location = &publicbooking.Location{Address: "Calle 10 # 4-21"}
+	profiles.professionalsFound = true
+	profiles.professionalsResult = publicbooking.PublicProfessionalListResult{Items: []publicbooking.PublicProfessional{
+		{ID: "55555555-5555-5555-5555-555555555555", FullName: "Otro Profesional"},
+		{ID: confirmProfessionalID, FullName: "Laura Prueba"},
+	}}
+	if _, _, err := svc.ConfirmAppointment(context.Background(), validConfirmInput(startsAt), idempotency.Key("k-755"), idempotency.Fingerprint("f-755")); err != nil {
+		t.Fatalf("ConfirmAppointment: %v", err)
+	}
+	if len(email.calls) != 1 {
+		t.Fatalf("expected one email, got %d", len(email.calls))
+	}
+	got := email.calls[0]
+	if got.professionalName != "Laura Prueba" || got.durationMinutes != 30 || got.address != "Calle 10 # 4-21" || got.atHome {
+		t.Fatalf("correo = %+v", got)
+	}
+	if got.startsAt.Location().String() != "America/Bogota" || !got.startsAt.Equal(startsAt) {
+		t.Fatalf("la hora viaja en la zona del negocio: %v", got.startsAt)
+	}
+}
+
+// Si la lista de profesionales no se puede leer, el turno ya está guardado: el
+// correo sale igual, sin esa fila.
+func TestConfirmAppointment_ProfessionalLookupFails_EmailStillGoesWithoutIt(t *testing.T) {
+	loc, _ := time.LoadLocation("America/Bogota")
+	now := time.Date(2026, time.September, 14, 8, 0, 0, 0, loc)
+	startsAt := time.Date(2026, time.September, 14, 9, 0, 0, 0, loc)
+
+	svc, profiles, _, _, email := newConfirmationFixture(now)
+	profiles.professionalsErr = errors.New("lectura fallida")
+	if _, emailErr, err := svc.ConfirmAppointment(context.Background(), validConfirmInput(startsAt), idempotency.Key("k-755b"), idempotency.Fingerprint("f-755b")); err != nil || emailErr != nil {
+		t.Fatalf("err=%v emailErr=%v", err, emailErr)
+	}
+	if len(email.calls) != 1 || email.calls[0].professionalName != "" || email.calls[0].address != "" {
+		t.Fatalf("el correo sale sin profesional ni lugar: %+v", email.calls)
 	}
 }
 

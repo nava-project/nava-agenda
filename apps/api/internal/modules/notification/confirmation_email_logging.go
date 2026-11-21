@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"log/slog"
+	"time"
 )
 
 // LoggingConfirmationEmailSender satisface, de forma puramente estructural,
@@ -23,11 +24,12 @@ func NewLoggingConfirmationEmailSender(logger *slog.Logger) LoggingConfirmationE
 }
 
 // SendConfirmation implementa publicbooking.ConfirmationEmailPort. Nunca
-// registra email, businessName, serviceName, attendeeName ni accessLink.
+// registra email, nombres, dirección ni accessLink.
 func (s LoggingConfirmationEmailSender) SendConfirmation(
 	ctx context.Context,
-	_, _, _, _ string,
-	_ string,
+	_, _, _, _, _ string,
+	_ time.Time, _ int,
+	_ string, _ bool,
 	_ string,
 ) error {
 	s.logger.InfoContext(ctx, "publicbooking: envío de correo de confirmación simulado (sin credenciales de Resend configuradas)")

@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Plantilla compartida de los correos transaccionales (issue #465; marca de la
@@ -39,24 +40,7 @@ import (
 //     y atributos) y filtra las URL peligrosas; nombres de clientes y negocios
 //     son entrada de usuarios.
 
-// emailTone elige la paleta de la insignia de estado. Los pares fondo/texto son
-// los de las superficies de estado de tokens.css y superan 4.5:1.
-type emailTone int
-
-const (
-	toneNeutral emailTone = iota
-	toneSuccess
-	toneWarning
-	toneDanger
-)
-
-// emailBadge es la etiqueta de estado sobre el título («Turno cancelado»).
-type emailBadge struct {
-	Label string
-	Tone  emailTone
-}
-
-// emailDetail es una fila de la tarjeta de datos del turno.
+// emailDetail es una fila de la tarjeta del turno.
 type emailDetail struct {
 	Label string
 	Value string
@@ -80,16 +64,56 @@ type emailContent struct {
 	// Kicker es el motivo del correo sobre el título («Tu turno»), en latón y
 	// junto al negocio.
 	Kicker     string
-	Badge      *emailBadge
 	Title      string
 	Greeting   string
 	Paragraphs []string
-	Details    []emailDetail
 	// Code es un código de un solo uso. Si son de 4 a 8 cifras va en celdas,
 	// una por dígito; si no, en un solo bloque.
-	Code      string
+	Code string
+	// Ticket es el turno como tarjeta: la hora protagonista, la fecha y los
+	// datos unidos por puntos guía, en los correos de la cita.
+	Ticket *emailTicket
+	// Closing son los párrafos que siguen a la tarjeta o a los datos: qué hacer
+	// ahora, justo antes del botón.
+	Closing   []string
 	Button    *emailButton
 	Footnotes []string
+}
+
+// emailTicket es la tarjeta del turno. Seal es su estado («Confirmado»,
+// «Nuevo horario»); Struck tacha la hora y la fecha de un turno cancelado, y el
+// texto plano lo dice con palabras.
+type emailTicket struct {
+	Seal   string
+	Danger bool
+	Clock  string
+	Zone   string
+	Day    string
+	Struck bool
+	Rows   []emailDetail
+}
+
+// ticketRow es una fila de la tarjeta. Inline une etiqueta y valor con puntos
+// guía en una línea; un valor largo va debajo de su etiqueta para no desbordar
+// el correo a 320 px.
+type ticketRow struct {
+	Label, Value string
+	Inline       bool
+}
+
+// ticketInlineMax es el valor más largo, en caracteres, que cabe junto a su
+// etiqueta y los puntos guía en el ancho útil de la tarjeta a 320 px.
+const ticketInlineMax = 16
+
+func ticketRows(rows []emailDetail) []ticketRow {
+	out := make([]ticketRow, 0, len(rows))
+	for _, r := range rows {
+		if r.Value == "" {
+			continue
+		}
+		out = append(out, ticketRow{Label: r.Label, Value: r.Value, Inline: utf8.RuneCountInString(r.Value) <= ticketInlineMax})
+	}
+	return out
 }
 
 // emailPalette son los literales de marca (modo claro). Los del modo oscuro
@@ -103,36 +127,8 @@ const (
 	emailTextMain   = "#2a2d32"
 	emailTextMuted  = "#5e625f"
 	emailBorder     = "#c9c0b2"
-	emailSurfaceAlt = "#e8e2d8"
+	emailDangerText = "#8a2c2c"
 )
-
-// badgeColors devuelve (fondo, texto, borde) de la insignia.
-func badgeColors(t emailTone) (bg, fg, border template.CSS) {
-	switch t {
-	case toneSuccess:
-		return "#eaf0eb", "#325d43", "#748477"
-	case toneWarning:
-		return "#f8f1df", "#775019", "#9a6a24"
-	case toneDanger:
-		return "#f8edec", "#8a2c2c", "#a43a3a"
-	default:
-		return "#e9eef3", "#23405b", "#667d93"
-	}
-}
-
-// badgeClass es la clase del tono, para que el modo oscuro lo adapte.
-func badgeClass(t emailTone) string {
-	switch t {
-	case toneSuccess:
-		return "badge-success"
-	case toneWarning:
-		return "badge-warning"
-	case toneDanger:
-		return "badge-danger"
-	default:
-		return "badge-neutral"
-	}
-}
 
 // codeCells parte el código en dígitos cuando es solo de cifras (4 a 8); con
 // cualquier otra forma devuelve nil y el código va en un solo bloque.
@@ -147,17 +143,18 @@ func codeCells(code string) []string {
 
 type emailView struct {
 	emailContent
-	BadgeBg, BadgeFg, BadgeBorder template.CSS
-	BadgeClass                    string
-	Ink, Cream, Paper, Brass      template.CSS
-	BrassText                     template.CSS
-	TextMain, TextMuted, Border   template.CSS
-	SurfaceAlt                    template.CSS
-	HasGreeting                   bool
-	CodeCells                     []string
+	Ink, Cream, Paper, Brass    template.CSS
+	BrassText                   template.CSS
+	TextMain, TextMuted, Border template.CSS
+	HasGreeting                 bool
+	CodeCells                   []string
 	// CellWidth es el ancho de cada celda en porcentaje, para que la fila se
 	// reparta entera sea cual sea el número de cifras.
 	CellWidth string
+	// TicketRows son las filas de la tarjeta ya decididas (en línea o debajo).
+	TicketRows []ticketRow
+	SealColor  template.CSS
+	SealClass  string
 }
 
 // emailTemplate se compila una vez al cargar el paquete: una plantilla rota es
@@ -172,16 +169,19 @@ func (c emailContent) HTML() (string, error) {
 		emailContent: c,
 		Ink:          emailInk, Cream: emailCream, Paper: emailPaper, Brass: emailBrass,
 		BrassText: emailBrassText, TextMain: emailTextMain, TextMuted: emailTextMuted,
-		Border: emailBorder, SurfaceAlt: emailSurfaceAlt,
+		Border:      emailBorder,
 		HasGreeting: c.Greeting != "",
 		CodeCells:   codeCells(c.Code),
 	}
+	if c.Ticket != nil {
+		v.TicketRows = ticketRows(c.Ticket.Rows)
+		v.SealColor, v.SealClass = emailBrassText, "brass"
+		if c.Ticket.Danger {
+			v.SealColor, v.SealClass = emailDangerText, "danger"
+		}
+	}
 	if n := len(v.CodeCells); n > 0 {
 		v.CellWidth = fmt.Sprintf("%.2f%%", 100/float64(n))
-	}
-	if c.Badge != nil {
-		v.BadgeBg, v.BadgeFg, v.BadgeBorder = badgeColors(c.Badge.Tone)
-		v.BadgeClass = badgeClass(c.Badge.Tone)
 	}
 	var buf bytes.Buffer
 	if err := emailTemplate.Execute(&buf, v); err != nil {
@@ -202,9 +202,6 @@ func (c emailContent) Text() string {
 	case c.Kicker != "":
 		b.WriteString(c.Kicker + "\n")
 	}
-	if c.Badge != nil {
-		b.WriteString("◆ " + c.Badge.Label + "\n")
-	}
 	if c.Title != "" {
 		b.WriteString(c.Title)
 		b.WriteString("\n\n")
@@ -221,11 +218,12 @@ func (c emailContent) Text() string {
 		b.WriteString(c.Code)
 		b.WriteString("\n\n")
 	}
-	if len(c.Details) > 0 {
-		for _, d := range c.Details {
-			fmt.Fprintf(&b, "%s: %s\n", d.Label, d.Value)
-		}
-		b.WriteString("\n")
+	if t := c.Ticket; t != nil {
+		writeTicketText(&b, t)
+	}
+	for _, p := range c.Closing {
+		b.WriteString(p)
+		b.WriteString("\n\n")
 	}
 	if c.Button != nil && c.Button.URL != "" {
 		fmt.Fprintf(&b, "%s: %s\n\n", c.Button.Label, c.Button.URL)
@@ -236,6 +234,26 @@ func (c emailContent) Text() string {
 	}
 	b.WriteString("Nava Agenda · agenda de citas para negocios")
 	return b.String()
+}
+
+// writeTicketText escribe la tarjeta en texto plano. Sin tachado posible, el
+// turno cancelado lo dice con palabras («Era el…»).
+func writeTicketText(b *strings.Builder, t *emailTicket) {
+	if t.Seal != "" {
+		b.WriteString("◆ " + t.Seal + "\n")
+	}
+	when := t.Day + " · " + t.Clock
+	if t.Zone != "" {
+		when += " (" + t.Zone + ")"
+	}
+	if t.Struck {
+		when = "Era el " + when
+	}
+	b.WriteString(when + "\n")
+	for _, r := range ticketRows(t.Rows) {
+		fmt.Fprintf(b, "%s: %s\n", r.Label, r.Value)
+	}
+	b.WriteString("\n")
 }
 
 // emailHTML usa el sistema de tablas anidadas habitual en correo. Las clases
@@ -257,6 +275,7 @@ const emailHTML = `<!doctype html>
     .title { font-size:28px !important; }
     .cell { height:52px !important; line-height:52px !important; font-size:28px !important; }
     .cellgap { padding-left:2px !important; padding-right:2px !important; }
+    .clock { font-size:36px !important; }
   }
   @media (prefers-color-scheme: dark) {
     .bg { background:#0b1022 !important; }
@@ -267,13 +286,11 @@ const emailHTML = `<!doctype html>
     .rule { background:#b8955a !important; }
     .cell { background:#0b1022 !important; color:#eef1f8 !important; border-color:#c9a86f !important; }
     .codeblock { background:#0b1022 !important; color:#eef1f8 !important; border-color:#c9a86f !important; }
-    .detail { background:#0b1022 !important; border-color:#c9a86f !important; }
+    .ticket { background:#0b1022 !important; border-color:#c9a86f !important; }
+    .perf, .leader { border-color:#c9a86f !important; }
+    .danger { color:#ff8f87 !important; }
     .btn { background:#c9a86f !important; }
     .btn a { color:#0b1022 !important; }
-    .badge-neutral { background:#1c2a44 !important; color:#b9cde3 !important; border-color:#667d93 !important; }
-    .badge-success { background:#12301f !important; color:#6fd39a !important; border-color:#3e9a68 !important; }
-    .badge-warning { background:#33280f !important; color:#f2c060 !important; border-color:#b98b2a !important; }
-    .badge-danger { background:#3a1518 !important; color:#ff8f87 !important; border-color:#c4545a !important; }
   }
 </style>
 </head>
@@ -299,9 +316,6 @@ const emailHTML = `<!doctype html>
       {{- if or .Brand .Kicker}}
       <p class="brass" style="margin:0 0 6px 0;font-size:14px;line-height:1.4;font-weight:600;color:{{.BrassText}};">{{.Brand}}{{if and .Brand .Kicker}} · {{end}}{{.Kicker}}</p>
       {{- end}}
-      {{- if .Badge}}
-      <div style="margin:4px 0 12px 0;"><span class="{{.BadgeClass}}" style="display:inline-block;padding:4px 10px;border-radius:3px;background:{{.BadgeBg}};color:{{.BadgeFg}};border:1px solid {{.BadgeBorder}};font-size:14px;line-height:1.3;font-weight:600;"><span aria-hidden="true" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;">&#9670;</span>&nbsp; {{.Badge.Label}}</span></div>
-      {{- end}}
       <h1 class="title ink" style="margin:0 0 16px 0;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.15;font-weight:400;color:{{.Ink}};">{{.Title}}</h1>
       {{- if .HasGreeting}}
       <p class="ink" style="margin:0 0 14px 0;font-size:16px;line-height:1.6;color:{{.TextMain}};">{{.Greeting}}</p>
@@ -320,15 +334,38 @@ const emailHTML = `<!doctype html>
       {{- else if .Code}}
       <div class="codeblock" style="margin:10px 0 24px 0;padding:16px 12px;border:1px solid {{.Brass}};border-bottom:3px solid {{.Brass}};border-radius:4px;background:{{.Paper}};color:{{.Ink}};text-align:center;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.2;letter-spacing:6px;">{{.Code}}</div>
       {{- end}}
-      {{- if .Details}}
-      <table role="presentation" class="detail" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px 0;background:{{.Cream}};border-left:3px solid {{.Brass}};border-radius:0 4px 4px 0;">
-        <tr><td style="padding:14px 18px;">
-          {{- range $i, $d := .Details}}
-          <div class="brass" style="margin:{{if $i}}12px{{else}}0{{end}} 0 2px 0;font-size:13px;line-height:1.3;font-weight:600;color:{{$.BrassText}};">{{$d.Label}}</div>
-          <div class="ink" style="font-size:17px;line-height:1.4;font-weight:600;color:{{$.Ink}};">{{$d.Value}}</div>
+      {{- with .Ticket}}
+      <table role="presentation" class="ticket" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 22px 0;background:{{$.Paper}};border:1px solid {{$.Brass}};border-radius:6px;">
+        <tr><td style="padding:16px 20px 14px 20px;">
+          {{- if .Seal}}
+          <p class="{{$.SealClass}}" style="margin:0 0 6px 0;font-size:14px;line-height:1.3;font-weight:600;color:{{$.SealColor}};"><span aria-hidden="true" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;">&#9670;</span>&nbsp; {{.Seal}}</p>
+          {{- end}}
+          <p style="margin:0;line-height:1.1;"><span class="clock {{if .Struck}}muted{{else}}ink{{end}}" style="white-space:nowrap;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:42px;line-height:1.1;color:{{if .Struck}}{{$.TextMuted}};text-decoration:line-through{{else}}{{$.Ink}}{{end}};">{{.Clock}}</span>{{if .Zone}} <span class="muted" style="padding-left:4px;font-size:13px;line-height:1.3;color:{{$.TextMuted}};white-space:nowrap;">{{.Zone}}</span>{{end}}</p>
+          <p class="{{if .Struck}}muted{{else}}ink{{end}}" style="margin:4px 0 0 0;font-family:'Instrument Serif',Georgia,'Times New Roman',serif;font-size:22px;line-height:1.25;color:{{if .Struck}}{{$.TextMuted}};text-decoration:line-through{{else}}{{$.Ink}}{{end}};">{{.Day}}</p>
+        </td></tr>
+        {{- if $.TicketRows}}
+        <tr><td style="padding:0 20px;"><div class="perf" style="height:1px;line-height:1px;font-size:1px;border-top:1px dashed {{$.Brass}};">&nbsp;</div></td></tr>
+        <tr><td style="padding:12px 20px 14px 20px;">
+          {{- range $i, $r := $.TicketRows}}
+          {{- if $r.Inline}}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:{{if $i}}8px{{else}}0{{end}} 0 0 0;">
+            <tr>
+              <td class="muted" style="padding:0;white-space:nowrap;vertical-align:bottom;font-size:14px;line-height:1.5;color:{{$.TextMuted}};">{{$r.Label}}</td>
+              <td width="100%" style="padding:0 8px 6px 8px;vertical-align:bottom;"><div class="leader" style="height:1px;line-height:1px;font-size:1px;border-bottom:2px dotted {{$.Brass}};">&nbsp;</div></td>
+              <td class="ink" align="right" style="padding:0;white-space:nowrap;vertical-align:bottom;font-size:16px;line-height:1.5;font-weight:600;color:{{$.Ink}};">{{$r.Value}}</td>
+            </tr>
+          </table>
+          {{- else}}
+          <p class="muted" style="margin:{{if $i}}8px{{else}}0{{end}} 0 0 0;font-size:14px;line-height:1.5;color:{{$.TextMuted}};">{{$r.Label}}</p>
+          <p class="ink" style="margin:0;font-size:16px;line-height:1.5;font-weight:600;color:{{$.Ink}};">{{$r.Value}}</p>
+          {{- end}}
           {{- end}}
         </td></tr>
+        {{- end}}
       </table>
+      {{- end}}
+      {{- range .Closing}}
+      <p class="ink" style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:{{$.TextMain}};">{{.}}</p>
       {{- end}}
       {{- if and .Button .Button.URL}}
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px 0;">

@@ -429,8 +429,8 @@ type recordingMailer struct {
 	err   error
 }
 
-func (m *recordingMailer) SendChangeNotice(_ context.Context, kind, email, _, _, _, when string) error {
-	m.calls = append(m.calls, kind+"|"+email+"|"+when)
+func (m *recordingMailer) SendChangeNotice(_ context.Context, kind, email, _, _, _, _ string, startsAt time.Time, _ string) error {
+	m.calls = append(m.calls, kind+"|"+email+"|"+startsAt.Format("2006-01-02 15:04 MST"))
 	return m.err
 }
 

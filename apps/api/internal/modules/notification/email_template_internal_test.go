@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func channel(c float64) float64 {
@@ -48,9 +49,9 @@ func TestEmailTemplate_ColorPairsMeetAA(t *testing.T) {
 		{"título sobre papel", emailInk, emailPaper},
 		{"marca sobre papel", emailInk, emailPaper},
 		{"dígito del código sobre papel", emailInk, emailPaper},
-		{"etiqueta de dato sobre crema", emailBrassText, emailCream},
-		{"valor de dato sobre crema", emailInk, emailCream},
 		{"botón", emailCream, emailInk},
+		{"sello de cancelado sobre papel", emailDangerText, emailPaper},
+		{"hora tachada sobre papel", emailTextMuted, emailPaper},
 		// Modo oscuro (hoja <style>).
 		{"oscuro: texto sobre tarjeta", "#eef1f8", "#151b35"},
 		{"oscuro: secundario sobre tarjeta", "#a9b1c6", "#151b35"},
@@ -58,16 +59,10 @@ func TestEmailTemplate_ColorPairsMeetAA(t *testing.T) {
 		{"oscuro: latón sobre tarjeta", "#c9a86f", "#151b35"},
 		{"oscuro: latón sobre fondo", "#c9a86f", "#0b1022"},
 		{"oscuro: dígito sobre celda", "#eef1f8", "#0b1022"},
-		{"oscuro: texto sobre dato", "#eef1f8", "#0b1022"},
 		{"oscuro: botón", "#0b1022", "#c9a86f"},
-		{"oscuro: insignia neutra", "#b9cde3", "#1c2a44"},
-		{"oscuro: insignia de éxito", "#6fd39a", "#12301f"},
-		{"oscuro: insignia de aviso", "#f2c060", "#33280f"},
-		{"oscuro: insignia de peligro", "#ff8f87", "#3a1518"},
-	}
-	for _, tone := range []emailTone{toneNeutral, toneSuccess, toneWarning, toneDanger} {
-		bg, fg, _ := badgeColors(tone)
-		pairs = append(pairs, struct{ name, fg, bg string }{"insignia " + string(fg), string(fg), string(bg)})
+		{"oscuro: sello de cancelado sobre tarjeta del turno", "#ff8f87", "#0b1022"},
+		{"oscuro: hora sobre tarjeta del turno", "#eef1f8", "#0b1022"},
+		{"oscuro: secundario sobre tarjeta del turno", "#a9b1c6", "#0b1022"},
 	}
 	for _, p := range pairs {
 		if got := contrast(t, p.fg, p.bg); got < 4.5 {
@@ -81,11 +76,11 @@ func TestEmailTemplate_EscapesEveryDynamicValue(t *testing.T) {
 	html, err := emailContent{
 		Preheader:  evil,
 		Brand:      evil,
-		Badge:      &emailBadge{Label: evil, Tone: toneDanger},
 		Title:      evil,
 		Greeting:   evil,
 		Paragraphs: []string{evil},
-		Details:    []emailDetail{{Label: evil, Value: evil}},
+		Ticket:     &emailTicket{Seal: evil, Clock: evil, Zone: evil, Day: evil, Rows: []emailDetail{{Label: evil, Value: evil}, {Label: evil, Value: "corto"}}},
+		Closing:    []string{evil},
 		Code:       evil,
 		Button:     &emailButton{Label: evil, URL: "https://nava.test/t?a=1&b=" + evil},
 		Footnotes:  []string{evil},
@@ -151,13 +146,14 @@ func TestEmailTemplate_StructureForMailClients(t *testing.T) {
 
 func TestEmailContent_TextKeepsOrderAndData(t *testing.T) {
 	txt := emailContent{
-		Brand: "Barbería Centro", Badge: &emailBadge{Label: "Turno cancelado"}, Title: "Tu turno fue cancelado",
+		Brand: "Barbería Centro", Title: "Tu turno fue cancelado",
 		Greeting: "Hola Ana,", Paragraphs: []string{"Párrafo."},
-		Details: []emailDetail{{"Servicio", "Corte"}, {"Fecha y hora", "mañana"}},
-		Code:    "123456", Footnotes: []string{"Ignóralo."},
+		Code:    "123456",
+		Ticket:  &emailTicket{Seal: "Cancelado", Clock: "4:30 p. m.", Day: "miércoles 6 de enero", Struck: true, Rows: []emailDetail{{"Servicio", "Corte"}, {"Con", "Laura"}}},
+		Closing: []string{"Reserva de nuevo."}, Footnotes: []string{"Ignóralo."},
 	}.Text()
 	last := -1
-	for _, want := range []string{"◆ NAVA Agenda", "Barbería Centro", "◆ Turno cancelado", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "Servicio: Corte", "Fecha y hora: mañana", "Ignóralo.", "Nava Agenda"} {
+	for _, want := range []string{"◆ NAVA Agenda", "Barbería Centro", "Tu turno fue cancelado", "Hola Ana,", "Párrafo.", "123456", "◆ Cancelado", "Era el miércoles 6 de enero · 4:30 p. m.", "Servicio: Corte", "Con: Laura", "Reserva de nuevo.", "Ignóralo.", "Nava Agenda"} {
 		i := strings.Index(txt, want)
 		if i < 0 || i < last {
 			t.Fatalf("%q falta o está fuera de orden en:\n%s", want, txt)
@@ -229,6 +225,25 @@ func TestEmailTemplate_FamilyBrandWithoutImagesOrShouting(t *testing.T) {
 // TestEmailTemplate_WritePreviews escribe los correos de ejemplo para revisarlos
 // en un navegador (issue #465). Se activa con EMAIL_PREVIEW_DIR=<carpeta>; sin
 // ella se omite. Los datos son ficticios.
+// previewStart es un día de enero de 2027 a la hora dada, en la zona de Colombia.
+func previewStart(t *testing.T, day, hour, minute int) time.Time {
+	t.Helper()
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		t.Fatalf("zona: %v", err)
+	}
+	return time.Date(2027, time.January, day, hour, minute, 0, 0, loc)
+}
+
+func mustNotice(t *testing.T, kind string, startsAt time.Time, relativeWhen string) emailContent {
+	t.Helper()
+	_, c, err := changeNoticeEmail(kind, "Barbería Centro", "Corte clásico", "Laura Gómez", "Ana", startsAt, relativeWhen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
+}
+
 func TestEmailTemplate_WritePreviews(t *testing.T) {
 	dir := os.Getenv("EMAIL_PREVIEW_DIR")
 	if dir == "" {
@@ -246,39 +261,13 @@ func TestEmailTemplate_WritePreviews(t *testing.T) {
 			Paragraphs: []string{"Escríbelo en la pantalla para recuperar el acceso a tu cuenta. Vence en pocos minutos."},
 			Code:       "482913", Footnotes: []string{"Si no lo solicitaste, ignora este mensaje: tu cuenta sigue segura."},
 		},
-		"confirmado": {
-			Preheader: "Tu turno en Barbería Centro quedó confirmado.", Brand: "Barbería Centro",
-			Badge: &emailBadge{Label: "Turno confirmado", Tone: toneSuccess}, Title: "Tu turno está listo",
-			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Tu turno en Barbería Centro quedó confirmado.", "Consulta tu turno cuando quieras con el siguiente botón."},
-			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "jueves 7 de enero, 4:30 p. m."}},
-			Button:     &emailButton{Label: "Ver mi turno", URL: "https://nava.test/turno/ejemplo"},
-			Footnotes:  []string{"Si no reservaste este turno, ignora este mensaje."},
-		},
-		"cancelado": {
-			Preheader: "Barbería Centro canceló tu turno.", Brand: "Barbería Centro",
-			Badge: &emailBadge{Label: "Turno cancelado", Tone: toneDanger}, Title: "Tu turno fue cancelado",
-			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Barbería Centro canceló tu turno. Estos son los datos del turno cancelado:", "Si quieres otro horario, comunícate con el negocio o reserva de nuevo."},
-			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "jueves 7 de enero, 4:30 p. m."}},
-			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
-		},
-		"recordatorio": {
-			Preheader: "Tu turno en Barbería Centro es muy pronto.", Brand: "Barbería Centro",
-			Badge: &emailBadge{Label: "Recordatorio", Tone: toneNeutral}, Title: "Tu turno es muy pronto",
-			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Te recordamos tu turno en Barbería Centro. Te esperamos:", "Si no puedes asistir, avísale al negocio con tiempo."},
-			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "jueves 7 de enero, 4:30 p. m."}},
-			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
-		},
-		"reprogramado": {
-			Preheader: "Barbería Centro cambió el horario de tu turno.", Brand: "Barbería Centro",
-			Badge: &emailBadge{Label: "Horario actualizado", Tone: toneWarning}, Title: "Tu turno cambió de horario",
-			Greeting:   "Hola Ana,",
-			Paragraphs: []string{"Barbería Centro cambió el horario de tu turno. Este es el horario vigente:", "Si no puedes asistir, comunícate con el negocio."},
-			Details:    []emailDetail{{"Servicio", "Corte clásico"}, {"Fecha y hora", "viernes 8 de enero, 10:00 a. m."}},
-			Footnotes:  []string{"Si no esperabas este mensaje, ignóralo."},
-		},
+		"confirmado": confirmationEmail("Barbería Centro", "Corte clásico", "Laura Gómez", "Ana",
+			previewStart(t, 7, 16, 30), 45, "Calle 10 # 4-21, Centro", false, "https://agenda.nava.test/mi-turno/ejemplo"),
+		"cancelado":    mustNotice(t, changeNoticeCancelled, previewStart(t, 7, 16, 30), ""),
+		"recordatorio": mustNotice(t, changeNoticeReminder, previewStart(t, 7, 16, 30), "hoy a las 4:30 p. m."),
+		"reprogramado": mustNotice(t, changeNoticeRescheduled, previewStart(t, 8, 10, 0), ""),
+		"confirmado-largo": confirmationEmail("Barbería Centro", "Corte clásico con barba y cejas", "María Fernanda Restrepo", "Ana",
+			previewStart(t, 7, 16, 30), 90, "Carrera 45 # 26-85, apartamento 1203, torre 2", true, "https://agenda.nava.test/mi-turno/ejemplo"),
 	}
 	for name, c := range samples {
 		html, err := c.HTML()

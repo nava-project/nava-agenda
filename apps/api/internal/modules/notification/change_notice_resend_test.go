@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"nava-agenda/internal/modules/notification"
 )
@@ -18,6 +19,16 @@ func newChangeNoticeSender(t *testing.T, srv *httptest.Server) notification.Rese
 	client.Transport = redirectTransport{target: srv.URL}
 	return notification.NewResendChangeNoticeSender(
 		notification.ResendChangeNoticeConfig{APIKey: "resend-key", FromAddress: "no-responder@barberia.test"}, client)
+}
+
+// bogota es un instante en la zona del negocio, como lo entrega el worker.
+func bogota(t *testing.T, y int, m time.Month, d, h, min int) time.Time {
+	t.Helper()
+	loc, err := time.LoadLocation("America/Bogota")
+	if err != nil {
+		t.Fatalf("zona: %v", err)
+	}
+	return time.Date(y, m, d, h, min, 0, 0, loc)
 }
 
 func TestResendChangeNoticeSender_Cancelled_PostsTheCurrentAppointment(t *testing.T) {
@@ -31,7 +42,7 @@ func TestResendChangeNoticeSender_Cancelled_PostsTheCurrentAppointment(t *testin
 	defer srv.Close()
 
 	err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-		"cancelled_by_professional", "cliente.a@ejemplo.test", "Barbería Centro", "Corte clásico", "Ana", "2099-01-07 05:00 (America/Bogota)")
+		"cancelled_by_professional", "cliente.a@ejemplo.test", "Barbería Centro", "Corte clásico", "Laura", "Ana", bogota(t, 2099, 1, 7, 5, 0), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -43,7 +54,7 @@ func TestResendChangeNoticeSender_Cancelled_PostsTheCurrentAppointment(t *testin
 		t.Fatalf("unexpected to: %v", gotBody["to"])
 	}
 	text, _ := gotBody["text"].(string)
-	for _, want := range []string{"Ana", "Barbería Centro", "canceló", "Corte clásico", "2099-01-07 05:00 (America/Bogota)"} {
+	for _, want := range []string{"Ana", "Barbería Centro", "canceló", "Corte clásico", "Con: Laura", "Era el miércoles 7 de enero · 5:00\u00a0a.\u00a0m. (hora de Colombia)"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("el texto debe contener %q:\n%s", want, text)
 		}
@@ -59,14 +70,14 @@ func TestResendChangeNoticeSender_Rescheduled_SaysTheTimeIsTheCurrentOne(t *test
 	defer srv.Close()
 
 	if err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-		"rescheduled", "cliente.a@ejemplo.test", "Barbería Centro", "Corte", "Ana", "2099-01-07 16:30 (America/Bogota)"); err != nil {
+		"rescheduled", "cliente.a@ejemplo.test", "Barbería Centro", "Corte", "Laura", "Ana", bogota(t, 2099, 1, 7, 16, 30), ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if gotBody["subject"] != "Tu turno cambió de horario" {
 		t.Fatalf("unexpected subject: %v", gotBody["subject"])
 	}
 	text, _ := gotBody["text"].(string)
-	if !strings.Contains(text, "horario vigente") || !strings.Contains(text, "2099-01-07 16:30 (America/Bogota)") {
+	if !strings.Contains(text, "◆ Nuevo horario\nmiércoles 7 de enero · 4:30\u00a0p.\u00a0m. (hora de Colombia)") || strings.Contains(text, "America/Bogota") {
 		t.Fatalf("el texto debe dar la hora vigente:\n%s", text)
 	}
 }
@@ -77,7 +88,7 @@ func TestResendChangeNoticeSender_UnknownKind_FailsWithoutCallingResend(t *testi
 	defer srv.Close()
 
 	if err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-		"inventado", "cliente.a@ejemplo.test", "B", "S", "A", "t"); err == nil {
+		"inventado", "cliente.a@ejemplo.test", "B", "S", "P", "A", time.Now(), ""); err == nil {
 		t.Fatal("un tipo desconocido debe fallar")
 	}
 	if called {
@@ -104,7 +115,7 @@ func TestResendChangeNoticeSender_ProviderStatus_ClassifiesPermanentAndTransient
 			_, _ = w.Write([]byte(`{"message":"invalid to cliente.a@ejemplo.test"}`))
 		}))
 		err := newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-			"cancelled_by_professional", "cliente.a@ejemplo.test", "B", "S", "A", "t")
+			"cancelled_by_professional", "cliente.a@ejemplo.test", "B", "S", "P", "A", time.Now(), "")
 		srv.Close()
 
 		if err == nil {
@@ -126,7 +137,7 @@ func TestResendChangeNoticeSender_TransportFailure_IsTransientAndHidesTheRecipie
 	srv.Close() // la conexión falla
 
 	err := sender.SendChangeNotice(context.Background(),
-		"rescheduled", "cliente.a@ejemplo.test", "B", "S", "A", "t")
+		"rescheduled", "cliente.a@ejemplo.test", "B", "S", "P", "A", time.Now(), "")
 	if err == nil {
 		t.Fatal("debe fallar")
 	}

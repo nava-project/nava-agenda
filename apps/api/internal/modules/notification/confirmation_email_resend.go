@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 // confirmationEmailSubject es el asunto fijo del correo de confirmación de
@@ -48,34 +49,16 @@ func NewResendConfirmationEmailSender(cfg ResendConfirmationEmailConfig, httpCli
 // un enlace.
 func (s ResendConfirmationEmailSender) SendConfirmation(
 	ctx context.Context,
-	email, businessName, serviceName, attendeeName string,
-	startsAtLocalFormatted string,
+	email, businessName, serviceName, professionalName, attendeeName string,
+	startsAt time.Time, durationMinutes int,
+	address string, atHome bool,
 	accessLink string,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, resendSendTimeout)
 	defer cancel()
 
-	content := emailContent{
-		Preheader: fmt.Sprintf("Tu turno en %s quedó confirmado.", businessName),
-		Brand:     businessName,
-		Badge:     &emailBadge{Label: "Turno confirmado", Tone: toneSuccess},
-		Title:     "Tu turno está listo",
-		Greeting:  fmt.Sprintf("Hola %s,", attendeeName),
-		Paragraphs: []string{
-			fmt.Sprintf("Tu turno en %s quedó confirmado.", businessName),
-		},
-		Details: []emailDetail{
-			{Label: "Servicio", Value: serviceName},
-			{Label: "Fecha y hora", Value: startsAtLocalFormatted},
-		},
-		Footnotes: []string{"Si no reservaste este turno, ignora este mensaje."},
-	}
-	if accessLink != "" {
-		content.Paragraphs = append(content.Paragraphs, "Consulta tu turno cuando quieras con el siguiente botón.")
-		content.Button = &emailButton{Label: "Ver mi turno", URL: accessLink}
-	} else {
-		content.Paragraphs = append(content.Paragraphs, "Muy pronto podrás consultar tu turno en línea con el enlace que enviaremos por separado.")
-	}
+	content := confirmationEmail(businessName, serviceName, professionalName, attendeeName,
+		startsAt, durationMinutes, address, atHome, accessLink)
 	htmlBody, err := content.HTML()
 	if err != nil {
 		return err

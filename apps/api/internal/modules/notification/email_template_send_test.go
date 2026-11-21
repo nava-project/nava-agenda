@@ -46,21 +46,21 @@ func TestTransactionalEmails_SendBrandedHTMLAndText(t *testing.T) {
 		{"confirmación", func() error {
 			return notification.NewResendConfirmationEmailSender(
 				notification.ResendConfirmationEmailConfig{APIKey: "k", FromAddress: "a@b.test"}, client,
-			).SendConfirmation(context.Background(), "c@ejemplo.test", "Barbería Centro", "Corte", evil,
-				"jueves 7 de enero", "https://nava.test/turno/x")
-		}, []string{"Barbería Centro", "Corte", "Ver mi turno", "https://nava.test/turno/x"}},
+			).SendConfirmation(context.Background(), "c@ejemplo.test", "Barbería Centro", "Corte", "Laura", evil,
+				bogota(t, 2099, 1, 7, 16, 30), 45, "Calle 10 # 4-21", false, "https://nava.test/turno/x")
+		}, []string{"Barbería Centro", "Corte", "Laura", "45 min", "Calle 10 # 4-21", "4:30\u00a0p.\u00a0m.", "miércoles 7 de enero", "Ver mi turno", "https://nava.test/turno/x"}},
 		{"cancelación", func() error {
 			return newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-				"cancelled_by_professional", "c@ejemplo.test", "Barbería Centro", "Corte", evil, "jueves 7 de enero")
-		}, []string{"Barbería Centro", "Turno cancelado", "jueves 7 de enero"}},
+				"cancelled_by_professional", "c@ejemplo.test", "Barbería Centro", "Corte", "Laura", evil, bogota(t, 2099, 1, 7, 16, 30), "")
+		}, []string{"Barbería Centro", "Cancelado", "miércoles 7 de enero", "Reserva de nuevo"}},
 		{"recordatorio", func() error {
 			return newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-				"reminder", "c@ejemplo.test", "Barbería Centro", "Corte", evil, "jueves 7 de enero")
-		}, []string{"Barbería Centro", "Recordatorio", "jueves 7 de enero", "Tu turno es muy pronto"}},
+				"reminder", "c@ejemplo.test", "Barbería Centro", "Corte", "Laura", evil, bogota(t, 2099, 1, 7, 16, 30), "hoy a las 4:30 p. m.")
+		}, []string{"Barbería Centro", "Recordatorio", "miércoles 7 de enero", "Tu turno es hoy a las 4:30\u00a0p.\u00a0m."}},
 		{"reprogramación", func() error {
 			return newChangeNoticeSender(t, srv).SendChangeNotice(context.Background(),
-				"rescheduled", "c@ejemplo.test", "Barbería Centro", "Corte", evil, "viernes 8 de enero")
-		}, []string{"Barbería Centro", "Horario actualizado", "viernes 8 de enero"}},
+				"rescheduled", "c@ejemplo.test", "Barbería Centro", "Corte", "Laura", evil, bogota(t, 2099, 1, 8, 10, 0), "")
+		}, []string{"Barbería Centro", "Nuevo horario", "jueves 8 de enero", "10:00\u00a0a.\u00a0m."}},
 	}
 
 	for _, tc := range cases {
