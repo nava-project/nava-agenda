@@ -1,0 +1,45 @@
+# Jenkins LOCAL de evaluación de Nava Agenda (DEC-177). Se opera con up.sh y down.sh,
+# que calculan las variables de abajo (ver la cabecera de up.sh).
+#
+# - Mismo pipeline que la VPS: el job lee el Jenkinsfile de la copia clonada.
+# - La copia clonada se monta de solo lectura en /repo y el job la clona por file://, así
+#   que un commit local se ve en el siguiente build. No se usa GitHub ni credenciales.
+# - Habla con el Docker del host por su socket (el del contexto activo de Docker): ahí
+#   corren los checks y las imágenes. Jenkins corre como UID 1000 (entrypoint.sh).
+# - JENKINS_HOME se monta en la MISMA ruta en el host y en el contenedor, porque los
+#   contenedores de los checks montan el workspace por su ruta en el Docker del host.
+# - Solo escucha en 127.0.0.1.
+
+name: nava-jenkins-local
+
+services:
+  controller:
+    build:
+      context: .
+      dockerfile: controller.Dockerfile
+    image: nava-jenkins-local:latest
+    environment:
+      JENKINS_HOME: ${NAVA_JENKINS_HOME:?lanza Jenkins con tools/ci/local/up.sh}
+      HOME: ${NAVA_JENKINS_HOME}
+      NAVA_JENKINS_USER: ${NAVA_JENKINS_USER:-admin}
+      NAVA_JENKINS_PASSWORD: ${NAVA_JENKINS_PASSWORD:-nava-local}
+      NAVA_RAMA: ${NAVA_RAMA:-main}
+      NAVA_JENKINS_PORT: ${NAVA_JENKINS_PORT:-8090}
+      JAVA_OPTS: >-
+        -Xms256m -Xmx1g
+        -Djenkins.install.runSetupWizard=false
+        -Dhudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT=true
+      TZ: America/Bogota
+    volumes:
+      - ${NAVA_JENKINS_HOME}:${NAVA_JENKINS_HOME}
+      - ${NAVA_REPO:?lanza Jenkins con tools/ci/local/up.sh}:/repo:ro
+      - ${NAVA_DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    security_opt: ["label=disable"]
+    ports:
+      - "127.0.0.1:${NAVA_JENKINS_PORT:-8090}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s

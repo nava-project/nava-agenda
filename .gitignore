@@ -71,3 +71,6 @@ temp/
 # Capturas de evidencia de las pruebas E2E: se generan al correrlas. La evidencia que se conserva va
 # a nava-docs/agenda (DEC-186, #697), no a este repo.
 apps/web/e2e/evidence/
+
+# Reportes de la etapa «Pruebas unitarias · Plan de Pruebas (CP)» (#784).
+/reports/

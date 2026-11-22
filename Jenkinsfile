@@ -29,6 +29,33 @@ pipeline {
       }
     }
 
+    // Plan de Pruebas PP-NAVA-001 (Ingeniería de Software III, #784): las pruebas
+    // unitarias dedicadas a cada caso CP. Sin `when`: corre siempre, aunque plan.sh no
+    // pida ningún check (árbol ya verificado). Va antes que el resto y no en paralelo: si
+    // una prueba CP falla, el build se detiene y no hay checks, imágenes ni despliegue.
+    stage('Pruebas unitarias · Plan de Pruebas (CP)') {
+      steps {
+        sh 'tools/ci/run.sh image'
+        sh 'tools/ci/run.sh web-deps'
+        sh 'tools/ci/run.sh plan-pruebas'
+      }
+      post {
+        always {
+          archiveArtifacts allowEmptyArchive: true, artifacts: 'reports/plan-pruebas/**'
+          // La vista «Test Results» necesita el plugin junit. El Jenkins local de
+          // tools/ci/local lo trae; si un controlador no lo tiene, los XML quedan
+          // archivados igual y el build no cambia de resultado por eso.
+          script {
+            try {
+              junit allowEmptyResults: true, testResults: 'reports/plan-pruebas/*-junit.xml'
+            } catch (NoSuchMethodError ignored) {
+              echo 'Plugin junit no instalado: los reportes JUnit quedan solo como artefactos.'
+            }
+          }
+        }
+      }
+    }
+
     stage('Preparar') {
       when { expression { hasAnyCheck() } }
       steps {
@@ -93,6 +120,46 @@ pipeline {
             fi
           '''
         }
+      }
+    }
+
+    // Solo en el Jenkins LOCAL de evaluación (tools/ci/local, NAVA_ENTORNO=local): las
+    // etapas que en la VPS hace el job agenda/deploy. En la VPS no aparecen. Llegar aquí
+    // exige que todo lo anterior esté en verde.
+    stage('Desplegar (aprobación manual)') {
+      when {
+        allOf {
+          environment name: 'NAVA_ENTORNO', value: 'local'
+          expression { params.DESPLEGAR == true }
+        }
+      }
+      steps {
+        input message: '¿Aprobar el despliegue de este commit?', ok: 'Aprobar'
+        echo 'Aprobado. En local no hay servidor ni credenciales: el despliegue se omite. En la VPS lo hace agenda/deploy (respaldo, migraciones Atlas y docker compose up).'
+      }
+    }
+
+    stage('Smoke') {
+      when {
+        allOf {
+          environment name: 'NAVA_ENTORNO', value: 'local'
+          expression { params.DESPLEGAR == true }
+        }
+      }
+      steps {
+        echo 'Sin despliegue en local: el smoke se omite. En la VPS comprueba /health y la portada por HTTPS público.'
+      }
+    }
+
+    stage('Limpieza') {
+      when { environment name: 'NAVA_ENTORNO', value: 'local' }
+      steps {
+        // Contenedores de checks huérfanos de ESTE build (run.sh los nombra con BUILD_TAG)
+        // e imágenes colgantes que dejó el pipeline.
+        sh '''
+          docker ps -aq --filter label=nava-ci=1 --filter "name=nava-ci-${BUILD_TAG}-" | xargs -r docker rm -f -v
+          docker image prune -f --filter label=org.opencontainers.image.revision
+        '''
       }
     }
   }
