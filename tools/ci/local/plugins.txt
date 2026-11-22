@@ -1,0 +1,16 @@
+# Plugins del Jenkins local (los mismos que nava-project/nava-jenkins, más junit para los reportes).
+# compatible con el LTS fijado en controller.Dockerfile al construir la imagen.
+configuration-as-code
+job-dsl
+workflow-aggregator
+pipeline-graph-view
+pipeline-stage-view
+git
+github
+github-branch-source
+credentials-binding
+ssh-credentials
+matrix-auth
+timestamper
+lockable-resources
+junit
