@@ -43,6 +43,15 @@ rm -rf "$plan"; mkdir -p "$plan"
 run() { for c in "$@"; do : >"$plan/$c"; done; }
 summary() { echo "$*" | tee "$plan/.summary"; }
 
+# Jenkins local de evaluación (tools/ci/local): siempre todo, para que cada build muestre
+# el pipeline completo aunque el árbol ya haya pasado (p. ej. tras revertir una prueba).
+if [ "${NAVA_CI_TODO:-}" = 1 ]; then
+  run "${all_checks[@]}"
+  : >"$plan/.recordable"
+  summary "todos los checks: Jenkins local (NAVA_CI_TODO=1)"
+  exit 0
+fi
+
 if verified "$tree"; then
   summary "árbol ${tree:0:12} ya verificado por un CI anterior: sin checks"
   : >"$plan/.recordable"
