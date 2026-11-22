@@ -233,6 +233,13 @@ defineEmits<{ toggle: [] }>()
   scrollbar-width: thin;
 }
 
+/* Lo que no cabe se desplaza dentro del cuerpo; ningún hijo se encoge para
+   caber (revisión de #783: con 3 excepciones a 1440, «Agregar excepción»
+   quedaba en 16 px y su texto se salía del contorno). */
+.accordion-item__body > :deep(*) {
+  flex-shrink: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .accordion-item,
   .accordion-item::before,
