@@ -692,9 +692,10 @@ function tramoParts(wh: WorkingHour) {
     text-align: right;
   }
 
-  /* Angosto: el tramo, sus acciones y el «+» en un renglón. El rango es el
-     corazón del renglón de libreta y nunca se parte (revisión de #783): si no
-     cabe junto a «Editar · Retirar», son las acciones las que bajan. */
+  /* Angosto: el tramo y el «+» en un renglón. El rango es el corazón del
+     renglón de libreta y nunca se parte (revisión de #783); «Editar · Retirar»
+     va siempre en su propia línea debajo, para que los tramos de un día midan
+     lo mismo. */
   .week-board__line {
     flex-wrap: nowrap;
   }
@@ -710,7 +711,7 @@ function tramoParts(wh: WorkingHour) {
   }
 
   .week-board__chip-time {
-    flex: 1 0 auto;
+    flex: 1 0 100%;
     font-size: 19px;
     white-space: nowrap;
   }

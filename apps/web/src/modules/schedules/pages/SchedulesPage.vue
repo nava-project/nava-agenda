@@ -924,6 +924,15 @@ const weekHoursLabel = computed(() =>
     : `${Math.floor(shownWeekMinutes.value / 60)} h`,
 )
 
+// La cifra protagonista y sus unidades menudas, como el «/7» de los días
+// (revisión de #783): «51 h 30 min» no se parte ni desborda a 320.
+const weekHoursParts = computed(() =>
+  weekHoursLabel.value
+    .split(/(\d+)/)
+    .filter(Boolean)
+    .map((text) => ({ text, unit: !/^\d+$/.test(text) })),
+)
+
 // "Hoy" y "ahora" se leen en la zona del negocio, nunca en la del
 // dispositivo (CA-040-06). Sin zona conocida no se marca ninguno.
 const clock = ref<BoardNow | null>(null)
@@ -1091,7 +1100,14 @@ const editPreview = computed(() =>
                 aria-hidden="true"
               />
               <Transition v-else name="schedules-stat" mode="out-in">
-                <span :key="weekMinutes">{{ weekHoursLabel }}</span>
+                <span :key="weekMinutes"
+                  ><template v-for="(part, index) in weekHoursParts" :key="index"
+                    ><small v-if="part.unit" class="schedules-page__stat-unit">{{
+                      part.text
+                    }}</small
+                    ><template v-else>{{ part.text }}</template></template
+                  ></span
+                >
               </Transition>
             </dd>
           </div>
@@ -2433,6 +2449,23 @@ const editPreview = computed(() =>
   margin-left: 3px;
   color: var(--color-on-strong-muted);
   font-size: 18px;
+}
+
+/* «h» y «min» menudos y apagados, como «/7»; la cifra entera no se parte. */
+.schedules-page__stats dd {
+  white-space: nowrap;
+}
+
+.schedules-page__stat-unit {
+  color: var(--color-on-strong-muted);
+  font-size: 18px;
+}
+
+@media (max-width: 380px) {
+  .schedules-page__stats dd {
+    font-size: 28px;
+    line-height: 32px;
+  }
 }
 
 .schedules-stat-enter-active,
