@@ -15,7 +15,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCountUp, useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
-import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { formatCivilDateLong, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { timezoneName } from '@/shared/time/timezoneName'
 import {
   ProfessionalAvatar,
@@ -349,6 +349,17 @@ function openEditDialog(wh: WorkingHour) {
 function onEditDialogClosed() {
   editStatus.value = 'idle'
 }
+
+/** El tramo del diálogo de edición tal como llegó: nada que guardar todavía. */
+const editPristine = computed(() => {
+  const target = editTarget.value
+  if (!target) return false
+  return (
+    editISOWeekday.value === target.isoWeekday &&
+    editStartsTime.value === target.startsTime &&
+    editEndsTime.value === minutesToTime(timeToMinutes(target.startsTime) + target.durationMinutes)
+  )
+})
 
 function revalidateEdit() {
   if (!editAttempted.value) return
@@ -913,6 +924,15 @@ const weekHoursLabel = computed(() =>
     : `${Math.floor(shownWeekMinutes.value / 60)} h`,
 )
 
+// La cifra protagonista y sus unidades menudas, como el «/7» de los días
+// (revisión de #783): «51 h 30 min» no se parte ni desborda a 320.
+const weekHoursParts = computed(() =>
+  weekHoursLabel.value
+    .split(/(\d+)/)
+    .filter(Boolean)
+    .map((text) => ({ text, unit: !/^\d+$/.test(text) })),
+)
+
 // "Hoy" y "ahora" se leen en la zona del negocio, nunca en la del
 // dispositivo (CA-040-06). Sin zona conocida no se marca ninguno.
 const clock = ref<BoardNow | null>(null)
@@ -944,6 +964,15 @@ const nowMinute = computed(() => clock.value?.minute ?? null)
 const todayCivilDate = computed(() =>
   businessTimezone.value && clock.value ? getCivilDateInTimezone(businessTimezone.value) : null,
 )
+
+// Fechas de excepciones y festivos en palabras, nunca ISO (revisión de #783):
+// «martes 8 de diciembre», con el año solo si no es el de hoy en el negocio.
+function longDate(civilDate: string): string {
+  return formatCivilDateLong(
+    civilDate,
+    todayCivilDate.value ?? new Date().toISOString().slice(0, 10),
+  )
+}
 
 const exceptionDates = computed(() => new Set(exceptions.value.map((e) => e.effectiveDate)))
 
@@ -1031,12 +1060,16 @@ const editPreview = computed(() =>
           </span>
         </div>
         <div v-else class="schedules-page__who">
-          <ProfessionalAvatar
-            class="schedules-page__portrait"
-            size="row"
-            :full-name="selectedProfessional?.fullName ?? ''"
-            :photo-url="selectedProfessional?.photoUrl ?? null"
-          />
+          <!-- El retrato de la familia (#782, como la ficha de #762): filete de
+               latón y su rombo asomando bajo el borde, como un sello. -->
+          <span class="schedules-page__frame">
+            <ProfessionalAvatar
+              class="schedules-page__portrait"
+              size="row"
+              :full-name="selectedProfessional?.fullName ?? ''"
+              :photo-url="selectedProfessional?.photoUrl ?? null"
+            />
+          </span>
           <BaseSelect
             v-if="!hideProfessionalPicker"
             id="schedules-professional-select"
@@ -1067,7 +1100,14 @@ const editPreview = computed(() =>
                 aria-hidden="true"
               />
               <Transition v-else name="schedules-stat" mode="out-in">
-                <span :key="weekMinutes">{{ weekHoursLabel }}</span>
+                <span :key="weekMinutes"
+                  ><template v-for="(part, index) in weekHoursParts" :key="index"
+                    ><small v-if="part.unit" class="schedules-page__stat-unit">{{
+                      part.text
+                    }}</small
+                    ><template v-else>{{ part.text }}</template></template
+                  ></span
+                >
               </Transition>
             </dd>
           </div>
@@ -1221,9 +1261,17 @@ const editPreview = computed(() =>
             </template>
 
             <p v-if="businessTimezone" class="schedules-page__timezone">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2">
-                <circle cx="8" cy="8" r="6" />
-                <path d="M8 4.5V8l2.4 1.6" />
+              <!-- El reloj de la familia es un rombo con manecillas (#767), no un círculo. -->
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.2"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" />
+                <path d="M8 5v3l2 1.4" />
               </svg>
               <!-- La zona con su nombre, como en la agenda («hora de Colombia»),
                    no el identificador IANA (revisión de #720). -->
@@ -1331,8 +1379,12 @@ const editPreview = computed(() =>
                   {{ exceptionDeleteError }}
                 </BaseAlert>
 
+                <!-- Vacío de la familia: un rombo hueco de latón y la frase en serif,
+                     entre dos troqueles, no una caja gris. -->
                 <p v-if="sortedExceptions.length === 0" class="schedules-card__empty">
+                  <span class="schedules-card__empty-mark" aria-hidden="true" />
                   Sin excepciones registradas.
+                  <small>Un día con otro horario o cerrado aparece aquí.</small>
                 </p>
 
                 <TransitionGroup
@@ -1358,34 +1410,43 @@ const editPreview = computed(() =>
                           <span class="schedules-row__state schedules-row__state--open"
                             >Abierto</span
                           >
-                          <span class="schedules-row__segments">{{
-                            exception.segments
-                              .map((s) => clockRangeLabel(s.startsTime, s.durationMinutes))
-                              .join(', ')
-                          }}</span>
+                          <!-- Cada rango entero, nunca partido (revisión de #783):
+                               si no caben juntos, el siguiente baja completo. -->
+                          <span class="schedules-row__segments"
+                            ><template v-for="(segment, index) in exception.segments" :key="index"
+                              ><template v-if="index > 0">, </template
+                              ><span class="schedules-row__range">{{
+                                clockRangeLabel(segment.startsTime, segment.durationMinutes)
+                              }}</span></template
+                            ></span
+                          >
                         </template>
                       </p>
                       <p class="schedules-row__meta">
-                        <span class="schedules-row__date">{{ exception.effectiveDate }}</span>
+                        <span class="schedules-row__date">{{
+                          longDate(exception.effectiveDate)
+                        }}</span>
                         <span v-if="exception.reason"> · {{ exception.reason }}</span>
                       </p>
                     </div>
                     <div class="schedules-row__actions">
                       <BaseButton
                         type="button"
-                        variant="secondary"
-                        :aria-label="`Editar excepción del ${exception.effectiveDate}`"
+                        variant="ghost"
+                        class="schedules-row__action"
+                        :aria-label="`Editar excepción del ${longDate(exception.effectiveDate)}`"
                         @click="openExceptionEditDialog(exception)"
                       >
                         Editar
                       </BaseButton>
+                      <span class="schedules-row__sep" aria-hidden="true" />
                       <BaseButton
                         type="button"
-                        variant="secondary"
-                        class="schedules-row__remove"
+                        variant="ghost"
+                        class="schedules-row__action schedules-row__remove"
                         :loading="isExceptionDeletePending(exception.id)"
                         :disabled="isExceptionDeletePending(exception.id)"
-                        :aria-label="`Retirar excepción del ${exception.effectiveDate}`"
+                        :aria-label="`Retirar excepción del ${longDate(exception.effectiveDate)}`"
                         @click="onDeleteException(exception)"
                       >
                         Retirar
@@ -1417,7 +1478,7 @@ const editPreview = computed(() =>
                   <div class="schedules-row__main">
                     <p class="schedules-row__title">{{ holiday.name }}</p>
                     <p class="schedules-row__meta">
-                      <span class="schedules-row__date">{{ holiday.date }}</span>
+                      <span class="schedules-row__date">{{ longDate(holiday.date) }}</span>
                     </p>
                   </div>
                   <span v-if="exceptionDates.has(holiday.date)" class="schedules-row__tag">
@@ -1426,8 +1487,9 @@ const editPreview = computed(() =>
                   <BaseButton
                     v-else
                     type="button"
-                    variant="secondary"
-                    :aria-label="`Registrar una excepción para el ${holiday.date}, ${holiday.name}`"
+                    variant="ghost"
+                    class="schedules-row__action"
+                    :aria-label="`Registrar una excepción para el ${longDate(holiday.date)}, ${holiday.name}`"
                     @click="openExceptionCreateDialog(holiday.date)"
                   >
                     Registrar excepción
@@ -1653,9 +1715,12 @@ const editPreview = computed(() =>
         </div>
 
         <div class="schedules-page__dialog-actions">
+          <!-- Sin cambios, «Guardar» espera en reposo (contorno punteado de latón,
+               como en Configuración); sigue activo. -->
           <BaseButton
             type="submit"
             variant="primary"
+            :class="{ 'schedules-page__save--rest': editPristine }"
             :loading="editStatus === 'saving'"
             loading-label="Guardando…"
             :disabled="editStatus === 'saving'"
@@ -2108,7 +2173,8 @@ const editPreview = computed(() =>
   justify-content: space-between;
   gap: 14px var(--space-4);
   padding-bottom: 14px;
-  border-bottom: var(--border-width-normal) solid var(--color-border-subtle);
+  /* Troquel punteado de latón bajo el encabezado, como en Configuración (8c). */
+  border-bottom: 1px dashed var(--color-brass-line);
 }
 
 /* Título como el de la agenda (DailyAgendaPage `__title`). */
@@ -2170,11 +2236,15 @@ const editPreview = computed(() =>
 
 /* Esqueleto de la semana: una fila por día con su pista. Es el único
    movimiento repetido de la pantalla y solo dura lo que tarda la carga. */
+/* Esqueleto con la forma del tablero (#782): el mismo papel con filete de
+   latón, los troqueles entre días, el nombre del día y su pista apagada. El
+   sol con el diamante (DiamondLoader) va encima. */
 .schedules-page__skeleton {
   overflow: hidden;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
 .schedules-page__skeleton-row {
@@ -2183,7 +2253,7 @@ const editPreview = computed(() =>
   gap: 18px;
   height: 64px;
   padding: 0 18px;
-  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 70%, transparent);
 }
 
 .schedules-page__skeleton-row:first-child {
@@ -2200,12 +2270,14 @@ const editPreview = computed(() =>
 .schedules-page__skeleton-bar--day {
   flex: 0 0 110px;
   height: 18px;
+  background-color: color-mix(in srgb, var(--color-brass-body) 26%, transparent);
 }
 
 .schedules-page__skeleton-bar--track {
   flex: 1;
-  height: 20px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 8%, transparent);
+  height: 14px;
+  background-color: color-mix(in srgb, var(--color-on-strong) 9%, transparent);
+  border-radius: 3px;
 }
 
 /* Esqueleto de los controles: mismas medidas que el retrato (47 px), el
@@ -2218,7 +2290,9 @@ const editPreview = computed(() =>
 .schedules-page__skeleton-bar--portrait {
   flex: 0 0 47px;
   height: 47px;
-  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, var(--color-brass-body) 14%, transparent);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
 }
 
 .schedules-page__skeleton-select {
@@ -2288,22 +2362,42 @@ const editPreview = computed(() =>
   white-space: nowrap;
 }
 
-/* El retrato mide lo mismo que la casilla del selector y se apoya en su misma
-   línea base: antes era más alto y asomaba por encima del campo, junto al
-   rótulo, y se veía desalineado (issue #575). Sin escala al pasar el cursor,
-   que lo volvía a sacar de la línea. */
+/* El retrato con su marco mide lo mismo que la casilla del selector (47 px:
+   10 px de relleno por lado, una línea de 24 px y los filetes de 1 y 2 px) y
+   se apoya en su misma línea base (issue #575). El marco suma 3 px de aire y
+   1 px de filete por lado, así que la foto mide 39 px. Sin escala al pasar el
+   cursor, que lo sacaba de la línea. */
+.schedules-page__frame {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 3px;
+  line-height: 0;
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.schedules-page__frame::after {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  content: '';
+  background-color: var(--color-brass-body);
+  border: 2px solid var(--color-canvas);
+  transform: translateX(-50%) rotate(45deg);
+}
+
 .schedules-page__portrait {
-  /* Alto real de la casilla de BaseSelect: 10 px de relleno por lado, una
-     línea de 24 px y los filetes de 1 y 2 px. */
-  --avatar-size: 47px;
+  --avatar-size: 39px;
 
   flex: 0 0 auto;
 }
 
-@media (max-width: 767px) {
-  .schedules-page__portrait {
-    --avatar-size: 47px;
-  }
+.schedules-page__frame :deep(.professional-avatar) {
+  border-color: transparent;
+  border-radius: 2px;
 }
 
 /* El selector conserva el aspecto v2 de BaseSelect: sin filete de acento. */
@@ -2320,38 +2414,58 @@ const editPreview = computed(() =>
   margin: 0;
 }
 
-/* Cifras de la semana: tarjetas v2, rótulo en tipo oración y cifra en tinta. */
+/* Cifras de la semana (#782): sin caja. Rótulo de latón en versalitas y la
+   cifra en serif, separadas por un filete de latón, como la hora protagonista
+   de Configuración. */
 .schedules-page__stats > div {
   display: flex;
-  min-width: 112px;
+  min-width: 104px;
   flex-direction: column;
   gap: 2px;
-  padding: 6px 12px;
-  background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  padding: 2px 4px 2px 16px;
+  border-left: 1px solid var(--color-brass-line);
 }
 
 .schedules-page__stats dt {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
+  color: var(--color-brass-text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .schedules-page__stats dd {
   margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
-  font-weight: 600;
-  line-height: 26px;
+  color: var(--color-on-strong);
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 38px;
   font-variant-numeric: tabular-nums;
 }
 
 .schedules-page__stat-total {
-  margin-left: 2px;
+  margin-left: 3px;
   color: var(--color-on-strong-muted);
-  font-size: var(--font-size-body-sm);
+  font-size: 18px;
+}
+
+/* «h» y «min» menudos y apagados, como «/7»; la cifra entera no se parte. */
+.schedules-page__stats dd {
+  white-space: nowrap;
+}
+
+.schedules-page__stat-unit {
+  color: var(--color-on-strong-muted);
+  font-size: 18px;
+}
+
+@media (max-width: 380px) {
+  .schedules-page__stats dd {
+    font-size: 28px;
+    line-height: 32px;
+  }
 }
 
 .schedules-stat-enter-active,
@@ -2424,8 +2538,10 @@ const editPreview = computed(() =>
   width: 100%;
   overflow: hidden;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  /* Papel con filete de latón, como el tablero (#782). */
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
   container: aside / inline-size;
 }
 
@@ -2536,10 +2652,34 @@ const editPreview = computed(() =>
 }
 
 .schedules-card__empty {
-  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px 14px;
+  color: var(--color-on-strong);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-style: italic;
+  line-height: 24px;
   text-align: center;
-  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  border-radius: var(--radius-md);
+  border-block: 1px dashed color-mix(in srgb, var(--color-brass-line) 70%, transparent);
+}
+
+.schedules-card__empty small {
+  color: var(--color-on-strong-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 18px;
+}
+
+.schedules-card__empty-mark {
+  width: 11px;
+  height: 11px;
+  margin-bottom: 4px;
+  border: 1.5px solid var(--color-brass-text);
+  transform: rotate(45deg);
 }
 
 .schedules-card__list {
@@ -2550,26 +2690,69 @@ const editPreview = computed(() =>
   list-style: none;
 }
 
-/* Acciones del panel y de fila: BaseButton secundario neutro (v2), solo más
-   compacto; el acento queda para la acción principal de cada diálogo. */
-.schedules-page__aside-action.base-button,
-.schedules-row :deep(.base-button) {
-  height: 34px;
+/* «Agregar excepción»: contorno punteado de latón, como el «+» del tablero:
+   una acción que espera, sin competir con la principal de cada diálogo. */
+.schedules-page__aside-action.base-button {
+  height: 36px;
   padding-inline: 14px;
+  color: var(--color-brass-text);
   font-size: var(--font-size-body-sm);
+  background: transparent;
+  border: 1.5px dashed var(--color-brass-line);
+  border-radius: 3px;
+}
+
+.schedules-page__aside-action.base-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-brass-body) 12%, transparent);
+  border-color: var(--color-brass-text);
+  border-style: solid;
+}
+
+/* Acciones de fila: texto sin caja, como las del tablero; Editar pasa a latón
+   y Retirar a peligro solo al señalarlas. */
+.schedules-row :deep(.schedules-row__action.base-button) {
+  height: 36px;
+  min-width: 0;
+  padding-inline: 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  font-weight: 600;
+  background: transparent;
+  border-color: transparent;
 }
 
 .schedules-row
-  :deep(
-    .schedules-row__remove.base-button--secondary:hover:not(:disabled):not(.base-button--loading)
-  ) {
-  color: var(--color-danger-on-strong);
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 55%, transparent);
+  :deep(.schedules-row__action.base-button:hover:not(:disabled):not(.base-button--loading)) {
+  color: var(--color-brass-text);
+  background: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
 }
 
-/* Interruptor de festivos: carril redondo con una pieza que se desliza; activo
-   en tinta, como el seleccionado del resto de v2. */
+.schedules-row
+  :deep(.schedules-row__remove.base-button:hover:not(:disabled):not(.base-button--loading)) {
+  color: var(--color-danger-on-strong);
+  background: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
+}
+
+/* En táctil y en angosto, el piso de 44 px de BaseButton y del tablero
+   (CA-009-03, revisión de #783); en escritorio con puntero fino bastan 36. */
+@media (max-width: 767px), (pointer: coarse) {
+  .schedules-page__aside-action.base-button,
+  .schedules-row :deep(.schedules-row__action.base-button) {
+    height: 44px;
+  }
+}
+
+.schedules-row__sep {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-brass-line);
+  transform: rotate(45deg);
+}
+
+/* Interruptor de festivos (#782): el de la familia, como en Configuración
+   (8c). Una ranura recta con un rombo que rueda un cuarto de vuelta y se llena
+   de latón al encender. Sigue siendo una casilla nativa con su rótulo. */
 .schedules-switch {
   display: inline-flex;
   max-width: 100%;
@@ -2593,35 +2776,50 @@ const editPreview = computed(() =>
   flex: 0 0 auto;
   width: 46px;
   height: 24px;
-  background-color: var(--color-surface);
+  background-color: var(--color-surface-muted);
   border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-pill);
+  border-radius: 3px;
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     border-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
+/* El rombo: avanza y gira un cuarto de vuelta, con `translate` y `rotate`
+   sueltos para que no se pisen. */
 .schedules-switch__thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
+  top: 50%;
+  left: 5px;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
   background-color: var(--color-text-secondary);
-  border-radius: 50%;
-  transition:
-    left var(--motion-duration-base) var(--motion-easing-standard),
-    background-color var(--motion-duration-base) var(--motion-easing-standard);
+  rotate: 45deg;
+  translate: 0 0;
 }
 
 .schedules-switch--on .schedules-switch__track {
-  background-color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  background-color: var(--color-brass-body);
+  border-color: var(--color-brass-text);
 }
 
 .schedules-switch--on .schedules-switch__thumb {
-  left: 25px;
   background-color: var(--color-surface);
+  rotate: 135deg;
+  translate: 22px 0;
+}
+
+.schedules-switch:hover .schedules-switch__track {
+  border-color: var(--color-brass-line);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .schedules-switch__thumb {
+    transition:
+      translate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
+      rotate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
+      background-color 160ms ease;
+  }
 }
 
 .schedules-switch__input:focus-visible + .schedules-switch__track {
@@ -2652,8 +2850,7 @@ const editPreview = computed(() =>
   align-items: center;
   gap: 6px 12px;
   padding: 10px 4px;
-  border-top: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 9%, transparent);
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 60%, transparent);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
@@ -2663,11 +2860,11 @@ const editPreview = computed(() =>
 
 @media (hover: hover) {
   .schedules-row:hover {
-    background-color: color-mix(in srgb, var(--color-on-strong) 4%, transparent);
+    background-color: color-mix(in srgb, var(--color-brass-body) 5%, transparent);
   }
 
   .schedules-row:hover .schedules-tile {
-    border-color: var(--color-border-control);
+    border-color: var(--color-brass-text);
   }
 }
 
@@ -2686,26 +2883,31 @@ const editPreview = computed(() =>
   gap: 3px;
   padding: 5px 0 6px;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  /* La hoja de calendario de la familia: filete y canto de latón, el día en
+     serif y el mes en versalitas de latón. */
+  border: 1px solid var(--color-brass-line);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
   transition: border-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 .schedules-tile b {
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .schedules-tile i {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-caption);
+  color: var(--color-brass-text);
+  font-size: 10px;
   line-height: 1;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .schedules-row__main {
@@ -2724,15 +2926,17 @@ const editPreview = computed(() =>
   align-items: baseline;
   gap: 4px 8px;
   color: var(--color-on-strong);
-  font-size: var(--font-size-body);
-  font-weight: 500;
-  line-height: 22px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 /* Estado de la excepción: punto del color del estado (no rombo) y rótulo en
    tipo oración. */
 .schedules-row__state {
   color: var(--color-danger-on-strong);
+  font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 500;
 }
@@ -2758,6 +2962,10 @@ const editPreview = computed(() =>
   font-variant-numeric: tabular-nums;
 }
 
+.schedules-row__range {
+  white-space: nowrap;
+}
+
 .schedules-row__meta {
   color: var(--color-on-strong-muted);
   font-size: var(--font-size-caption);
@@ -2771,7 +2979,7 @@ const editPreview = computed(() =>
 .schedules-row__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0;
 }
 
 .schedules-row__tag {
@@ -2819,12 +3027,14 @@ const editPreview = computed(() =>
   justify-content: center;
   width: 40px;
   height: 40px;
-  color: var(--color-text-primary);
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-radius: var(--radius-md);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
-  font-weight: 600;
+  color: var(--color-brass-text);
+  background-color: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
   line-height: 1;
 }
 
@@ -2871,28 +3081,45 @@ const editPreview = computed(() =>
 }
 
 /* "Así queda": la pista del día con la propuesta y lo ya existente atenuado,
-   para ver el solape antes de guardar. Tarjeta v2 sin filete de acento. */
+   para ver el solape antes de guardar. Un recorte de la libreta: troquel
+   punteado de latón, rótulo en versalitas y la frase en serif. */
 .schedules-page__preview {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
   background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-brass-line);
+  border-radius: 3px;
 }
 
 .schedules-page__eyebrow {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-brass-text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.schedules-page__eyebrow::before {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  content: '';
+  border: 1.5px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .schedules-page__preview p {
   margin: 0;
   color: var(--color-text-primary);
-  font-size: var(--font-size-body-sm);
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 24px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2914,8 +3141,8 @@ const editPreview = computed(() =>
   font-size: var(--font-size-body-sm);
   text-align: center;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  border-radius: 3px;
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -2931,10 +3158,22 @@ const editPreview = computed(() =>
 }
 
 .schedules-page__choice-option:has(input:checked) {
+  gap: 8px;
   color: var(--color-text-primary);
   font-weight: 600;
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-brass-body) 14%, var(--color-surface));
+  border-color: var(--color-brass-text);
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+/* La elegida lleva el rombo de latón delante, como en Configuración (8c). */
+.schedules-page__choice-option:has(input:checked)::before {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  content: '';
+  background-color: var(--color-brass-text);
+  transform: rotate(45deg);
 }
 
 .schedules-page__choice-option:has(input:focus-visible) {
@@ -2950,8 +3189,8 @@ const editPreview = computed(() =>
 
 @media (hover: hover) {
   .schedules-page__choice-option:hover:not(:has(input:checked)):not(:has(input:disabled)) {
-    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-    border-color: var(--color-text-primary);
+    background-color: color-mix(in srgb, var(--color-brass-body) 8%, var(--color-surface));
+    border-color: var(--color-brass-line);
   }
 }
 
@@ -3097,6 +3336,23 @@ const editPreview = computed(() =>
   flex-wrap: wrap;
 }
 
+/* Nada que guardar todavía: «Guardar» espera en reposo con el contorno
+   punteado de latón, no con el acento lleno (como en Configuración, 8c). Al
+   cambiar algo vuelve a ser la acción principal. Con el teclado conserva el
+   doble anillo de foco de BaseButton (WCAG 2.4.7, revisión de #783). */
+.schedules-page__dialog-actions
+  :deep(.schedules-page__save--rest.base-button--primary:not(.base-button--loading)) {
+  color: var(--color-brass-text);
+  background: transparent;
+  border: 1px dashed var(--color-brass-line);
+  box-shadow: none;
+}
+
+.schedules-page__dialog-actions
+  :deep(.schedules-page__save--rest.base-button--primary:not(.base-button--loading):focus-visible) {
+  box-shadow: var(--btn-focus-ring);
+}
+
 /* Filas del panel lateral: si el panel es angosto (columna de escritorio o
    móvil) las acciones bajan bajo el dato en lugar de apretarlo. */
 @container aside (max-width: 520px) {
@@ -3188,7 +3444,12 @@ const editPreview = computed(() =>
    especificidad y el orden de inserción de los <style> no está garantizado. */
 .schedules-page__dialog.base-dialog {
   background-color: var(--color-surface) !important;
-  border: var(--border-width-normal) solid var(--color-border-subtle) !important;
+  /* Papel con filete y canto de latón, como el tablero (#782). */
+  border: 1px solid var(--color-brass-line) !important;
+  border-radius: 4px !important;
+  box-shadow:
+    inset 0 -2px 0 var(--color-brass-body),
+    var(--shadow-raised) !important;
 }
 
 /* Ancho explícito: sin él el diálogo se ajusta al contenido y, sin los campos
@@ -3224,14 +3485,17 @@ const editPreview = computed(() =>
   padding: var(--space-5) var(--space-6) var(--space-6) !important;
 }
 
-/* Separador v2 del encabezado: línea sutil de 1px, sin filete de acento. */
+/* Bajo el encabezado, el troquel punteado de latón de la familia. */
 .schedules-page__dialog .base-dialog__header {
-  border-bottom-width: var(--border-width-normal) !important;
-  border-bottom-color: var(--color-border-subtle) !important;
+  border-bottom: 1px dashed var(--color-brass-line) !important;
 }
 
 .schedules-page__dialog .base-dialog__title {
   color: var(--color-on-strong) !important;
+  font-family: var(--font-display) !important;
+  font-size: 27px !important;
+  font-weight: 400 !important;
+  line-height: 1.15 !important;
   overflow-wrap: anywhere;
 }
 

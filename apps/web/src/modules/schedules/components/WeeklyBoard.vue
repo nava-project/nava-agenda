@@ -108,6 +108,23 @@ function dayMinutes(day: BoardDay): number {
 function countLabel(day: BoardDay): string {
   return day.items.length === 1 ? '1 tramo' : `${day.items.length} tramos`
 }
+
+/**
+ * «8:00 a. m.» → cifra en serif y sufijo menudo, como la hora protagonista de
+ * la familia. El sufijo conserva su espacio inicial: el texto (y el lector de
+ * pantalla) sigue diciendo «8:00 a. m.», no «8:00a. m.».
+ */
+function clockParts(label: string): { clock: string; suffix: string } {
+  const at = label.indexOf(' ')
+  return at < 0
+    ? { clock: label, suffix: '' }
+    : { clock: label.slice(0, at), suffix: label.slice(at) }
+}
+
+function tramoParts(wh: WorkingHour) {
+  const { start, end } = clockRangeParts(wh.startsTime, wh.durationMinutes)
+  return { start: clockParts(start), end: clockParts(end) }
+}
 </script>
 
 <template>
@@ -135,8 +152,9 @@ function countLabel(day: BoardDay): string {
     </div>
 
     <section
-      v-for="day in days"
+      v-for="(day, index) in days"
       :key="day.value"
+      :style="{ '--day-index': index }"
       class="week-board__day"
       :class="{
         'week-board__day--today': day.value === todayIsoWeekday,
@@ -167,9 +185,14 @@ function countLabel(day: BoardDay): string {
         />
 
         <div class="week-board__line">
-          <p v-if="day.items.length === 0" class="week-board__empty">Sin tramos.</p>
+          <!-- Día libre: un renglón de libreta con puntos guía, no una caja gris. -->
+          <p v-if="day.items.length === 0" class="week-board__empty">
+            <span class="week-board__empty-label">Sin tramos</span>
+          </p>
 
           <ul v-else class="week-board__list" :aria-label="`Tramos del ${day.label}`">
+            <!-- El tramo es la pieza (#782): la hora en serif, como la hora
+                 protagonista de la familia, y sus dos acciones en texto, sin cajas. -->
             <li
               v-for="wh in day.items"
               :key="wh.id"
@@ -180,27 +203,34 @@ function countLabel(day: BoardDay): string {
               @focusout="activeId = null"
             >
               <span class="week-board__chip-time"
-                ><span class="week-board__clock">{{
-                  clockRangeParts(wh.startsTime, wh.durationMinutes).start
-                }}</span>
-                –
-                <span class="week-board__clock">{{
-                  clockRangeParts(wh.startsTime, wh.durationMinutes).end
-                }}</span></span
+                ><span class="week-board__clock"
+                  >{{ tramoParts(wh).start.clock
+                  }}<small v-if="tramoParts(wh).start.suffix">{{
+                    tramoParts(wh).start.suffix
+                  }}</small></span
+                ><span class="week-board__dash"> – </span
+                ><span class="week-board__clock"
+                  >{{ tramoParts(wh).end.clock
+                  }}<small v-if="tramoParts(wh).end.suffix">{{
+                    tramoParts(wh).end.suffix
+                  }}</small></span
+                ></span
               >
               <div class="week-board__chip-actions">
                 <BaseButton
                   type="button"
-                  variant="secondary"
+                  variant="ghost"
+                  class="week-board__action"
                   :aria-label="`Editar tramo de ${day.label} a las ${clockLabel(timeToMinutes(wh.startsTime))}`"
                   @click="emit('edit', wh)"
                 >
                   Editar
                 </BaseButton>
+                <span class="week-board__action-sep" aria-hidden="true" />
                 <BaseButton
                   type="button"
-                  variant="secondary"
-                  class="week-board__remove"
+                  variant="ghost"
+                  class="week-board__action week-board__remove"
                   :loading="pendingDeleteIds.has(wh.id)"
                   :disabled="pendingDeleteIds.has(wh.id)"
                   :aria-label="`Retirar tramo de ${day.label} a las ${clockLabel(timeToMinutes(wh.startsTime))}`"
@@ -228,8 +258,9 @@ function countLabel(day: BoardDay): string {
 </template>
 
 <style scoped>
-/* Tablero v2 (DEC-188): tarjeta sobre la superficie con borde sutil. El acento
-   del negocio no aparece aquí; «hoy» y «ahora» van en Sol, como en la agenda. */
+/* Tablero de la familia (#782, DEC-189): papel con filete de latón, como la
+   ficha y la tarjeta de turno. El acento del negocio no aparece aquí; «hoy» va
+   en latón con su rombo y «ahora» en sol, como la regla del día. */
 .week-board {
   --track-height: 14px;
   /* Objetivo de las acciones de fila y del «+»: 44 px táctil (DEC-039); en
@@ -245,8 +276,9 @@ function countLabel(day: BoardDay): string {
   flex-direction: column;
   overflow: hidden;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-brass-line);
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
 /* Firefox enfoca el tablero desplazable: el anillo doble de la familia, por
@@ -343,24 +375,33 @@ function countLabel(day: BoardDay): string {
   grid-template-columns: 132px minmax(0, 1fr);
   gap: 18px;
   padding: 7px 18px;
-  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+  /* Troquel punteado de latón entre días, como bajo las secciones de Configuración. */
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 70%, transparent);
   transition: background-color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-/* Hoy: filete de Sol a la izquierda, el mismo color que «Ahora» en la agenda. */
+/* Hoy: un filete de latón a la izquierda y el papel apenas dorado. */
+.week-board__day--today {
+  background-color: color-mix(in srgb, var(--color-brass-body) 6%, transparent);
+}
+
 .week-board__day--today::before {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: 3px;
-  background-color: var(--color-sun);
+  width: 2px;
+  background-color: var(--color-brass-body);
 }
 
 @media (hover: hover) {
   .week-board__day:hover {
-    background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+    background-color: color-mix(in srgb, var(--color-brass-body) 4%, transparent);
+  }
+
+  .week-board__day--today:hover {
+    background-color: color-mix(in srgb, var(--color-brass-body) 8%, transparent);
   }
 }
 
@@ -376,23 +417,33 @@ function countLabel(day: BoardDay): string {
 .week-board__day-title {
   margin: 0;
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
-  font-weight: 600;
-  line-height: 26px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 28px;
 }
 
-/* «Hoy»: la misma pastilla de Sol que la etiqueta «Ahora» de la agenda. */
+/* «Hoy»: el rótulo de latón en versalitas con su rombo lleno, como el oficio
+   de la ficha. */
 .week-board__today {
   display: inline-flex;
   align-items: center;
-  padding: 0 8px;
-  color: var(--color-on-sun);
-  background-color: var(--color-sun);
-  font-size: 12px;
+  gap: 6px;
+  color: var(--color-brass-text);
+  font-size: 11px;
   font-weight: 600;
-  line-height: 18px;
-  border-radius: var(--radius-pill);
+  line-height: 16px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.week-board__today::before {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  content: '';
+  background-color: currentColor;
+  transform: rotate(45deg);
 }
 
 .week-board__day-count {
@@ -402,12 +453,15 @@ function countLabel(day: BoardDay): string {
   line-height: var(--font-size-caption-line);
 }
 
+/* Las horas del día, en serif como toda cifra protagonista de la familia. */
 .week-board__day-hours {
   margin-left: 6px;
-  padding-left: 6px;
+  padding-left: 7px;
   color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
-  border-left: var(--border-width-normal) solid var(--color-border-subtle);
+  border-left: 1px solid var(--color-brass-line);
 }
 
 .week-board__day--free .week-board__day-title {
@@ -440,39 +494,59 @@ function countLabel(day: BoardDay): string {
   list-style: none;
 }
 
-/* Tramo: ficha v2 con borde sutil; al señalarla el borde pasa a control. */
+/* El tramo es la pieza (#782): un talón de papel con filete de latón, la hora
+   en serif y sus acciones en texto. Al señalarlo, el filete se afirma y su
+   ventana de cielo se enciende en la pista. */
 .week-board__chip {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-height: calc(var(--board-control) + 6px);
-  padding: 2px 3px 2px 14px;
+  padding: 2px 4px 2px 14px;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-brass-line) 75%, transparent);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--color-brass-body) 55%, transparent);
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
-    border-color var(--motion-duration-fast) var(--motion-easing-standard);
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
 @media (hover: hover) {
   .week-board__chip:hover {
-    border-color: var(--color-border-control);
+    border-color: var(--color-brass-text);
+    box-shadow: inset 0 -2px 0 var(--color-brass-body);
   }
 }
 
 .week-board__chip:focus-within {
-  border-color: var(--color-border-control);
+  border-color: var(--color-brass-text);
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
-/* El tramo como rango en 12 h; la duración ya va en la cabecera del día. */
+/* El tramo como rango en 12 h: la cifra en serif y el sufijo menudo; la
+   duración ya va en la cabecera del día. */
 .week-board__chip-time {
   color: var(--color-text-primary);
-  font-size: var(--font-size-body-sm);
-  font-weight: 600;
-  line-height: 1.15;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.week-board__chip-time small {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.week-board__dash {
+  color: var(--color-brass-text);
 }
 
 .week-board__clock {
@@ -482,52 +556,89 @@ function countLabel(day: BoardDay): string {
 .week-board__chip-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 4px;
+  gap: 0;
+  margin-left: 2px;
 }
 
-/* Acciones de fila: BaseButton secundario neutro (v2), solo más compacto. */
-.week-board__chip-actions :deep(.base-button) {
+/* Acciones discretas: texto sin caja, en tinta secundaria; al señalarlas,
+   Editar pasa a latón y Retirar a peligro. El alto táctil se conserva. */
+.week-board__chip-actions :deep(.week-board__action.base-button) {
   height: var(--board-control);
-  padding-inline: 12px;
-  font-size: var(--font-size-body-sm);
-}
-
-/* Retirar es la acción destructiva: se tiñe de peligro solo al señalarla. */
-.week-board__chip-actions
-  :deep(
-    .week-board__remove.base-button--secondary:hover:not(:disabled):not(.base-button--loading)
-  ) {
-  color: var(--color-danger-on-strong);
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 55%, transparent);
-}
-
-.week-board__empty {
-  display: flex;
-  align-items: center;
-  min-height: calc(var(--board-control) + 6px);
-  padding: 0 14px;
-  margin: 0;
+  min-width: 0;
+  padding-inline: 8px;
   color: var(--color-text-secondary);
   font-size: var(--font-size-body-sm);
-  background-color: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  border-radius: var(--radius-md);
+  font-weight: 600;
+  background: transparent;
+  border-color: transparent;
 }
 
-/* "+" por día: botón neutro de contorno, como el secundario v2. */
+.week-board__chip-actions
+  :deep(.week-board__action.base-button:hover:not(:disabled):not(.base-button--loading)) {
+  color: var(--color-brass-text);
+  background: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
+}
+
+.week-board__chip-actions
+  :deep(.week-board__remove.base-button:hover:not(:disabled):not(.base-button--loading)) {
+  color: var(--color-danger-on-strong);
+  background: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
+}
+
+/* Entre las dos acciones, un rombo de latón diminuto en lugar de otra caja. */
+.week-board__action-sep {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  background-color: var(--color-brass-line);
+  transform: rotate(45deg);
+}
+
+/* Día libre: un renglón de libreta, el rótulo y los puntos guía de latón. */
+.week-board__empty {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: calc(var(--board-control) + 6px);
+  padding: 0 4px 0 2px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-style: italic;
+}
+
+.week-board__empty::after {
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 2px;
+  content: '';
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-brass-line) 80%, transparent) 1px,
+    transparent 1.3px
+  );
+  background-repeat: repeat-x;
+  background-size: 6px 2px;
+  transform: translateY(4px);
+}
+
+/* «+» por día: contorno punteado de latón, como una acción que espera. */
 .week-board__add {
   display: inline-grid;
   place-items: center;
   width: var(--board-control);
   height: var(--board-control);
   padding: 0;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-title-item);
+  color: var(--color-brass-text);
+  font-family: var(--font-display);
+  font-size: 24px;
   line-height: 1;
-  background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1.5px dashed var(--color-brass-line);
+  border-radius: 3px;
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -536,8 +647,9 @@ function countLabel(day: BoardDay): string {
 
 @media (hover: hover) {
   .week-board__add:hover {
-    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-    border-color: var(--color-text-primary);
+    background-color: color-mix(in srgb, var(--color-brass-body) 12%, transparent);
+    border-color: var(--color-brass-text);
+    border-style: solid;
   }
 }
 
@@ -580,8 +692,10 @@ function countLabel(day: BoardDay): string {
     text-align: right;
   }
 
-  /* Angosto: el tramo, sus acciones y el «+» en un renglón; el rango puede
-     partirse en el guion (cada hora queda entera) para hacerse sitio. */
+  /* Angosto: el tramo y el «+» en un renglón. El rango es el corazón del
+     renglón de libreta y nunca se parte (revisión de #783); «Editar · Retirar»
+     va siempre en su propia línea debajo, para que los tramos de un día midan
+     lo mismo. */
   .week-board__line {
     flex-wrap: nowrap;
   }
@@ -592,13 +706,14 @@ function countLabel(day: BoardDay): string {
 
   .week-board__chip {
     flex: 1 1 100%;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 0 8px;
   }
 
   .week-board__chip-time {
-    flex: 1 1 auto;
-    min-width: 0;
-    white-space: normal;
+    flex: 1 0 100%;
+    font-size: 19px;
+    white-space: nowrap;
   }
 
   .week-board__add {
@@ -658,11 +773,34 @@ function countLabel(day: BoardDay): string {
   }
 }
 
+/* Llegada (#782): los días suben escalonados (~45 ms entre uno y otro, unos
+   700 ms en total), solo transform y opacidad. Corre una vez, al montarse el
+   tablero; con movimiento reducido del sistema o del panel, no existe. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .week-board__day {
+    animation: week-board-arrive 380ms calc(var(--day-index, 0) * 45ms)
+      cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+@keyframes week-board-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .week-board__day,
   .week-board__chip,
   .week-board__add {
     transition: none;
   }
+}
+
+:root[data-motion='reduced'] .week-board__day,
+:root[data-motion='reduced'] .week-board__chip,
+:root[data-motion='reduced'] .week-board__add {
+  transition: none;
 }
 </style>

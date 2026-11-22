@@ -130,3 +130,59 @@ describe('WeeklyBoard · región desplazable', () => {
     wrapper.unmount()
   })
 })
+
+// #782: el tablero con la familia. El tramo es la pieza (hora en serif con el
+// sufijo menudo) y sus acciones conservan los nombres accesibles de antes.
+describe('WeeklyBoard · familia (#782)', () => {
+  const tramo = {
+    id: 'wh-1',
+    isoWeekday: 1,
+    startsTime: '08:00',
+    durationMinutes: 240,
+    createdAt: '2026-11-01T00:00:00Z',
+    updatedAt: '2026-11-01T00:00:00Z',
+  }
+
+  function mountFamily() {
+    return mount(WeeklyBoard, {
+      props: {
+        days: [
+          { value: 1, label: 'Lunes', items: [tramo] },
+          { value: 2, label: 'Martes', items: [] },
+        ],
+        scale: { startMinute: 420, endMinute: 1260 },
+        todayIsoWeekday: 1,
+        nowMinute: 600,
+        pendingDeleteIds: new Set<string>(),
+      },
+    })
+  }
+
+  it('reads the tramo as a 12-hour range with the suffix kept as text', () => {
+    const chip = mountFamily().get('.week-board__chip-time')
+    expect(chip.text()).toBe('8:00 a. m. – 12:00 p. m.')
+    expect(chip.findAll('small').map((s) => s.text())).toEqual(['a. m.', 'p. m.'])
+  })
+
+  it('keeps the accessible names of the row actions and the add button', () => {
+    const wrapper = mountFamily()
+    expect(wrapper.find('[aria-label="Editar tramo de Lunes a las 8:00 a. m."]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('[aria-label="Retirar tramo de Lunes a las 8:00 a. m."]').exists()).toBe(
+      true,
+    )
+    expect(wrapper.find('[aria-label="Agregar un tramo el Martes"]').exists()).toBe(true)
+  })
+
+  it('marks today with the brass label and a free day with a notebook line', () => {
+    const wrapper = mountFamily()
+    expect(wrapper.get('.week-board__day--today .week-board__today').text()).toBe('Hoy')
+    expect(wrapper.get('.week-board__day--free .week-board__empty').text()).toBe('Sin tramos')
+  })
+
+  it('staggers the arrival by passing each day its index', () => {
+    const days = mountFamily().findAll('.week-board__day')
+    expect(days.map((d) => d.attributes('style'))).toEqual(['--day-index: 0;', '--day-index: 1;'])
+  })
+})

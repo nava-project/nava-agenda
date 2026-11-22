@@ -62,6 +62,19 @@ export function formatCivilDateFull(civilDate: string): string {
   return new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', dateStyle: 'full' }).format(at)
 }
 
+// formatCivilDateLong (revisión de #783): la fecha en palabras para leer de
+// corrido, sin ISO ni comas: «martes 8 de diciembre». El año solo aparece si no
+// es el de `today`: «sábado 2 de enero de 2027». Sin `today`, siempre lo lleva.
+// Como formatCivilDateFull, ancla a mediodía UTC y formatea en UTC.
+export function formatCivilDateLong(civilDate: string, today: string | null = null): string {
+  const [year, month, day] = civilDate.split('-').map(Number)
+  const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', ...options }).format(at)
+  const text = `${part({ weekday: 'long' })} ${day} de ${part({ month: 'long' })}`
+  return today && today.slice(0, 4) === civilDate.slice(0, 4) ? text : `${text} de ${year}`
+}
+
 // formatCivilDateShort (DEC-188, agenda v2): la fecha de un control en palabras
 // cortas, sin ISO: «Hoy, jue 19 nov», «Mañana, vie 20 nov», «Ayer, mié 18 nov» o
 // «sáb 21 nov». Con otro año que `today`, lo añade: «lun 4 ene 2027». Igual que
