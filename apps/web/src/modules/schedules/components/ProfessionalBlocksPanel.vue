@@ -3,6 +3,7 @@
 // con key=professionalId. Los formularios y las peticiones conservan ese dueño.
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getCivilDateInTimezone, shiftCivilDate } from '@/shared/time/civilDate'
+import { zoneClockLabel } from '@/shared/time/timezoneCity'
 import { useToast, useVocabulary } from '@/shared/composables'
 import {
   BaseAlert,
@@ -13,7 +14,6 @@ import {
   BaseTimePicker,
   BaseSelect,
   ProfessionalAvatar,
-  BaseSpinner,
 } from '@/shared/ui'
 import { RouterLink } from 'vue-router'
 import { fetchBusinessTimezone } from '../api/schedulesApi'
@@ -69,6 +69,10 @@ const props = defineProps<{
 }>()
 const selectedProfessionalId = computed(() => props.professionalId)
 const businessTimezone = ref<string | null>(null)
+// «Hora en Bogotá · UTC−5», como en Configuración; nunca el id IANA crudo (#791).
+const zoneLabel = computed(() =>
+  businessTimezone.value ? zoneClockLabel(businessTimezone.value) : '',
+)
 const timezoneLoading = ref(false)
 const todayCivilDate = computed(() =>
   businessTimezone.value ? getCivilDateInTimezone(businessTimezone.value) : null,
@@ -658,7 +662,7 @@ function seriesCounts(item: TimeBlockSeries): string {
         Un descanso, un día libre o un imprevisto. Reserva ese tiempo para {{ professionalName }}.
       </p>
       <p v-if="businessTimezone" class="blocks-panel__timezone">
-        Horas {{ v.ofTheBusiness }} · {{ businessTimezone }}
+        {{ zoneLabel }}
       </p>
       <p v-else-if="timezoneLoading" class="blocks-panel__timezone" role="status">
         Consultando la zona horaria…
@@ -762,9 +766,14 @@ function seriesCounts(item: TimeBlockSeries): string {
           aria-label="Lista de bloqueos puntuales"
           tabindex="0"
         >
-          <div v-if="blocksStatus === 'loading'" class="blocks-panel__state" role="status">
-            <BaseSpinner size="sm" />
-            <p>Cargando bloqueos…</p>
+          <!-- Skeleton con la forma de las fichas (#791), no un spinner en una caja. -->
+          <div v-if="blocksStatus === 'loading'" class="blocks-panel__skeleton" role="status">
+            <span class="sr-only">Cargando bloqueos…</span>
+            <span class="blocks-panel__skeleton-record" aria-hidden="true">
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--type" />
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--when" />
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--foot" />
+            </span>
           </div>
           <BaseAlert
             v-else-if="blocksStatus === 'error'"
@@ -863,9 +872,14 @@ function seriesCounts(item: TimeBlockSeries): string {
           aria-label="Lista de series de bloqueo"
           tabindex="0"
         >
-          <div v-if="seriesStatus === 'loading'" class="blocks-panel__state" role="status">
-            <BaseSpinner size="sm" />
-            <p>Cargando series…</p>
+          <!-- Skeleton con la forma de las fichas (#791), no un spinner en una caja. -->
+          <div v-if="seriesStatus === 'loading'" class="blocks-panel__skeleton" role="status">
+            <span class="sr-only">Cargando series…</span>
+            <span class="blocks-panel__skeleton-record" aria-hidden="true">
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--type" />
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--when" />
+              <span class="blocks-panel__skeleton-bar blocks-panel__skeleton-bar--foot" />
+            </span>
           </div>
           <BaseAlert
             v-else-if="seriesStatus === 'error'"
@@ -1074,7 +1088,7 @@ function seriesCounts(item: TimeBlockSeries): string {
         <div class="block-form__preview" aria-live="polite">
           <span class="blocks-panel__eyebrow">Así queda el bloqueo</span>
           <p>{{ blockTypeLabel(createBlockType) }} · {{ blockPreview }}</p>
-          <small>Horas {{ v.ofTheBusiness }} · {{ businessTimezone }}</small>
+          <small>{{ zoneLabel }}</small>
         </div>
         <BaseAlert v-if="createBlockError" variant="danger">{{ createBlockError }}</BaseAlert>
         <BaseAlert v-else-if="createBlockStatus === 'validation-error'" variant="danger"
@@ -1248,13 +1262,13 @@ function seriesCounts(item: TimeBlockSeries): string {
 .blocks-panel__identity > div {
   min-width: 0;
 }
+/* El titular del panel es el del diálogo (#791): serif de la familia. */
 .blocks-panel h2 {
-  margin: 4px 0 0;
-  font-family: var(--font-sans);
-  font-size: clamp(22px, 3vw, 28px);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 34px);
+  font-weight: 400;
+  line-height: 1.1;
 }
 .blocks-panel__eyebrow {
   margin: 0;
@@ -1473,9 +1487,11 @@ function seriesCounts(item: TimeBlockSeries): string {
   padding: 0;
   list-style: none;
 }
+/* La hora toma su ancho real: en 12 h («10:30 a. m. – 11:15 a. m.») no cabe en
+   una columna fija de 112 px y se montaba sobre el nombre (#791). */
 .affected-row {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) auto;
+  grid-template-columns: max-content minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 6px 12px;
@@ -1536,17 +1552,49 @@ function seriesCounts(item: TimeBlockSeries): string {
   }
 }
 
-.blocks-panel__state {
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-  text-align: center;
-  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
+.blocks-panel__skeleton {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+/* Mismo borde, radio y relleno que .blocks-panel__record: al llegar la lista,
+   las fichas ocupan el sitio de su silueta. */
+.blocks-panel__skeleton-record {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+.blocks-panel__skeleton-bar {
+  display: block;
+  height: 14px;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  animation: blocks-skeleton-pulse 1400ms ease-in-out infinite;
+}
+.blocks-panel__skeleton-bar--type {
+  width: 42%;
+  height: 22px;
+}
+.blocks-panel__skeleton-bar--when {
+  width: 68%;
+}
+.blocks-panel__skeleton-bar--foot {
+  width: 30%;
+  height: 12px;
+  margin-top: 8px;
+}
+/* Solo opacidad, finita en cada ciclo; con movimiento reducido la regla global
+   de base.css la deja en 0,01 ms (DEC-110). */
+@keyframes blocks-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 /* Vacío compacto (issue #577): un renglón con el texto y su ayuda, sin glifo
    decorativo (v2 quita los rombos y adornos). */
@@ -1880,12 +1928,6 @@ function seriesCounts(item: TimeBlockSeries): string {
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-dialog);
-}
-.block-dialog .base-dialog__title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-section);
-  font-weight: 600;
-  line-height: 1.2;
 }
 .block-dialog .base-dialog__header,
 .block-dialog .base-dialog__footer {

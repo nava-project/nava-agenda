@@ -24,6 +24,7 @@ import {
   BaseButton,
   BaseDialog,
   BaseInput,
+  DialogSeal,
   DiamondLoader,
 } from '@/shared/ui'
 import {
@@ -1024,7 +1025,7 @@ async function onSubmitRename() {
       @close="onCreateDialogClosed"
     >
       <template #icon>
-        <span class="staff-page__dialog-chip" aria-hidden="true">+</span>
+        <DialogSeal />
       </template>
       <form
         class="staff-page__ink staff-page__form staff-page__create-form"
@@ -1115,9 +1116,7 @@ async function onSubmitRename() {
       @close="onRenameDialogClosed"
     >
       <template #icon>
-        <span class="staff-page__dialog-chip" aria-hidden="true">{{
-          renameTarget ? firstInitial(renameTarget.fullName) : ''
-        }}</span>
+        <DialogSeal :glyph="renameTarget ? firstInitial(renameTarget.fullName) : undefined" />
       </template>
       <form
         class="staff-page__ink staff-page__form staff-page__rename-form"
@@ -1703,24 +1702,6 @@ async function onSubmitRename() {
    renderiza en <Teleport to="body">— se ajustan en el bloque sin "scoped" del
    final. La ficha del encabezado es neutra (tinta sobre velo de tinta) y no
    se anima: ya entra con el propio diálogo. */
-.staff-page__dialog-chip {
-  position: relative;
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  color: var(--color-text-primary);
-  border-radius: var(--radius-md);
-  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: var(--font-size-title-item);
-  line-height: 1;
-}
 
 .staff-page__ink {
   display: flex;

@@ -19,6 +19,7 @@ import {
   BaseDialog,
   BaseInput,
   BasePagination,
+  DialogSeal,
   DiamondLoader,
   EmptyScene,
 } from '@/shared/ui'
@@ -1413,7 +1414,7 @@ async function reloadAfterConflict(serviceId: string) {
       @close="onCreateDialogClosed"
     >
       <template #icon>
-        <span class="catalog-page__create-icon" aria-hidden="true">+</span>
+        <DialogSeal />
       </template>
       <form
         class="catalog-page__form catalog-page__create-form"
@@ -1532,9 +1533,7 @@ async function reloadAfterConflict(serviceId: string) {
       @close="onEditDialogClosed"
     >
       <template #icon>
-        <span class="catalog-page__edit-icon" aria-hidden="true">{{
-          editTarget ? serviceInitial(editTarget.name) : ''
-        }}</span>
+        <DialogSeal :glyph="editTarget ? serviceInitial(editTarget.name) : undefined" />
       </template>
       <form
         class="catalog-page__form catalog-page__edit-form"
@@ -1674,12 +1673,10 @@ async function reloadAfterConflict(serviceId: string) {
       @close="onLifecycleDialogClosed"
     >
       <template #icon>
-        <span
-          class="catalog-page__lifecycle-icon"
-          :class="{ 'catalog-page__lifecycle-icon--danger': lifecycleIntent === 'deactivate' }"
-          aria-hidden="true"
-          >{{ lifecycleTarget ? serviceInitial(lifecycleTarget.name) : '' }}</span
-        >
+        <DialogSeal
+          :glyph="lifecycleTarget ? serviceInitial(lifecycleTarget.name) : undefined"
+          :tone="lifecycleIntent === 'deactivate' ? 'danger' : 'neutral'"
+        />
       </template>
       <div class="catalog-page__lifecycle">
         <BaseAlert
@@ -2580,17 +2577,9 @@ async function reloadAfterConflict(serviceId: string) {
    :deep(...), y sus equivalentes __edit-* / __lifecycle-*): viajan con el
    elemento sin importar dónde lo monte Vue. */
 
-/* Ficha del encabezado, los diálogos (issue 2026-09-28, "aplica eso mismo
-   para las pantallas emergentes de editar y eliminar"): en v2 (DEC-188) es
-   neutra, tinta sobre un velo de tinta, como el monograma de la fila; el
-   acento queda para el botón principal del pie. Alta muestra "+"; Editar y
-   Desactivar/Reactivar muestran serviceInitial() del servicio destino para
-   que la ficha señale DE QUÉ servicio se trata. Sin animación de entrada:
-   ya entra con el propio diálogo. */
-.catalog-page__create-icon,
-.catalog-page__edit-icon,
-.catalog-page__detail-icon,
-.catalog-page__lifecycle-icon {
+/* Ficha del encabezado de la ficha de detalle. Alta, edición y estado usan
+   DialogSeal (#791): la ficha de latón con su rombo, en rojo al desactivar. */
+.catalog-page__detail-icon {
   position: relative;
   display: flex;
   flex: 0 0 auto;
@@ -2607,14 +2596,6 @@ async function reloadAfterConflict(serviceId: string) {
   font-weight: 600;
   font-size: var(--font-size-title-item);
   line-height: 1;
-}
-
-/* "Desactivar" tiñe su propia ficha con el rojo de peligro
-   (--color-danger-on-strong) en vez de la ficha neutra: advierte antes de
-   leer una palabra. Ningún color nuevo. */
-.catalog-page__lifecycle-icon--danger {
-  background-color: var(--color-danger-on-strong);
-  color: var(--color-surface-strong);
 }
 
 /* Los campos de alta y edición usan BaseInput v2 tal cual (DEC-188):
@@ -2807,53 +2788,68 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 .catalog-page__lifecycle-state {
-  opacity: 1;
-  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+  transition: color var(--motion-duration-fast) var(--motion-easing-standard);
 }
 
-/* Sin interruptor activo, "Activo" queda apagado; con él, "Inactivo". */
+/* Sin interruptor activo, "Activo" queda apagado; con él, "Inactivo". En texto
+   secundario y no con opacidad 0,4, que bajaba el contraste a 3,5:1 (#791). */
 .catalog-page__lifecycle-switch:not(.catalog-page__lifecycle-switch--on)
   .catalog-page__lifecycle-state--on,
 .catalog-page__lifecycle-switch--on
   .catalog-page__lifecycle-state:not(.catalog-page__lifecycle-state--on) {
-  opacity: 0.4;
+  color: var(--color-text-secondary);
 }
 
 .catalog-page__lifecycle-switch--on .catalog-page__lifecycle-state--on {
-  color: var(--color-success-on-strong);
+  color: var(--color-brass-text);
 }
 
+/* Interruptor de la familia (#791, el mismo lenguaje que SwitchField de 8c):
+   ranura recta, nunca píldora, y un rombo que avanza dando un cuarto de vuelta.
+   Encendido, la ranura se llena de latón. `translate` y `rotate` sueltos para
+   que el avance y el giro se compongan sin pisarse. */
 .catalog-page__lifecycle-track {
   position: relative;
   flex: 0 0 auto;
-  width: 64px;
-  height: 32px;
-  background-color: color-mix(in srgb, var(--color-on-strong) 10%, transparent);
-  border: var(--border-width-normal) solid var(--color-field-strong-border);
-  border-radius: var(--radius-pill);
-  transition: background-color var(--motion-duration-base) var(--motion-easing-standard);
+  width: 56px;
+  height: 28px;
+  background-color: var(--color-surface-muted);
+  border: var(--border-width-normal) solid var(--color-border-control);
+  border-radius: 3px;
+  transition:
+    background-color var(--motion-duration-base) var(--motion-easing-standard),
+    border-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .catalog-page__lifecycle-thumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
-  background-color: var(--color-on-strong-muted);
-  border-radius: 50%;
+  top: 50%;
+  left: 7px;
+  width: 13px;
+  height: 13px;
+  margin-top: -6.5px;
+  background-color: var(--color-text-secondary);
+  rotate: 45deg;
+  translate: 0 0;
   transition:
-    transform var(--motion-duration-base) cubic-bezier(0.34, 1.56, 0.64, 1),
+    translate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
+    rotate 280ms cubic-bezier(0.3, 1.35, 0.5, 1),
     background-color var(--motion-duration-base) var(--motion-easing-standard);
 }
 
 .catalog-page__lifecycle-switch--on .catalog-page__lifecycle-track {
-  background-color: color-mix(in srgb, var(--color-success-on-strong) 22%, transparent);
+  background-color: var(--color-brass-body);
+  border-color: var(--color-brass-text);
 }
 
 .catalog-page__lifecycle-switch--on .catalog-page__lifecycle-thumb {
-  transform: translateX(32px);
-  background-color: var(--color-success-on-strong);
+  background-color: var(--color-surface);
+  rotate: 135deg;
+  translate: 28px 0;
+}
+
+.catalog-page__lifecycle-switch:hover:not(:disabled) .catalog-page__lifecycle-track {
+  border-color: var(--color-brass-line);
 }
 
 .catalog-page__lifecycle-hint {

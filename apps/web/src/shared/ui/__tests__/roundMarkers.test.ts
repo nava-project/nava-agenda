@@ -28,7 +28,6 @@ const ROUND_ALLOWED: Record<string, string> = {
   '.new-appointment-page__resumen-perforation::after': 'perforación del boleto (objeto físico)',
   '.location-picker__activate-hint': 'píldora de texto',
   '.offer-switch__thumb': 'perilla de interruptor (control)',
-  '.catalog-page__lifecycle-thumb': 'perilla de interruptor (control)',
   '.schedules-page__segment-add': 'botón de añadir (control, no marcador)',
   '.bk-days__nav': 'flechas del carrusel de días (control)',
   '.bk-chip__any': 'hueco de avatar de «Cualquiera», junto a las fotos redondas',
