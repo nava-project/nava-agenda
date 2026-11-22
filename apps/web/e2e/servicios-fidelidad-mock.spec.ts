@@ -110,3 +110,36 @@ test('fidelidad #194: foco, teclado y reflow obligatorio', async ({ page }) => {
     })
   }
 })
+
+// #791: con la cifra más ancha (precio de seis cifras) y las tres fichas del
+// servicio inactivo, el contenido de «Estado del servicio» no se sale del
+// diálogo en los anchos angostos. Se mide el contenido del diálogo, no solo el
+// documento: el diálogo recorta lo que desborda y el documento no lo nota.
+test('#791: «Estado del servicio» sin desborde dentro del diálogo en angosto', async ({ page }) => {
+  const wide = [
+    service('largo', 'Tratamiento completo', 120, '450000.00'),
+    service('largo-inactivo', 'Tratamiento de temporada', 120, '450000.00', false),
+  ]
+  await openCatalog(page, 320, 720)
+  await page.route('**/api/v1/private/services**', async (route) => {
+    const { pathname } = new URL(route.request().url())
+    if (route.request().method() !== 'GET' || !pathname.endsWith('/services'))
+      return route.fallback()
+    await route.fulfill(json({ items: wide, nextCursor: null }))
+  })
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 760 })
+    for (const name of ['Tratamiento completo', 'Tratamiento de temporada']) {
+      await page.goto('/panel/servicios')
+      await page.getByRole('button', { name: `Cambiar estado de ${name}` }).click()
+      const dialog = page.getByRole('dialog', { name: 'Estado del servicio' })
+      await expect(dialog.getByRole('switch')).toBeVisible()
+      const overflow = await dialog.evaluate((node) => {
+        const content = node.querySelector('.base-dialog__content') as HTMLElement
+        return content.scrollWidth - content.clientWidth
+      })
+      expect(overflow, `${width} · ${name}: el contenido cabe en el diálogo`).toBeLessThanOrEqual(0)
+      await page.keyboard.press('Escape')
+    }
+  }
+})

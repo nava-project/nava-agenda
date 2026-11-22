@@ -1015,7 +1015,9 @@ describe('ProfessionalBlocksPanel · vocabulario del negocio (DEC-119)', () => {
     })
     const wrapper = await mountReady()
 
-    expect(wrapper.text()).toContain('Horas del estudio · America/Bogota')
+    // La zona se lee como en Configuración, sin el id IANA crudo (#791).
+    expect(wrapper.text()).toContain('Hora en Bogotá · UTC−5')
+    expect(wrapper.text()).not.toContain('America/Bogota')
     expect(wrapper.text()).not.toContain('de la barbería')
     expect(wrapper.text()).not.toContain('del negocio')
     resetBrand()
@@ -1025,7 +1027,8 @@ describe('ProfessionalBlocksPanel · vocabulario del negocio (DEC-119)', () => {
   it('uses the generic words by default (DEC-183)', async () => {
     const wrapper = await mountReady()
 
-    expect(wrapper.text()).toContain('Horas del negocio · America/Bogota')
+    expect(wrapper.text()).toContain('Hora en Bogotá · UTC−5')
+    expect(wrapper.text()).not.toContain('America/Bogota')
     wrapper.unmount()
   })
 })

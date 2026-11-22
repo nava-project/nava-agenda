@@ -100,14 +100,50 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
 }
+/* «Bloqueos de …» sigue siendo el nombre accesible del diálogo, pero a la vista
+   ya lo dice la cabecera del panel («Tiempo fuera de agenda» y «Disponibilidad ·
+   …»). Repetido a 14 px encima solo sumaba una franja (#791): el título se oculta
+   sin salir del árbol accesible y la X queda en la esquina, sobre el panel. */
+.blocks-workspace-dialog .base-dialog__container {
+  position: relative;
+}
 .blocks-workspace-dialog .base-dialog__header {
-  padding: 16px 28px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+}
+/* La X flota sobre el panel y, en móvil, el contenido se desplaza por debajo:
+   lleva el fondo de la superficie para no montarse sobre un texto. */
+.base-dialog__overlay .blocks-workspace-dialog .base-dialog__close {
+  background-color: var(--color-surface);
+}
+.base-dialog__overlay .blocks-workspace-dialog .base-dialog__close:hover {
+  background-color: color-mix(in srgb, currentColor 12%, var(--color-surface));
 }
 .blocks-workspace-dialog .base-dialog__title {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+/* Sitio para la X: en escritorio, a la derecha de las acciones; en móvil, la
+   cabecera se apila y solo el nombre se aparta (los botones conservan el ancho). */
+.blocks-workspace-dialog .blocks-panel__header {
+  padding-right: 48px;
+}
+@media (max-width: 767px) {
+  .blocks-workspace-dialog .blocks-panel__header {
+    padding-right: 0;
+  }
+  .blocks-workspace-dialog .blocks-panel__identity {
+    padding-right: 40px;
+  }
 }
 .blocks-workspace-dialog .base-dialog__content {
   padding: 0;
@@ -118,9 +154,23 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
    (ProfessionalBlocksPanel) y la cabecera y la nota quedan fijas. Antes el alto era
    fijo y, con pocos bloqueos, dejaba media ventana en blanco (issue #577). En
    móvil o con poca altura el contenido se desplaza con el diálogo. */
+/* Anclado arriba y no centrado: el alto cambia al pasar del skeleton a la lista
+   y, centrado, todo el diálogo saltaba (#791). Así crece solo hacia abajo. */
+.base-dialog__overlay:has(> .blocks-workspace-dialog) {
+  align-items: flex-start;
+}
 @media (min-width: 768px) and (min-height: 800px) {
-  .blocks-workspace-dialog {
-    max-height: min(780px, calc(100vh / var(--ui-zoom, 1) - var(--space-4) * 2));
+  .base-dialog__overlay:has(> .blocks-workspace-dialog) {
+    padding-top: clamp(16px, 8vh, 72px);
+  }
+  /* Con el ancestro delante para ganarle a la regla con ámbito de BaseDialog
+     (.base-dialog[data-v-…], misma especificidad que una clase doble): sin él el
+     tope de 780 px nunca se aplicaba (#791). */
+  .base-dialog__overlay .blocks-workspace-dialog.base-dialog {
+    max-height: min(
+      780px,
+      calc(100vh / var(--ui-zoom, 1) - clamp(16px, 8vh, 72px) - var(--space-4))
+    );
   }
   .blocks-workspace-dialog .base-dialog__container {
     flex: 1 1 auto;
@@ -134,11 +184,6 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
 }
 .blocks-workspace-dialog .blocks-panel {
   border: 0;
-}
-@media (max-width: 767px) {
-  .blocks-workspace-dialog .base-dialog__header {
-    padding: 12px 16px;
-  }
 }
 
 /* La apertura es la de BaseDialog (v2, DEC-188): ya no se traza la línea de

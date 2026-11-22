@@ -26,6 +26,7 @@ import {
   BaseInput,
   BaseSelect,
   BaseTimePicker,
+  DialogSeal,
   DiamondLoader,
   EmptyScene,
 } from '@/shared/ui'
@@ -1512,7 +1513,7 @@ const editPreview = computed(() =>
       @close="onCreateDialogClosed"
     >
       <template #icon>
-        <span class="schedules-page__dialog-chip" aria-hidden="true">+</span>
+        <DialogSeal />
       </template>
       <form
         name="createWorkingHour"
@@ -1629,9 +1630,7 @@ const editPreview = computed(() =>
       @close="onEditDialogClosed"
     >
       <template #icon>
-        <span class="schedules-page__dialog-chip" aria-hidden="true">{{
-          weekdayInitial(editISOWeekday)
-        }}</span>
+        <DialogSeal :glyph="weekdayInitial(editISOWeekday) || undefined" />
       </template>
       <form
         name="updateWorkingHour"
@@ -1741,7 +1740,7 @@ const editPreview = computed(() =>
       @close="onExceptionCreateDialogClosed"
     >
       <template #icon>
-        <span class="schedules-page__dialog-chip" aria-hidden="true">+</span>
+        <DialogSeal />
       </template>
       <form
         name="createScheduleException"
@@ -1942,9 +1941,9 @@ const editPreview = computed(() =>
       @close="onExceptionEditDialogClosed"
     >
       <template #icon>
-        <span class="schedules-page__dialog-chip" aria-hidden="true">{{
-          editEffectiveDate ? dateTile(editEffectiveDate).day : ''
-        }}</span>
+        <DialogSeal
+          :glyph="editEffectiveDate ? String(dateTile(editEffectiveDate).day) : undefined"
+        />
       </template>
       <form
         name="updateScheduleException"
@@ -3020,23 +3019,6 @@ const editPreview = computed(() =>
    <Teleport to="body">, se ajustan en el bloque sin "scoped" del final.
    La ficha del encabezado es decorativa: queda en tinta suave, sin acento
    ni animación de entrada. */
-.schedules-page__dialog-chip {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  color: var(--color-brass-text);
-  background-color: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
-  border: 1px solid var(--color-brass-line);
-  border-radius: 3px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
-  font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1;
-}
 
 .schedules-page__ink {
   display: flex;

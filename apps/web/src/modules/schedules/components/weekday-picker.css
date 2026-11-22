@@ -116,6 +116,14 @@
   }
 }
 
+/* En táctil y en angosto, el piso de 44 px (CA-009-03, como en #783); con
+   puntero fino bastan 32 (#791). */
+@media (max-width: 767px), (pointer: coarse) {
+  .weekday-picker__quick-button {
+    min-height: 44px;
+  }
+}
+
 .weekday-picker__quick-button:focus-visible {
   outline: none;
   box-shadow:

@@ -371,9 +371,12 @@ onUnmounted(() => {
   background-color: var(--color-overlay-scrim);
   /* Velo desenfocado (pulido, punto 3; el orquestador lo confirmó en #742).
      Es leve, para que el contexto siga reconocible (estandar-diseno-visual.md
-     §6.4: el overlay no lo vuelve incomprensible). */
+     §6.4: el overlay no lo vuelve incomprensible).
+     Sin `-webkit-backdrop-filter` escrito a mano: el minificador (Lightning CSS)
+     ya pone el prefijo para Safari, y con los dos declarados se quedaba solo con
+     el prefijado, que Firefox no entiende: el velo salía plano (#791).
+     scripts/check-built-css.mjs lo vigila sobre el CSS construido. */
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   z-index: var(--layer-dialog);
 }
 
@@ -656,13 +659,17 @@ onUnmounted(() => {
   gap: var(--space-3);
 }
 
+/* El título va en la serif de la familia (#791), como las fichas y el sheet
+   «Más»: 26 px, el tamaño en que la serif no se ensucia (#726). Un título
+   largo parte la palabra antes que desbordar a 320 px. */
 .base-dialog__title {
   margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-h3);
-  line-height: var(--font-size-h3-line);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 30px;
   color: var(--color-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .base-dialog__close {

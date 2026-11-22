@@ -2769,10 +2769,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-bottom: 1px solid var(--color-field-strong-border) !important;
 }
 
+/* Letra y tamaño, los de BaseDialog: serif de la familia (#791). */
 :global(.appointment-detail-page__ink-dialog .base-dialog__title) {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-title-item);
-  font-weight: 600;
   color: var(--color-on-strong) !important;
 }
 
