@@ -2055,46 +2055,116 @@
 .pb-conflict__label {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--font-size-body-sm);
   font-weight: 600;
-  line-height: 14px;
+  line-height: var(--font-size-body-sm-line);
   letter-spacing: 0;
-  color: var(--cd-brass);
+  /* Neutro (#794): en frambuesa chico se leía como un error. */
+  color: var(--color-on-strong-soft);
 }
 
-.pb-conflict__alts {
+.pb-conflict__days {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: var(--space-3);
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-.pb-conflict__alt {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-  width: 100%;
-  min-height: 60px;
-  padding: var(--space-2) var(--space-3);
-  color: var(--cd-text);
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid var(--cd-line);
-  border-bottom: 2px solid var(--cd-brass);
-  border-radius: 2px;
-  transition:
-    background-color var(--motion-duration-base) var(--motion-easing-standard),
-    border-color var(--motion-duration-base) var(--motion-easing-standard),
-    color var(--motion-duration-base) var(--motion-easing-standard);
+.pb-conflict__day {
+  display: grid;
+  gap: var(--space-2);
 }
 
-.pb-conflict__alt:hover {
-  color: var(--color-brand-accent-text);
-  background-color: var(--cd-brass);
-  border-color: var(--cd-brass);
+/* El día, una vez por grupo, en el tono tenue de los rótulos de la reserva. */
+.pb-conflict__day-label {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  line-height: 16px;
+  color: var(--color-on-strong-muted);
+}
+
+.pb-conflict__day-label::first-letter {
+  text-transform: uppercase;
+}
+
+.pb-conflict__alts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Píldoras de hora como las de «Día y hora» (#745, #794): borde fino, radio de
+   píldora y 44 px de alto; nada de cajas con subrayado, que se leían como
+   campos. Al pasar o enfocar aparece el rombo «Tu hora» delante, y al pulsar la
+   píldora se vuelve Sol, como la hora elegida en el calendario. */
+.pb-conflict__alt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  color: var(--cd-text);
+  cursor: pointer;
+  background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cd-text) 16%, transparent);
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+  animation: pb-conflict-alt-in 320ms var(--motion-ease-spring, ease-out) both;
+  animation-delay: calc(var(--i, 0) * 50ms + 160ms);
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing-standard),
+    border-color var(--motion-duration-fast) var(--motion-easing-standard),
+    color var(--motion-duration-fast) var(--motion-easing-standard),
+    transform 260ms var(--motion-ease-spring, ease-out);
+}
+
+.pb-conflict__alt::before {
+  flex: none;
+  width: 0;
+  height: 7px;
+  content: '';
+  background-color: currentcolor;
+  margin-inline-end: 0;
+  border-radius: 1px;
+  opacity: 0;
+  transform: rotate(45deg) scale(0);
+  transition:
+    width 200ms var(--motion-easing-standard),
+    margin 200ms var(--motion-easing-standard),
+    opacity 200ms var(--motion-easing-standard),
+    transform 260ms var(--motion-ease-spring, ease-out);
+}
+
+.pb-conflict__alt:hover,
+.pb-conflict__alt:focus-visible {
+  border-color: var(--cd-text);
+}
+
+.pb-conflict__alt:hover::before,
+.pb-conflict__alt:focus-visible::before,
+.pb-conflict__alt:active::before {
+  width: 7px;
+  margin-inline-end: 6px;
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.pb-conflict__alt:active {
+  color: var(--color-on-sun);
+  background-color: var(--color-sun);
+  border-color: var(--color-sun);
+  transform: scale(0.96);
 }
 
 .pb-conflict__alt:focus-visible {
@@ -2102,20 +2172,22 @@
   outline-offset: 2px;
 }
 
-.pb-conflict__alt-time {
-  font-size: 18px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 24px;
+/* El sello del aviso entra con un salto, y las horas libres le siguen. */
+.pb-conflict__mark::before {
+  animation: pb-conflict-mark-in 420ms var(--motion-ease-spring, ease-out) both;
 }
 
-.pb-conflict__alt-day {
-  font-size: var(--font-size-body-sm);
-  line-height: var(--font-size-body-sm-line);
-  opacity: 0.8;
+@keyframes pb-conflict-mark-in {
+  from {
+    transform: rotate(45deg) scale(0.4);
+  }
 }
 
-.pb-conflict__alt-day::first-letter {
+@keyframes pb-conflict-alt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 /* Botones del diálogo en latón sobre tinta (BaseButton se pensó para papel). */
@@ -2147,8 +2219,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pb-conflict__alt {
+  .pb-conflict__alt,
+  .pb-conflict__alt::before,
+  .pb-conflict__mark::before {
     transition: none;
+    animation: none;
+  }
+
+  .pb-conflict__alt:active {
+    transform: none;
   }
 }
 

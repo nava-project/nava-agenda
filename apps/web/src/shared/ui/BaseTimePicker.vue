@@ -159,9 +159,11 @@ async function show() {
   input?.focus({ preventScroll: true })
   input?.select()
 }
-function close(restoreFocus = true) {
+// Con teclado (Escape) el foco vuelve al disparador con su anillo visible:
+// desde el campo de la hora, Firefox no lo marcaba `:focus-visible` (#794).
+function close(restoreFocus = true, fromKeyboard = false) {
   open.value = false
-  if (restoreFocus) trigger.value?.focus()
+  if (restoreFocus) trigger.value?.focus(fromKeyboard ? { focusVisible: true } : undefined)
 }
 function apply() {
   if (!validTime.value || props.disabled) return
@@ -177,7 +179,7 @@ function dialogKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     event.preventDefault()
     event.stopPropagation()
-    close()
+    close(true, true)
   }
   if (event.key !== 'Tab' || !panel.value) return
   event.stopPropagation()
@@ -613,6 +615,14 @@ watch(
 .time-picker-pop-enter-from,
 .time-picker-pop-leave-to {
   opacity: 0;
+}
+/* Táctil o angosto: «a. m.» y «p. m.» de 44 px de alto cada uno (CA-009-03,
+   #794); la ranura crece y las columnas de hora se alinean abajo con ella. */
+@media (max-width: 767px), (pointer: coarse) {
+  .base-time-picker__meridiem {
+    grid-template-rows: 44px 44px;
+    height: auto;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .time-picker-pop-enter-active,

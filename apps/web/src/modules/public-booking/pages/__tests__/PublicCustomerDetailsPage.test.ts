@@ -524,6 +524,40 @@ describe('PublicCustomerDetailsPage', () => {
     wrapper.unmount()
   })
 
+  it('groups the free times by day as time pills named with their day (#794)', async () => {
+    confirmPublicAppointmentMock.mockResolvedValueOnce({
+      kind: 'schedule-conflict',
+      // Desordenadas y en dos días: se ordenan y el día va una vez por grupo.
+      alternatives: [
+        { startsAt: '2026-09-21T14:00:00Z' },
+        { startsAt: '2026-09-20T15:30:00Z' },
+        { startsAt: '2026-09-20T15:00:00Z' },
+      ],
+    })
+    const wrapper = mountPage()
+    await reachConflict(wrapper)
+
+    const days = [...conflictDialog()!.querySelectorAll('.pb-conflict__day')]
+    expect(days).toHaveLength(2)
+    expect(days.map((d) => d.querySelectorAll('.pb-conflict__alt').length)).toEqual([2, 1])
+    const firstDay = days[0]!.querySelector('.pb-conflict__day-label')!
+    // El rótulo es visual: el día ya va en el nombre de cada píldora.
+    expect(firstDay.getAttribute('aria-hidden')).toBe('true')
+    const pills = [...conflictDialog()!.querySelectorAll<HTMLButtonElement>('.pb-conflict__alt')]
+    // La píldora muestra solo la hora; su nombre empieza por ese mismo texto (2.5.3).
+    for (const pill of pills) {
+      const time = pill.textContent!.trim()
+      expect(time).not.toContain(firstDay.textContent!.trim())
+      expect(pill.getAttribute('aria-label')!.startsWith(`${time}, `)).toBe(true)
+    }
+    expect(pills[0]!.getAttribute('aria-label')).toContain(firstDay.textContent!.trim())
+    // El rótulo de la lista ya no usa el tono de error.
+    expect(conflictDialog()!.querySelector('.pb-conflict__label')!.textContent).toBe(
+      'Estas horas siguen libres',
+    )
+    wrapper.unmount()
+  })
+
   it('sends the customer back to the calendar from the conflict dialog', async () => {
     confirmPublicAppointmentMock.mockResolvedValueOnce({
       kind: 'schedule-conflict',
@@ -566,6 +600,13 @@ describe('PublicCustomerDetailsPage', () => {
     // botones; dentro quedaba bajo su borde visible y no se veía.
     const alert = wrapper.get('.customer-details__summary [role="alert"]')
     expect(alert.element.closest('.customer-details__summary-body')).toBeNull()
+    // #794: aviso de la familia (rombo y titular serif), no la caja genérica «Error».
+    expect(alert.classes()).toContain('customer-details__notice')
+    expect(alert.get('.customer-details__notice-title').text()).toBe(
+      'No pudimos confirmar tu turno',
+    )
+    expect(alert.get('.customer-details__notice-mark').attributes('aria-hidden')).toBe('true')
+    expect(wrapper.find('.base-alert').exists()).toBe(false)
 
     await confirmButton.trigger('click')
     await flushPromises()

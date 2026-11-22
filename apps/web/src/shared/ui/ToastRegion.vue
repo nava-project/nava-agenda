@@ -243,6 +243,13 @@ function onAction(id: number, run: (() => void) | undefined) {
   color: var(--color-text-secondary);
 }
 
+/* En angosto o táctil el botón mide 44 px de alto, no solo su zona activa (#794). */
+@media (max-width: 767px), (pointer: coarse) {
+  .toast-region__clear {
+    height: 44px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .toast-region__clear {
     transition: none;

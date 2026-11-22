@@ -11,14 +11,7 @@
 // mismo (CA-096-01, RN-RES-02).
 import { computed, nextTick, onMounted, reactive, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  AppointmentTicket,
-  BaseAlert,
-  BaseButton,
-  BaseDialog,
-  BaseInput,
-  PhoneField,
-} from '@/shared/ui'
+import { AppointmentTicket, BaseButton, BaseDialog, BaseInput, PhoneField } from '@/shared/ui'
 import type { LatLng } from '@/shared/model/mapPicker'
 import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAutocomplete'
 import { clockToMinutes, DAYS_OF_WEEK, segmentsByDay } from '@/shared/model/openingHours'
@@ -165,6 +158,19 @@ const errorMessage = ref('')
 const sortedAlternatives = computed(() =>
   [...alternatives.value].sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt)),
 )
+// Las horas libres se agrupan por día (#794), como en «Día y hora»: el día va
+// una vez como rótulo y cada píldora lleva solo la hora, en una línea. `index`
+// es el orden global, para escalonar la entrada de las píldoras.
+const alternativeDays = computed(() => {
+  const days: { label: string; slots: { startsAt: string; index: number }[] }[] = []
+  sortedAlternatives.value.forEach((alt, index) => {
+    const label = formatLocalDayShort(alt.startsAt)
+    const last = days[days.length - 1]
+    if (last && last.label === label) last.slots.push({ startsAt: alt.startsAt, index })
+    else days.push({ label, slots: [{ startsAt: alt.startsAt, index }] })
+  })
+  return days
+})
 // idempotencyKey se conserva mientras el reintento es la MISMA solicitud
 // (red/error inesperado, RN-IDE-01): un contenido distinto (editar, elegir
 // otra alternativa) siempre pide una clave nueva.
@@ -905,9 +911,15 @@ function chooseAlternative(startsAt: string) {
 
         <!-- Fuera de la región desplazable: dentro, el aviso quedaba bajo su borde
              visible y quien confirmó solo veía el botón activo de nuevo (F-RQ-01, #429). -->
-        <BaseAlert v-if="confirmState === 'error'" variant="danger" role="alert">
-          {{ errorMessage }}
-        </BaseAlert>
+        <!-- Aviso de la familia (#794): el mismo rombo con «!» del choque de horario y
+             un titular serif en vez de la caja genérica «Error». -->
+        <div v-if="confirmState === 'error'" class="customer-details__notice" role="alert">
+          <span class="customer-details__notice-mark" aria-hidden="true">!</span>
+          <div class="customer-details__notice-text">
+            <p class="customer-details__notice-title">No pudimos confirmar tu turno</p>
+            <p class="customer-details__notice-detail">{{ errorMessage }}</p>
+          </div>
+        </div>
 
         <div ref="actionsRef" class="customer-details__actions">
           <BaseButton
@@ -1027,12 +1039,21 @@ function chooseAlternative(startsAt: string) {
 
       <template v-if="alternatives.length > 0">
         <p :id="conflictAltsLabelId" class="pb-conflict__label">Estas horas siguen libres</p>
-        <ul class="pb-conflict__alts" :aria-labelledby="conflictAltsLabelId">
-          <li v-for="alt in sortedAlternatives" :key="alt.startsAt">
-            <button type="button" class="pb-conflict__alt" @click="chooseAlternative(alt.startsAt)">
-              <span class="pb-conflict__alt-time">{{ formatLocalTime(alt.startsAt) }}</span>
-              <span class="pb-conflict__alt-day">{{ formatLocalDayShort(alt.startsAt) }}</span>
-            </button>
+        <ul class="pb-conflict__days" :aria-labelledby="conflictAltsLabelId">
+          <li v-for="day in alternativeDays" :key="day.label" class="pb-conflict__day">
+            <p class="pb-conflict__day-label" aria-hidden="true">{{ day.label }}</p>
+            <ul class="pb-conflict__alts">
+              <li v-for="slot in day.slots" :key="slot.startsAt" :style="{ '--i': slot.index }">
+                <button
+                  type="button"
+                  class="pb-conflict__alt"
+                  :aria-label="`${formatLocalTime(slot.startsAt)}, ${day.label}`"
+                  @click="chooseAlternative(slot.startsAt)"
+                >
+                  {{ formatLocalTime(slot.startsAt) }}
+                </button>
+              </li>
+            </ul>
           </li>
         </ul>
       </template>
@@ -1431,8 +1452,73 @@ function chooseAlternative(startsAt: string) {
   text-align: right;
 }
 
-/* Avisos (error y conflicto): los pinta BaseAlert con su lienzo de tinta
-   (DEC-149); aquí no se redefine ningún color. */
+/* Aviso de error (#794): sello en rombo con «!», como el del choque de horario,
+   titular serif y el detalle debajo. Sin caja: un filete arriba y abajo lo
+   separa del resumen y de los botones. */
+.customer-details__notice {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  padding: var(--space-4) 0;
+  border-block: 1px solid color-mix(in srgb, var(--color-on-strong) 14%, transparent);
+  animation: customer-details-notice-in 320ms var(--motion-ease-spring, ease-out) both;
+}
+
+.customer-details__notice-mark {
+  position: relative;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-brand-accent-surface);
+  place-items: center;
+}
+
+.customer-details__notice-mark::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid currentcolor;
+  transform: rotate(45deg);
+}
+
+.customer-details__notice-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.customer-details__notice-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 28px;
+  color: var(--color-on-strong);
+}
+
+.customer-details__notice-detail {
+  margin: 0;
+  color: var(--color-on-strong-soft);
+  overflow-wrap: anywhere;
+}
+
+@keyframes customer-details-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-details__notice {
+    animation: none;
+  }
+}
 
 .customer-details__actions {
   display: grid;

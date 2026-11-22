@@ -35,6 +35,24 @@ describe('BaseToast', () => {
     }
   })
 
+  it('declares aria-live and aria-atomic so the whole toast is announced (#794)', () => {
+    const danger = mount(BaseToast, { props: { ...base, variant: 'danger' } })
+    expect(danger.attributes('aria-live')).toBe('assertive')
+    expect(danger.attributes('aria-atomic')).toBe('true')
+    for (const variant of ['success', 'info', 'warning'] as const) {
+      const toast = mount(BaseToast, { props: { ...base, variant } })
+      expect(toast.attributes('aria-live')).toBe('polite')
+      expect(toast.attributes('aria-atomic')).toBe('true')
+    }
+  })
+
+  it('draws the status seal as a rhombus, not a rounded box (#794)', () => {
+    const wrapper = mount(BaseToast, { props: { ...base, variant: 'warning' } })
+    const mark = wrapper.find('.base-toast__mark')
+    expect(mark.attributes('aria-hidden')).toBe('true')
+    expect(mark.find('svg').attributes('width')).toBe('12')
+  })
+
   it('exposes the accordion state on the head button', () => {
     const closed = mount(BaseToast, { props: { ...base, variant: 'success', detail: 'Detalle' } })
     const head = closed.find('.base-toast__head')
