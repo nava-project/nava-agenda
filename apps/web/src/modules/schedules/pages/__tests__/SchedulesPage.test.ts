@@ -7,6 +7,8 @@
  * sustituye por un doble de prueba; el recorrido real contra el API vive en
  * el E2E de HU-040.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
@@ -327,6 +329,17 @@ describe('SchedulesPage', () => {
     expect(save().classes()).toContain('schedules-page__save--rest')
   })
 
+  // Revisión de #783 (WCAG 2.4.7): el reposo quita la sombra del botón, y la sombra
+  // es también el anillo de foco de BaseButton. jsdom no aplica :focus-visible,
+  // así que se vigila la hoja: el reposo devuelve el anillo con el teclado.
+  it('keeps the keyboard focus ring on «Guardar» while it rests', () => {
+    const source = readFileSync(join(__dirname, '../SchedulesPage.vue'), 'utf8')
+    const css = source.slice(source.indexOf('<style'))
+    const focusRule =
+      /\.schedules-page__save--rest[^{}]*:focus-visible[^{}]*\)?\s*\{([^{}]*)\}/.exec(css)
+    expect(focusRule?.[1]).toMatch(/box-shadow:\s*var\(--btn-focus-ring\)/)
+  })
+
   it('deleting a tramo removes it from the list on success', async () => {
     const wrapper = await mountReady(oneProfessional, [mondayMorning])
     deleteWorkingHourMock.mockResolvedValueOnce({ kind: 'success' })
@@ -484,7 +497,13 @@ describe('SchedulesPage · HU-041', () => {
     })
     const wrapper = await mountReady(oneProfessional, [])
 
-    expect(wrapper.text()).toContain('2026-12-08')
+    // Revisión de #783: la fecha en palabras, nunca ISO, en el texto y en la acción.
+    expect(wrapper.text()).toMatch(/martes 8 de diciembre/)
+    expect(wrapper.text()).not.toContain('2026-12-08')
+    const edit = wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Editar' && /excepción/.test(b.attributes('aria-label') ?? ''))
+    expect(edit?.attributes('aria-label')).toMatch(/^Editar excepción del martes 8 de diciembre/)
     expect(wrapper.text()).toContain('Cerrado')
   })
 
@@ -508,7 +527,7 @@ describe('SchedulesPage · HU-041', () => {
       [],
       expect.any(String),
     )
-    expect(wrapper.text()).toContain('2026-12-08')
+    expect(wrapper.text()).toContain('8 de diciembre')
     expect(toastState.items.map((item) => item.title)).toEqual(['Excepción agregada'])
   })
 
@@ -598,7 +617,7 @@ describe('SchedulesPage · HU-041', () => {
     await flushPromises()
 
     expect(deleteScheduleExceptionMock).toHaveBeenCalledWith('b-1', 'exc-1')
-    expect(wrapper.text()).not.toContain('2026-12-08')
+    expect(wrapper.text()).not.toContain('8 de diciembre')
     expect(toastState.items.map((item) => item.title)).toEqual(['Excepción retirada'])
   })
 

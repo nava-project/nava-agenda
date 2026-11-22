@@ -15,7 +15,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCountUp, useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
-import { getCivilDateInTimezone } from '@/shared/time/civilDate'
+import { formatCivilDateLong, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { timezoneName } from '@/shared/time/timezoneName'
 import {
   ProfessionalAvatar,
@@ -956,6 +956,15 @@ const todayCivilDate = computed(() =>
   businessTimezone.value && clock.value ? getCivilDateInTimezone(businessTimezone.value) : null,
 )
 
+// Fechas de excepciones y festivos en palabras, nunca ISO (revisión de #783):
+// «martes 8 de diciembre», con el año solo si no es el de hoy en el negocio.
+function longDate(civilDate: string): string {
+  return formatCivilDateLong(
+    civilDate,
+    todayCivilDate.value ?? new Date().toISOString().slice(0, 10),
+  )
+}
+
 const exceptionDates = computed(() => new Set(exceptions.value.map((e) => e.effectiveDate)))
 
 function weekdayInitial(isoWeekday: number): string {
@@ -1385,15 +1394,22 @@ const editPreview = computed(() =>
                           <span class="schedules-row__state schedules-row__state--open"
                             >Abierto</span
                           >
-                          <span class="schedules-row__segments">{{
-                            exception.segments
-                              .map((s) => clockRangeLabel(s.startsTime, s.durationMinutes))
-                              .join(', ')
-                          }}</span>
+                          <!-- Cada rango entero, nunca partido (revisión de #783):
+                               si no caben juntos, el siguiente baja completo. -->
+                          <span class="schedules-row__segments"
+                            ><template v-for="(segment, index) in exception.segments" :key="index"
+                              ><template v-if="index > 0">, </template
+                              ><span class="schedules-row__range">{{
+                                clockRangeLabel(segment.startsTime, segment.durationMinutes)
+                              }}</span></template
+                            ></span
+                          >
                         </template>
                       </p>
                       <p class="schedules-row__meta">
-                        <span class="schedules-row__date">{{ exception.effectiveDate }}</span>
+                        <span class="schedules-row__date">{{
+                          longDate(exception.effectiveDate)
+                        }}</span>
                         <span v-if="exception.reason"> · {{ exception.reason }}</span>
                       </p>
                     </div>
@@ -1402,7 +1418,7 @@ const editPreview = computed(() =>
                         type="button"
                         variant="ghost"
                         class="schedules-row__action"
-                        :aria-label="`Editar excepción del ${exception.effectiveDate}`"
+                        :aria-label="`Editar excepción del ${longDate(exception.effectiveDate)}`"
                         @click="openExceptionEditDialog(exception)"
                       >
                         Editar
@@ -1414,7 +1430,7 @@ const editPreview = computed(() =>
                         class="schedules-row__action schedules-row__remove"
                         :loading="isExceptionDeletePending(exception.id)"
                         :disabled="isExceptionDeletePending(exception.id)"
-                        :aria-label="`Retirar excepción del ${exception.effectiveDate}`"
+                        :aria-label="`Retirar excepción del ${longDate(exception.effectiveDate)}`"
                         @click="onDeleteException(exception)"
                       >
                         Retirar
@@ -1446,7 +1462,7 @@ const editPreview = computed(() =>
                   <div class="schedules-row__main">
                     <p class="schedules-row__title">{{ holiday.name }}</p>
                     <p class="schedules-row__meta">
-                      <span class="schedules-row__date">{{ holiday.date }}</span>
+                      <span class="schedules-row__date">{{ longDate(holiday.date) }}</span>
                     </p>
                   </div>
                   <span v-if="exceptionDates.has(holiday.date)" class="schedules-row__tag">
@@ -1457,7 +1473,7 @@ const editPreview = computed(() =>
                     type="button"
                     variant="ghost"
                     class="schedules-row__action"
-                    :aria-label="`Registrar una excepción para el ${holiday.date}, ${holiday.name}`"
+                    :aria-label="`Registrar una excepción para el ${longDate(holiday.date)}, ${holiday.name}`"
                     @click="openExceptionCreateDialog(holiday.date)"
                   >
                     Registrar excepción
@@ -2684,6 +2700,15 @@ const editPreview = computed(() =>
   background: color-mix(in srgb, var(--color-danger-on-strong) 10%, transparent);
 }
 
+/* En táctil y en angosto, el piso de 44 px de BaseButton y del tablero
+   (CA-009-03, revisión de #783); en escritorio con puntero fino bastan 36. */
+@media (max-width: 767px), (pointer: coarse) {
+  .schedules-page__aside-action.base-button,
+  .schedules-row :deep(.schedules-row__action.base-button) {
+    height: 44px;
+  }
+}
+
 .schedules-row__sep {
   flex: none;
   width: 4px;
@@ -2902,6 +2927,10 @@ const editPreview = computed(() =>
 .schedules-row__segments {
   font-size: var(--font-size-body-sm);
   font-variant-numeric: tabular-nums;
+}
+
+.schedules-row__range {
+  white-space: nowrap;
 }
 
 .schedules-row__meta {
@@ -3276,13 +3305,19 @@ const editPreview = computed(() =>
 
 /* Nada que guardar todavía: «Guardar» espera en reposo con el contorno
    punteado de latón, no con el acento lleno (como en Configuración, 8c). Al
-   cambiar algo vuelve a ser la acción principal. */
+   cambiar algo vuelve a ser la acción principal. Con el teclado conserva el
+   doble anillo de foco de BaseButton (WCAG 2.4.7, revisión de #783). */
 .schedules-page__dialog-actions
   :deep(.schedules-page__save--rest.base-button--primary:not(.base-button--loading)) {
   color: var(--color-brass-text);
   background: transparent;
   border: 1px dashed var(--color-brass-line);
   box-shadow: none;
+}
+
+.schedules-page__dialog-actions
+  :deep(.schedules-page__save--rest.base-button--primary:not(.base-button--loading):focus-visible) {
+  box-shadow: var(--btn-focus-ring);
 }
 
 /* Filas del panel lateral: si el panel es angosto (columna de escritorio o
