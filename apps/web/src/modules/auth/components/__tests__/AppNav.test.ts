@@ -27,6 +27,7 @@ async function mountNav(initialRoute = '/panel', extraItems?: NavItem[]) {
     routes: [
       { path: '/panel', name: 'panel', component: { template: '<div />' } },
       { path: '/panel/horarios', name: 'schedules-horarios', component: { template: '<div />' } },
+      { path: '/panel/negocio', name: 'configuracion-negocio', component: { template: '<div />' } },
       { path: '/acceso', name: 'acceso', component: { template: '<div />' } },
     ],
   })
@@ -113,6 +114,29 @@ describe('AppNav', () => {
     const icon = wrapper.get('.app-nav__icon')
     expect(icon.attributes('aria-hidden')).toBe('true')
     expect(icon.find('svg').exists()).toBe(true)
+  })
+
+  // #789: el reloj de Horarios, las perillas de Configuración y los puntos de «Más»
+  // son rombos de la familia, no círculos.
+  it('draws the Horarios clock, the Configuración knobs and the "Más" dots as rhombi, not circles', async () => {
+    const { wrapper } = await mountNav('/panel', [
+      { to: { name: 'schedules-horarios' }, label: 'Horarios', primary: true },
+      { to: { name: 'configuracion-negocio' }, label: 'Configuración' },
+    ])
+    const desktop = wrapper.get('.app-nav__list--desktop')
+    const iconOf = (label: string) =>
+      desktop
+        .findAll('a')
+        .find((link) => link.text() === label)
+        ?.get('.app-nav__icon svg')
+    const more = wrapper.get('[aria-haspopup="dialog"] .app-nav__icon svg')
+
+    for (const svg of [iconOf('Horarios'), iconOf('Configuración'), more]) {
+      expect(svg?.findAll('circle')).toHaveLength(0)
+      expect(svg?.findAll('path').length).toBeGreaterThan(0)
+    }
+    expect(more.findAll('path')).toHaveLength(3)
+    expect(iconOf('Configuración')?.findAll('path')).toHaveLength(4)
   })
 
   it('composes only primary extra items directly in the mobile dock, after "Agenda" (issue #189: desktop shows every destination flat instead)', async () => {
