@@ -2859,10 +2859,12 @@ async function reloadAfterConflict(serviceId: string) {
   text-align: center;
 }
 
+/* Las fichas se reparten en tantas columnas como quepan: la cifra de precio
+   («$ 45.000,00 COP» a tamaño h1) necesita ~11,5 rem con su relleno, y a 320 o
+   360 px tres columnas la cortaban y desbordaban el diálogo (#791). */
 .catalog-page__lifecycle-facts {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr));
   gap: var(--space-2);
   margin: 0;
 }

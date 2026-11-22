@@ -355,6 +355,14 @@ onBeforeUnmount(() => {
   filter: none;
 }
 
+/* En táctil y en angosto, el piso de 44 px (CA-009-03, como en #783); con
+   puntero fino bastan 36 (#791). */
+@media (max-width: 767px), (pointer: coarse) {
+  .professional-photo-field__actions :deep(.base-button) {
+    height: 44px;
+  }
+}
+
 @keyframes professional-photo-spin {
   to {
     transform: rotate(360deg);
