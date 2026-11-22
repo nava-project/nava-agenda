@@ -56,17 +56,23 @@ const secondaryItems = computed(() => items.value.filter((item) => !item.primary
 // al icono de Agenda en vez de romper (mismo criterio defensivo que
 // `getWeekdayLabel`/`getBlockTypeLabel` de `schedules`). Decorativo:
 // aria-hidden porque el nombre accesible del enlace ya lo da el texto.
+//
+// Rombos de la familia (#789, DEC-189): el reloj de Horarios es el rombo con
+// manecillas de la nota de zona (#767), las perillas de Configuración y los
+// puntos de «Más» son rombos. Las cabezas de las personas siguen redondas: en
+// rombo, la persona de atrás de «Servicios por profesional» se leía como «›» a
+// 24 px (comparación en el PR de #789).
 const ICONS: Record<string, string> = {
   panel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="16" y1="2" x2="16" y2="6"></line></svg>`,
   'catalog-servicios': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h10l6 6v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M14 4v6h6"></path><line x1="8" y1="13" x2="15" y2="13"></line><line x1="8" y1="17" x2="12" y2="17"></line></svg>`,
   'staff-profesionales': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>`,
-  'schedules-horarios': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path></svg>`,
+  'schedules-horarios': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 21.5 12 12 21.5 2.5 12Z"></path><path d="M12 7.5v4.5l3 2"></path></svg>`,
   'schedules-bloqueos': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="1.5"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>`,
-  'configuracion-negocio': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h6M14 18h6"></path><circle cx="17" cy="6" r="2"></circle><circle cx="7" cy="12" r="2"></circle><circle cx="12" cy="18" r="2"></circle></svg>`,
+  'configuracion-negocio': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M19 6h1M4 12h1M9 12h11M4 18h6M14 18h6"></path><path d="M17 3.8 19.2 6 17 8.2 14.8 6Z"></path><path d="M7 9.8 9.2 12 7 14.2 4.8 12Z"></path><path d="M12 15.8 14.2 18 12 20.2 9.8 18Z"></path></svg>`,
   'configuracion-reserva-publica': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line><path d="M12 13v3l2 1.5"></path></svg>`,
   'professional-services': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"></circle><path d="M2 21c0-3.5 3-6 7-6s7 2.5 7 6"></path><path d="M16 4a3 3 0 0 1 0 6"></path><path d="M22 21c0-2.7-1.7-4.8-4-5.6"></path></svg>`,
 }
-const MORE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>`
+const MORE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.6 6.4 12 4 14.4 1.6 12Z" fill="currentColor"></path><path d="M12 9.6 14.4 12 12 14.4 9.6 12Z" fill="currentColor"></path><path d="M20 9.6 22.4 12 20 14.4 17.6 12Z" fill="currentColor"></path></svg>`
 
 function iconFor(routeName: string): string {
   return ICONS[routeName] ?? ICONS.panel
