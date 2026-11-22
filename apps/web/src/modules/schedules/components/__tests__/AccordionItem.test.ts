@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -59,5 +61,15 @@ describe('AccordionItem', () => {
     await wrapper.setProps({ open: false })
     expect(await axe(wrapper.element)).toHaveNoViolations()
     wrapper.unmount()
+  })
+
+  // Revisión de #783: con más contenido del que cabe, el cuerpo se desplaza y
+  // ningún hijo se encoge (a 1440 «Agregar excepción» quedaba en 16 px). jsdom no
+  // calcula el flex, así que se vigila la hoja.
+  it('never shrinks a child of the body to make it fit', () => {
+    const source = readFileSync(join(__dirname, '../AccordionItem.vue'), 'utf8')
+    const css = source.slice(source.indexOf('<style'))
+    expect(css).toMatch(/\.accordion-item__body\s*\{[^}]*overflow-y:\s*auto/)
+    expect(css).toMatch(/\.accordion-item__body\s*>\s*:deep\(\*\)\s*\{[^}]*flex-shrink:\s*0/)
   })
 })

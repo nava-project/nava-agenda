@@ -6,7 +6,8 @@
   min-width: 0;
 }
 
-/* v2 (DEC-188): rótulo en tipo oración; el día elegido queda en tinta. */
+/* Familia (#782, DEC-189): la inicial en serif y el día elegido en latón, con
+   su rombo al pie, como la opción elegida de Configuración (8c). */
 .weekday-picker__label {
   color: var(--color-text-secondary);
   font-size: 13px;
@@ -26,13 +27,13 @@
   padding: 0;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-body);
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 400;
   line-height: 1;
   background-color: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-control);
+  border-radius: 3px;
   cursor: pointer;
   transition:
     background-color var(--motion-duration-fast) var(--motion-easing-standard),
@@ -42,16 +43,27 @@
 
 @media (hover: hover) {
   .weekday-picker__chip:hover:not(:disabled):not(.weekday-picker__chip--on) {
-    background-color: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-    border-color: var(--color-text-primary);
+    background-color: color-mix(in srgb, var(--color-brass-body) 8%, var(--color-surface));
+    border-color: var(--color-brass-line);
   }
 }
 
 .weekday-picker__chip--on {
   color: var(--color-text-primary);
-  font-weight: 600;
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  border-color: var(--color-text-primary);
+  background-color: color-mix(in srgb, var(--color-brass-body) 16%, var(--color-surface));
+  border-color: var(--color-brass-text);
+  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+}
+
+.weekday-picker__chip--on::after {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  content: '';
+  background-color: var(--color-brass-text);
+  transform: translateX(-50%) rotate(45deg);
 }
 
 .weekday-picker__chip:focus-visible {
@@ -90,16 +102,17 @@
   color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 500;
-  background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-control);
-  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px dashed var(--color-brass-line);
+  border-radius: 3px;
   cursor: pointer;
 }
 
 @media (hover: hover) {
   .weekday-picker__quick-button:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-text-primary) 4%, var(--color-surface));
-    border-color: var(--color-text-primary);
+    background: color-mix(in srgb, var(--color-brass-body) 10%, transparent);
+    border-color: var(--color-brass-text);
+    border-style: solid;
   }
 }
 

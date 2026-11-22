@@ -300,7 +300,9 @@ test('horarios: el alta de un tramo y de una excepción funciona con los control
   await excepcion.getByRole('button', { name: 'Guardar' }).click()
   await expect(excepcion).toBeHidden()
   await expect(
-    page.getByRole('list', { name: 'Excepciones de jornada' }).getByText('2099-12-30'),
+    page
+      .getByRole('list', { name: 'Excepciones de jornada' })
+      .getByText('miércoles 30 de diciembre de 2099'),
   ).toBeVisible()
 })
 

@@ -67,12 +67,16 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     const dialog = await addException(page, { effectiveDate: '2027-12-08', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(dialog).toBeHidden()
-    await expect(exceptionList(page).getByText('2027-12-08')).toBeVisible()
+    await expect(
+      exceptionList(page).getByText('8 de diciembre de 2027', { exact: false }),
+    ).toBeVisible()
     await expect(exceptionList(page).getByText('Cerrado')).toBeVisible()
 
     await page.reload()
     await selectProfessional(page, professional.name)
-    await expect(exceptionList(page).getByText('2027-12-08')).toBeVisible()
+    await expect(
+      exceptionList(page).getByText('8 de diciembre de 2027', { exact: false }),
+    ).toBeVisible()
   })
 
   test('agregar una excepción abierta con un tramo especial persiste (CA-041-04)', async ({
@@ -120,22 +124,28 @@ test.describe('Excepciones de jornada y festivos (HU-041)', () => {
     const dialog = await addException(page, { effectiveDate: '2027-05-01', closed: true })
     await dialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(dialog).toBeHidden()
-    await expect(exceptionList(page).getByText('2027-05-01')).toBeVisible()
+    await expect(exceptionList(page).getByText('1 de mayo de 2027', { exact: false })).toBeVisible()
 
-    await page.getByRole('button', { name: /Editar excepción del 2027-05-01/ }).click()
+    await page.getByRole('button', { name: /Editar excepción del .*1 de mayo de 2027/ }).click()
     const editDialog = page.getByRole('dialog', { name: 'Editar excepción' })
     await pickDate(page, 'schedules-edit-date', '2027-05-02')
     await editDialog.getByRole('button', { name: 'Guardar' }).click()
     await expect(editDialog).toBeHidden()
-    await expect(exceptionList(page).getByText('2027-05-02')).toBeVisible()
-    await expect(exceptionList(page).getByText('2027-05-01')).not.toBeVisible()
+    await expect(exceptionList(page).getByText('2 de mayo de 2027', { exact: false })).toBeVisible()
+    await expect(
+      exceptionList(page).getByText('1 de mayo de 2027', { exact: false }),
+    ).not.toBeVisible()
 
-    await page.getByRole('button', { name: /Retirar excepción del 2027-05-02/ }).click()
-    await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
+    await page.getByRole('button', { name: /Retirar excepción del .*2 de mayo de 2027/ }).click()
+    await expect(
+      exceptionList(page).getByText('2 de mayo de 2027', { exact: false }),
+    ).not.toBeVisible()
 
     await page.reload()
     await selectProfessional(page, professional.name)
-    await expect(exceptionList(page).getByText('2027-05-02')).not.toBeVisible()
+    await expect(
+      exceptionList(page).getByText('2 de mayo de 2027', { exact: false }),
+    ).not.toBeVisible()
   })
 
   test('un identificador real de otro negocio responde 404 al consultar el calendario de festivos (RN-TEN-01)', async ({
