@@ -7,13 +7,23 @@
  *   el espacio entre la cabecera y la navegación; así nunca tapa ninguna de
  *   las dos ni depende de su altura.
  * La región es persistente para que los lectores de pantalla anuncien cada
- * aviso al insertarse; solo Escape descarta el aviso con foco, sin mover el
- * foco de la tarea en curso.
+ * aviso al insertarse. Un aviso nunca roba el foco de la tarea en curso; pero
+ * si el foco ya está dentro de la región y se descarta un aviso (Descartar,
+ * Escape, su acción o «Descartar todos»), no se pierde en el `body`
+ * (WCAG 2.4.3): pasa al encabezado del aviso siguiente, o al anterior, y si
+ * la región queda vacía vuelve a donde estaba antes de entrar en ella o, si
+ * ese elemento ya no existe, al `main`.
+ * Mientras el foco está en la región, toda la cola deja de caducar (2.2.1):
+ * la pila no se encoge bajo el teclado y «Descartar todos» no desaparece con
+ * el foco dentro. Si aun así el elemento enfocado sale del DOM (otro módulo
+ * descarta su aviso), el foco va al primer aviso que quede o fuera.
  */
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import {
   dismissAllToasts,
   dismissToast,
   setToastHeld,
+  setToastQueueHeld,
   toastState,
   toggleToast,
 } from '@/shared/model/toastStore'
@@ -21,24 +31,168 @@ import BaseToast from './BaseToast.vue'
 
 withDefaults(defineProps<{ placement?: 'viewport' | 'host' }>(), { placement: 'viewport' })
 
+const region = ref<HTMLElement | null>(null)
+// Último elemento con foco fuera de la región antes de entrar en ella.
+let returnTarget: HTMLElement | null = null
+// El foco está (o estaba, si su elemento acaba de salir del DOM) en la región.
+let focusInRegion = false
+// Un descarte propio ya decide adónde va el foco; la red de seguridad espera.
+let managingFocus = false
+
+function onFocusIn(event: FocusEvent) {
+  const from = event.relatedTarget
+  // Ni el `body` (el foco venía de un control que salió del DOM) ni un control
+  // ya desconectado son un origen al que volver.
+  if (
+    from instanceof HTMLElement &&
+    from !== document.body &&
+    from.isConnected &&
+    !region.value?.contains(from)
+  ) {
+    returnTarget = from
+  }
+  focusInRegion = true
+  setToastQueueHeld(true)
+}
+
+function leaveRegion() {
+  if (focusIsInside()) return
+  focusInRegion = false
+  setToastQueueHeld(false)
+}
+
+function onFocusOut(event: FocusEvent) {
+  const to = event.relatedTarget
+  if (to instanceof Node && region.value?.contains(to)) return
+  const from = event.target
+  // Sin destino: el elemento salió del DOM (algunos navegadores avisan) o se
+  // hizo clic en una zona sin foco. Se decide cuando el DOM ya se asentó.
+  if (to === null && from instanceof HTMLElement) {
+    setTimeout(() => (from.isConnected ? leaveRegion() : recoverLostFocus()), 0)
+    return
+  }
+  leaveRegion()
+}
+
+// Red de seguridad: el elemento enfocado de la región desapareció sin que un
+// descarte propio moviera el foco, que quedó en el `body`.
+function recoverLostFocus() {
+  if (!focusInRegion || managingFocus || focusIsInside()) return
+  const active = document.activeElement
+  if (active && active !== document.body) {
+    leaveRegion()
+    return
+  }
+  const first = toastState.items[0]
+  if (first) focusToast(first.id)
+  else focusOutside()
+}
+
+watch(
+  () => toastState.items.length,
+  () => recoverLostFocus(),
+  { flush: 'post' },
+)
+
+onBeforeUnmount(() => setToastQueueHeld(false))
+
+function focusIsInside(): boolean {
+  const active = document.activeElement
+  return active instanceof HTMLElement && !!region.value?.contains(active)
+}
+
+// Tras descartar, el foco quedó en el `body` (el botón ya no existe) o sigue
+// en la región. Si otra cosa lo tomó (la acción del aviso), se respeta.
+function focusWasLost(): boolean {
+  const active = document.activeElement
+  return !active || active === document.body || focusIsInside()
+}
+
+function focusOutside() {
+  if (returnTarget?.isConnected && !region.value?.contains(returnTarget)) {
+    returnTarget.focus({ focusVisible: true })
+    leaveRegion()
+    return
+  }
+  const main = document.querySelector<HTMLElement>('main')
+  if (main) {
+    // `main` no es enfocable por sí mismo; -1 lo permite sin meterlo en el orden de Tab.
+    if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1')
+    main.focus()
+  }
+  // No todos los navegadores emiten `focusout` cuando el elemento enfocado sale
+  // del DOM: la retención de la cola se libera aquí de forma explícita.
+  leaveRegion()
+}
+
+function focusToast(id: number) {
+  const head = region.value?.querySelector<HTMLElement>(
+    `.toast-region__item[data-toast-id="${id}"] .base-toast__head`,
+  )
+  head?.focus({ focusVisible: true })
+}
+
+async function dismissKeepingFocus(id: number) {
+  const hadFocus = focusIsInside()
+  const items = toastState.items
+  const index = items.findIndex((item) => item.id === id)
+  const neighbour = items[index + 1] ?? items[index - 1] ?? null
+  managingFocus = hadFocus
+  dismissToast(id)
+  if (!hadFocus) return
+  await nextTick()
+  managingFocus = false
+  if (!focusWasLost()) {
+    leaveRegion()
+    return
+  }
+  if (neighbour && toastState.items.some((item) => item.id === neighbour.id)) {
+    focusToast(neighbour.id)
+  } else {
+    focusOutside()
+  }
+}
+
+async function dismissAllKeepingFocus() {
+  const hadFocus = focusIsInside()
+  managingFocus = hadFocus
+  dismissAllToasts()
+  if (!hadFocus) return
+  await nextTick()
+  managingFocus = false
+  if (focusWasLost()) focusOutside()
+  else leaveRegion()
+}
+
 function onAction(id: number, run: (() => void) | undefined) {
   // Se descarta primero para que un aviso emitido por la acción no compita
-  // con el que la originó por el cupo máximo de la cola.
-  dismissToast(id)
+  // con el que la originó por el cupo máximo de la cola. Si la acción mueve
+  // el foco a otro sitio, ese movimiento prevalece.
+  void dismissKeepingFocus(id)
   run?.()
 }
 </script>
 
 <template>
-  <div :class="['toast-region', `toast-region--${placement}`]" role="region" aria-label="Avisos">
+  <div
+    ref="region"
+    :class="['toast-region', `toast-region--${placement}`]"
+    role="region"
+    aria-label="Avisos"
+    @focusin="onFocusIn"
+    @focusout="onFocusOut"
+  >
     <!-- Movimiento (#743): cada aviso cae con resorte, se va hacia el lado y
          los que quedan se reacomodan deslizando (FLIP con transform). -->
-    <TransitionGroup name="toast-motion">
+    <!-- Un aviso que sale sigue en el DOM durante su salida: si tenía el foco,
+         se recupera al terminar (`after-leave`), no al cambiar la cola. -->
+    <TransitionGroup name="toast-motion" @after-leave="recoverLostFocus">
       <div
         v-for="toast in toastState.items"
         :key="toast.id"
         class="toast-region__item"
-        @keydown.esc="dismissToast(toast.id)"
+        :data-toast-id="toast.id"
+        @keydown.esc="dismissKeepingFocus(toast.id)"
       >
         <BaseToast
           :variant="toast.variant"
@@ -51,7 +205,7 @@ function onAction(id: number, run: (() => void) | undefined) {
           :held="toast.expanded || toast.hovered || toast.focused"
           :duration-ms="toast.durationMs"
           @toggle="toggleToast(toast.id)"
-          @dismiss="dismissToast(toast.id)"
+          @dismiss="dismissKeepingFocus(toast.id)"
           @action="onAction(toast.id, toast.action?.run)"
           @hover="setToastHeld(toast.id, 'hovered', $event)"
           @focus="setToastHeld(toast.id, 'focused', $event)"
@@ -63,7 +217,7 @@ function onAction(id: number, run: (() => void) | undefined) {
       v-if="toastState.items.length > 1"
       type="button"
       class="toast-region__clear"
-      @click="dismissAllToasts()"
+      @click="dismissAllKeepingFocus()"
     >
       <svg
         width="12"
@@ -241,6 +395,13 @@ function onAction(id: number, run: (() => void) | undefined) {
   border-left: var(--border-width-normal) solid
     color-mix(in srgb, var(--color-on-strong) 20%, transparent);
   color: var(--color-text-secondary);
+}
+
+/* En angosto o táctil el botón mide 44 px de alto, no solo su zona activa (#794). */
+@media (max-width: 767px), (pointer: coarse) {
+  .toast-region__clear {
+    height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

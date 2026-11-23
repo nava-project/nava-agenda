@@ -761,6 +761,17 @@ const triggerLabelledBy = computed(() =>
   }
 }
 
+/* Táctil o angosto: días y «Hoy» de 44 px de alto (CA-009-03, #794). El factor
+   `--dp-zoom` se conserva: solo encoge en ventanas muy bajas, para que el
+   calendario quepa sin desplazar la página. */
+@media (max-width: 767px), (pointer: coarse) {
+  .agenda-date-picker__day,
+  .agenda-date-picker__today {
+    height: calc(44px * var(--dp-zoom, 1));
+    min-height: calc(44px * var(--dp-zoom, 1));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agenda-date-picker-pop-enter-active,
   .agenda-date-picker-pop-leave-active {

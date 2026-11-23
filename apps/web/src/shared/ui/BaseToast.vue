@@ -102,6 +102,8 @@ function onFocusOut(event: FocusEvent) {
     ref="rootRef"
     :class="['base-toast', `base-toast--${variant}`]"
     :role="role"
+    :aria-live="variant === 'danger' ? 'assertive' : 'polite'"
+    aria-atomic="true"
     @mouseenter="emit('hover', true)"
     @mouseleave="emit('hover', false)"
     @focusin="onFocusIn"
@@ -116,12 +118,12 @@ function onFocusOut(event: FocusEvent) {
     >
       <span class="base-toast__mark" aria-hidden="true">
         <svg
-          width="16"
-          height="16"
+          width="12"
+          height="12"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2.2"
+          stroke-width="2.6"
           stroke-linecap="round"
           stroke-linejoin="round"
         >
@@ -259,7 +261,10 @@ function onFocusOut(event: FocusEvent) {
   background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
 }
 
+/* Sello en rombo (#794): la familia no usa cuadros redondeados. El rombo
+   entra con un salto de resorte y el signo queda dentro, en el tono del estado. */
 .base-toast__mark {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -267,9 +272,27 @@ function onFocusOut(event: FocusEvent) {
   width: 32px;
   height: 32px;
   color: var(--toast-accent);
-  background-color: color-mix(in srgb, var(--color-on-strong) 5%, transparent);
-  border: var(--border-width-normal) solid var(--toast-accent);
-  border-radius: var(--radius-md);
+}
+
+.base-toast__mark::before {
+  position: absolute;
+  inset: 5px;
+  content: '';
+  background-color: color-mix(in srgb, var(--toast-accent) 10%, transparent);
+  border: 1.5px solid var(--toast-accent);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  animation: base-toast-seal-in 420ms var(--motion-ease-spring, ease-out) both;
+}
+
+.base-toast__mark svg {
+  position: relative;
+}
+
+@keyframes base-toast-seal-in {
+  from {
+    transform: rotate(45deg) scale(0.4);
+  }
 }
 
 .base-toast__text {
@@ -447,7 +470,9 @@ function onFocusOut(event: FocusEvent) {
   outline-offset: 2px;
 }
 
-.base-toast__head:focus-visible {
+/* La cabecera ocupa todo el ancho de un aviso con `overflow: hidden`: el anillo va por dentro o
+   queda recortado. El selector repite `.base-toast` para ganarle a la regla general de botones. */
+.base-toast .base-toast__head:focus-visible {
   outline-offset: -4px;
 }
 
@@ -477,6 +502,15 @@ function onFocusOut(event: FocusEvent) {
   }
 }
 
+/* En pantallas angostas o táctiles los botones del aviso miden 44 px de alto,
+   no solo su zona activa (CA-009-03). */
+@media (max-width: 767px), (pointer: coarse) {
+  .base-toast__action,
+  .base-toast__dismiss {
+    height: 44px;
+  }
+}
+
 /* Sin traslación ni transiciones; la regla sigue informando el tiempo. */
 @media (prefers-reduced-motion: reduce) {
   .base-toast__head,
@@ -485,6 +519,10 @@ function onFocusOut(event: FocusEvent) {
   .base-toast__action,
   .base-toast__dismiss {
     transition: none;
+  }
+
+  .base-toast__mark::before {
+    animation: none;
   }
 }
 </style>

@@ -11,6 +11,7 @@ import {
   pushToast,
   resetToasts,
   setToastHeld,
+  setToastQueueHeld,
   toastState,
   toggleToast,
 } from '../toastStore'
@@ -103,6 +104,30 @@ describe('toastStore', () => {
     setToastHeld(id, 'focused', false)
     vi.advanceTimersByTime(TOAST_DURATION_MS.info)
     expect(toastState.items).toHaveLength(0)
+  })
+
+  it('holds the whole queue while focus is in the region, including toasts pushed meanwhile', () => {
+    pushToast({ variant: 'success', title: 'Uno' })
+    pushToast({ variant: 'info', title: 'Dos' })
+
+    setToastQueueHeld(true)
+    pushToast({ variant: 'warning', title: 'Tres' })
+    vi.advanceTimersByTime(60_000)
+    expect(toastState.items).toHaveLength(3)
+
+    setToastQueueHeld(false)
+    vi.advanceTimersByTime(TOAST_DURATION_MS.warning)
+    expect(toastState.items).toHaveLength(0)
+  })
+
+  it('keeps a toast held by its own state after the queue is released', () => {
+    const id = pushToast({ variant: 'info', title: 'Aviso' })
+
+    setToastQueueHeld(true)
+    setToastHeld(id, 'hovered', true)
+    setToastQueueHeld(false)
+    vi.advanceTimersByTime(60_000)
+    expect(toastState.items).toHaveLength(1)
   })
 
   it('opens only one toast at a time (accordion)', () => {

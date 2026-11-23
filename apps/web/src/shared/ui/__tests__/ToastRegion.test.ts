@@ -4,9 +4,15 @@
  * descarta con Escape o con "Descartar todos".
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
-import { TOAST_DURATION_MS, pushToast, resetToasts, toastState } from '@/shared/model/toastStore'
+import {
+  TOAST_DURATION_MS,
+  dismissToast,
+  pushToast,
+  resetToasts,
+  toastState,
+} from '@/shared/model/toastStore'
 import ToastRegion from '../ToastRegion.vue'
 
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
@@ -147,6 +153,158 @@ describe('ToastRegion', () => {
 
     await clear.trigger('click')
     expect(toastState.items).toHaveLength(0)
+  })
+
+  describe('keeps keyboard focus when a toast goes away (WCAG 2.4.3)', () => {
+    // Un botón de la pantalla desde el que el teclado entra en la región.
+    function setup() {
+      // Vue ignora un evento con marca de tiempo anterior a su manejador; con el
+      // reloj simulado, `focusin` llega «antes» y la región no lo vería.
+      vi.useRealTimers()
+      const main = document.createElement('main')
+      const origin = document.createElement('button')
+      origin.textContent = 'Editar'
+      main.append(origin)
+      document.body.append(main)
+      const wrapper = mount(ToastRegion, { attachTo: document.body })
+      return { main, origin, wrapper }
+    }
+
+    afterEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    function headOf(title: string): HTMLElement | undefined {
+      return [...document.querySelectorAll<HTMLElement>('.base-toast__head')].find((head) =>
+        head.textContent?.includes(title),
+      )
+    }
+
+    function dismissOf(title: string): HTMLElement {
+      const item = [...document.querySelectorAll<HTMLElement>('.toast-region__item')].find((node) =>
+        node.textContent?.includes(title),
+      )
+      return item!.querySelector<HTMLElement>('.base-toast__dismiss')!
+    }
+
+    it('moves to the next toast, or to the previous one when it was the last', async () => {
+      const { origin, wrapper } = setup()
+      pushToast({ variant: 'success', title: 'Uno' })
+      pushToast({ variant: 'info', title: 'Dos' })
+      pushToast({ variant: 'danger', title: 'Tres' })
+      await wrapper.vm.$nextTick()
+      // La cola va del más nuevo al más viejo: Tres, Dos, Uno.
+
+      origin.focus()
+      dismissOf('Dos').focus()
+      dismissOf('Dos').click()
+      await flushPromises()
+      expect(document.activeElement).toBe(headOf('Uno'))
+
+      dismissOf('Uno').focus()
+      dismissOf('Uno').click()
+      await flushPromises()
+      expect(document.activeElement).toBe(headOf('Tres'))
+      wrapper.unmount()
+    })
+
+    it('returns to where it came from when the last toast goes away, or to main', async () => {
+      const { main, origin, wrapper } = setup()
+      pushToast({ variant: 'success', title: 'Uno' })
+      await wrapper.vm.$nextTick()
+
+      origin.focus()
+      dismissOf('Uno').focus()
+      dismissOf('Uno').click()
+      await flushPromises()
+      expect(document.activeElement).toBe(origin)
+
+      pushToast({ variant: 'success', title: 'Otro' })
+      await wrapper.vm.$nextTick()
+      dismissOf('Otro').focus()
+      origin.remove()
+      await wrapper.findAll('.toast-region__item')[0].trigger('keydown', { key: 'Escape' })
+      await flushPromises()
+      expect(document.activeElement).toBe(main)
+      expect(main.getAttribute('tabindex')).toBe('-1')
+      wrapper.unmount()
+    })
+
+    it('returns to where it came from after "Descartar todos"', async () => {
+      const { origin, wrapper } = setup()
+      pushToast({ variant: 'success', title: 'Uno' })
+      pushToast({ variant: 'info', title: 'Dos' })
+      await wrapper.vm.$nextTick()
+
+      origin.focus()
+      const clear = document.querySelector<HTMLElement>('.toast-region__clear')!
+      clear.focus()
+      clear.click()
+      await flushPromises()
+      expect(toastState.items).toHaveLength(0)
+      expect(document.activeElement).toBe(origin)
+      wrapper.unmount()
+    })
+
+    it('does not take focus when it was outside the region', async () => {
+      const { origin, wrapper } = setup()
+      pushToast({ variant: 'success', title: 'Uno' })
+      await wrapper.vm.$nextTick()
+
+      origin.focus()
+      dismissOf('Uno').click()
+      await flushPromises()
+      expect(document.activeElement).toBe(origin)
+      wrapper.unmount()
+    })
+
+    it('holds the whole queue while focus is in the region, so "Descartar todos" never vanishes under it', async () => {
+      const { origin, wrapper } = setup()
+      // Solo se simula el temporizador: con el reloj real, `focusin` conserva su marca de tiempo.
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      pushToast({ variant: 'success', title: 'Uno' })
+      pushToast({ variant: 'info', title: 'Dos' })
+      pushToast({ variant: 'warning', title: 'Tres' })
+      await wrapper.vm.$nextTick()
+
+      origin.focus()
+      const clear = document.querySelector<HTMLElement>('.toast-region__clear')!
+      clear.focus()
+      vi.advanceTimersByTime(60_000)
+      await flushPromises()
+      expect(toastState.items).toHaveLength(3)
+      expect(document.activeElement).toBe(clear)
+
+      // Al salir de la región la cola vuelve a caducar con el tiempo que le quedaba.
+      origin.focus()
+      vi.advanceTimersByTime(TOAST_DURATION_MS.warning)
+      await flushPromises()
+      expect(toastState.items).toHaveLength(0)
+      expect(document.activeElement).toBe(origin)
+      vi.useRealTimers()
+      wrapper.unmount()
+    })
+
+    it('recovers focus when another module removes the focused control', async () => {
+      const { origin, wrapper } = setup()
+      const keep = pushToast({ variant: 'success', title: 'Uno' })
+      const gone = pushToast({ variant: 'info', title: 'Dos' })
+      await wrapper.vm.$nextTick()
+
+      // Con un solo aviso «Descartar todos» sale del DOM: el foco va al aviso que queda.
+      origin.focus()
+      document.querySelector<HTMLElement>('.toast-region__clear')!.focus()
+      dismissToast(gone)
+      await flushPromises()
+      expect(document.querySelector('.toast-region__clear')).toBeNull()
+      expect(document.activeElement).toBe(headOf('Uno'))
+
+      // Sin avisos, vuelve a donde estaba antes de entrar en la región.
+      dismissToast(keep)
+      await flushPromises()
+      expect(document.activeElement).toBe(origin)
+      wrapper.unmount()
+    })
   })
 
   it('has no axe violations with a mixed queue', async () => {

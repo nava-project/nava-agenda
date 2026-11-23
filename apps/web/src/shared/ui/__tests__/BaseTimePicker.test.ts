@@ -2,7 +2,7 @@
  * BaseTimePicker (#722): la hora en 12 h es-CO en el disparador y en el diálogo
  * (hora 1–12, minutos y «a. m. / p. m.»), con el `v-model` en `HH:MM` de 24 h.
  */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import BaseTimePicker from '../BaseTimePicker.vue'
@@ -165,6 +165,23 @@ describe('BaseTimePicker', () => {
     expect(wrapper.get<HTMLInputElement>(HOUR).element.value).toBe('12')
     expect(wrapper.get<HTMLInputElement>(MINUTE).element.value).toBe('37')
     expect(radio(wrapper, 'p. m.').attributes('aria-checked')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('Escape returns focus to the trigger with a visible ring; the mouse does not force it (#794)', async () => {
+    const wrapper = render('09:00')
+    const trigger = wrapper.get<HTMLButtonElement>('.base-time-picker__trigger')
+    const focus = vi.spyOn(trigger.element, 'focus')
+    await trigger.trigger('click')
+    wrapper
+      .get('[role="dialog"]')
+      .element.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+    expect(focus).toHaveBeenLastCalledWith({ focusVisible: true })
+
+    await trigger.trigger('click')
+    await wrapper.findAll('.base-time-picker__footer button')[0]!.trigger('click')
+    expect(focus).toHaveBeenLastCalledWith(undefined)
     wrapper.unmount()
   })
 
