@@ -1,0 +1,28 @@
+# Respuesta 200 de GET /private/me/professional (DEC-100, enmendada por DEC-192, issue #721).
+description: >
+  El profesional vinculado al usuario autenticado, o `professional: null` si no
+  tiene ninguno.
+headers:
+  X-Request-Id:
+    $ref: '../headers/XRequestId.yaml'
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/MyProfessionalResponse.yaml'
+    examples:
+      vinculado:
+        summary: El usuario atiende como este profesional
+        value:
+          professional:
+            id: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+            fullName: Carlos Ramírez
+            createdAt: "2026-08-23T15:04:05Z"
+            updatedAt: "2026-08-23T15:04:05Z"
+            photoUpdatedAt: null
+            rating: null
+            ratingCount: 0
+            description: null
+      sinFicha:
+        summary: El usuario no tiene profesional vinculado
+        value:
+          professional: null

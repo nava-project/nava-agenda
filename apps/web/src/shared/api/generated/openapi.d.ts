@@ -896,7 +896,7 @@ export interface paths {
         };
         /**
          * Consultar el profesional vinculado al usuario autenticado
-         * @description Devuelve el profesional que el usuario autenticado declaró ser (`DEC-100`). El vínculo es opcional: el dueño que no atiende clientes puede no tener profesional y recibe `404`. Nunca expone la identidad de otro usuario.
+         * @description Devuelve el profesional que el usuario autenticado declaró ser (`DEC-100`). El vínculo es opcional: el dueño que no atiende clientes puede no tener profesional y recibe `200` con `professional: null` (`DEC-192`). «Sin ficha» es un estado, no un error, así que no hay `404`. Nunca expone la identidad de otro usuario.
          */
         get: operations["getMyProfessional"];
         /**
@@ -2008,6 +2008,11 @@ export interface components {
              * @example 12
              */
             ratingCount: number;
+        };
+        /** @description Profesional propio del usuario autenticado, o `null` si no tiene. */
+        MyProfessionalResponse: {
+            /** @description El profesional que el usuario autenticado declaró ser, o `null` si no tiene ninguno vinculado (el dueño que no atiende clientes). */
+            professional: components["schemas"]["ProfessionalResponse"] | null;
         };
         /** @description Página de profesionales del negocio activo, ordenada de forma estable por fecha de alta y luego por identificador. Conserva cursor por defecto y admite modo numerado con page/pageSize (DEC-107); nextCursor es null en modo numerado. */
         ProfessionalListResponse: {
@@ -5293,6 +5298,16 @@ export interface components {
                 "application/json": components["schemas"]["GoogleCalendarCallbackResponse"];
             };
         };
+        /** @description El profesional vinculado al usuario autenticado, o `professional: null` si no tiene ninguno. */
+        MyProfessionalSuccess: {
+            headers: {
+                "X-Request-Id": components["headers"]["XRequestId"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["MyProfessionalResponse"];
+            };
+        };
         /** @description El profesional ya está vinculado a otro usuario de este negocio. No se persistió ningún cambio y el vínculo anterior del solicitante, si existía, se conserva. Quien lo tenga puede liberarlo desde su propia sesión. */
         MyProfessionalLinkConflictProblem: {
             headers: {
@@ -7003,9 +7018,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["ProfessionalSuccess"];
+            200: components["responses"]["MyProfessionalSuccess"];
             401: components["responses"]["UnauthorizedProblem"];
-            404: components["responses"]["NotFoundProblem"];
             500: components["responses"]["InternalErrorProblem"];
         };
     };

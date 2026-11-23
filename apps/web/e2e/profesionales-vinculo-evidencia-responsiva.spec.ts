@@ -76,9 +76,8 @@ async function mockApi(page: Page, initialLinked: string | null) {
     } else if (pathname.endsWith('/me/professional')) {
       if (method === 'GET') {
         const mine = professionals.find((b) => b.id === linked)
-        await route.fulfill(
-          mine ? json(mine) : json({ title: 'No encontrado', status: 404, code: 'not_found' }, 404),
-        )
+        // DEC-192 (#721): sin vínculo también es 200, con professional null.
+        await route.fulfill(json({ professional: mine ?? null }))
       } else if (method === 'PUT') {
         const { professionalId: professionalId } = route.request().postDataJSON() as {
           professionalId: string
@@ -178,9 +177,20 @@ for (const { theme, viewport } of combos) {
   test(`${theme} a ${viewport.name}: sin vincular, vinculado y barbero ya tomado`, async ({
     page,
   }) => {
+    // #721: sin ficha, Profesionales no deja errores de red ni de consola (DEC-192).
+    const failures: string[] = []
+    page.on('response', (response) => {
+      if (response.status() >= 400) {
+        failures.push(`${response.status()} ${new URL(response.url()).pathname}`)
+      }
+    })
+    page.on('console', (message) => {
+      if (message.type() === 'error') failures.push(`console: ${message.text()}`)
+    })
     await openDetail(page, 'Mateo Rojas', viewport.width, viewport.height, theme, null)
     const dialog = page.getByRole('dialog', { name: 'Mateo Rojas' })
     await expect(dialog).toContainText('Sin vincular')
+    expect(failures).toEqual([])
 
     await page.screenshot({
       path: path.join(evidenceDir, theme, viewport.name, 'sin-vincular.png'),

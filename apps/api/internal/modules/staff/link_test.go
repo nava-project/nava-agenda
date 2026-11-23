@@ -31,12 +31,15 @@ func requireKind(t *testing.T, err error, want apperr.Kind) {
 	}
 }
 
-func TestLinkedProfessional_WithoutLink_IsNotFound(t *testing.T) {
+// Sin vínculo no es un error (DEC-192): el servicio responde found=false sin fallo.
+func TestLinkedProfessional_WithoutLink_IsNotFoundButNoError(t *testing.T) {
 	repo := &fakeRepository{getLinkedFn: func(context.Context, string, string) (staff.Professional, bool, error) {
 		return staff.Professional{}, false, nil
 	}}
-	_, err := staff.NewService(repo).LinkedProfessional(context.Background(), linkShop, linkUserID)
-	requireKind(t, err, apperr.KindNotFound)
+	_, found, err := staff.NewService(repo).LinkedProfessional(context.Background(), linkShop, linkUserID)
+	if err != nil || found {
+		t.Fatalf("expected found=false without error, got found=%v err=%v", found, err)
+	}
 }
 
 func TestLinkedProfessional_ReturnsTheUsersProfessional(t *testing.T) {
@@ -46,8 +49,8 @@ func TestLinkedProfessional_ReturnsTheUsersProfessional(t *testing.T) {
 		}
 		return staff.Professional{ID: linkProfessional, FullName: "Carlos"}, true, nil
 	}}
-	professional, err := staff.NewService(repo).LinkedProfessional(context.Background(), linkShop, linkUserID)
-	if err != nil || professional.ID != linkProfessional {
+	professional, found, err := staff.NewService(repo).LinkedProfessional(context.Background(), linkShop, linkUserID)
+	if err != nil || !found || professional.ID != linkProfessional {
 		t.Fatalf("expected the linked professional, got %+v, %v", professional, err)
 	}
 }
@@ -159,7 +162,7 @@ func TestLinkOperations_RepositoryFailure_IsInternal(t *testing.T) {
 	}
 	service := staff.NewService(repo)
 
-	_, err := service.LinkedProfessional(context.Background(), linkShop, linkUserID)
+	_, _, err := service.LinkedProfessional(context.Background(), linkShop, linkUserID)
 	requireKind(t, err, apperr.KindInternal)
 	_, err = service.LinkMyProfessional(context.Background(), linkShop, linkUserID, linkProfessional)
 	requireKind(t, err, apperr.KindInternal)

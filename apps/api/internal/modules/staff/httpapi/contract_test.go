@@ -6,8 +6,10 @@
 package httpapi_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -234,9 +236,36 @@ func TestContract_DeleteProfessionalPhotoOperation_MethodPathSecurityAndResponse
 // DEC-100: el vínculo propio actúa sobre el principal de la sesión.
 func TestContract_MyProfessionalOperations_MethodPathSecurityAndResponses(t *testing.T) {
 	doc := loadYAML[staffPathsFile](t, "api/openapi/paths/staff.yaml")
-	requireResponses(t, doc.Me.Get, "getMyProfessional", []string{"200", "401", "404", "500"})
+	// Sin vínculo es 200 con professional null, no 404 (DEC-192, issue #721).
+	requireResponses(t, doc.Me.Get, "getMyProfessional", []string{"200", "401", "500"})
 	requireResponses(t, doc.Me.Put, "linkMyProfessional", []string{"200", "400", "401", "403", "404", "409", "500"})
 	requireResponses(t, doc.Me.Delete, "unlinkMyProfessional", []string{"204", "401", "403", "500"})
+}
+
+// DEC-192: el cuerpo del GET propio es { professional: ProfessionalResponse | null } y la
+// clave es obligatoria, así que el handler la serializa siempre, también como null.
+func TestContract_MyProfessionalResponse_RequiredNullableProfessional(t *testing.T) {
+	schema := loadYAML[schemaDoc](t, "api/openapi/components/schemas/MyProfessionalResponse.yaml")
+	requireProps(t, schema, []string{"professional"})
+	prop, _ := schema.Properties["professional"].(map[string]any)
+	variants, _ := prop["oneOf"].([]any)
+	var hasRef, hasNull bool
+	for _, v := range variants {
+		m, _ := v.(map[string]any)
+		if ref, _ := m["$ref"].(string); ref == "./ProfessionalResponse.yaml" {
+			hasRef = true
+		}
+		if m["type"] == "null" {
+			hasNull = true
+		}
+	}
+	if !hasRef || !hasNull {
+		t.Fatalf("professional debe ser oneOf ProfessionalResponse | null, es %v", prop)
+	}
+	resp := loadYAML[map[string]any](t, "api/openapi/components/responses/MyProfessionalSuccess.yaml")
+	if !strings.Contains(fmt.Sprint(resp["content"]), "MyProfessionalResponse.yaml") {
+		t.Fatalf("MyProfessionalSuccess debe usar MyProfessionalResponse: %v", resp["content"])
+	}
 }
 
 func TestContract_LinkMyProfessionalRequestSchema_OnlyProfessionalID(t *testing.T) {

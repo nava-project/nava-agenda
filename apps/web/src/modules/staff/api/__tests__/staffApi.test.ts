@@ -410,17 +410,20 @@ describe('staffApi.fetchMyProfessional', () => {
   beforeEach(() => getMock.mockReset())
 
   it('maps a 200 to the linked professional and sends no user identifier', async () => {
-    getMock.mockResolvedValueOnce(ok(professionalBody))
+    getMock.mockResolvedValueOnce(ok({ professional: professionalBody }))
     expect(await fetchMyProfessional()).toEqual({ kind: 'linked', professional: professionalBody })
     expect(getMock).toHaveBeenCalledWith('/private/me/professional')
   })
 
-  it('maps a 404 to none: the link is optional, not an error', async () => {
-    getMock.mockResolvedValueOnce(problem(404))
+  // DEC-192 (#721): «sin ficha» es un estado del contrato, un 200 con professional null.
+  it('maps a 200 with professional null to none: the link is optional, not an error', async () => {
+    getMock.mockResolvedValueOnce(ok({ professional: null }))
     expect(await fetchMyProfessional()).toEqual({ kind: 'none' })
   })
 
-  it('maps other statuses and a rejected request', async () => {
+  it('maps other statuses, including a 404 the contract no longer has, and a rejected request', async () => {
+    getMock.mockResolvedValueOnce(problem(404))
+    expect(await fetchMyProfessional()).toEqual({ kind: 'unexpected-error' })
     getMock.mockResolvedValueOnce(problem(500))
     expect(await fetchMyProfessional()).toEqual({ kind: 'unexpected-error' })
     getMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))

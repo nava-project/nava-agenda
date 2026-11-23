@@ -10,7 +10,8 @@ import (
 )
 
 // GetMyProfessionalHandler expone GET /private/me/professional (DEC-100): el profesional que
-// el usuario autenticado declaró ser, o 404 si no tiene ninguno.
+// el usuario autenticado declaró ser, o `professional: null` si no tiene ninguno. Siempre
+// 200: «sin ficha» es un estado del contrato, no un error (DEC-192, issue #721).
 type GetMyProfessionalHandler struct {
 	service *staff.Service
 }
@@ -28,12 +29,19 @@ func (h *GetMyProfessionalHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	professional, err := h.service.LinkedProfessional(r.Context(), principal.BusinessID, principal.StaffUserID)
+	professional, found, err := h.service.LinkedProfessional(r.Context(), principal.BusinessID, principal.StaffUserID)
 	if err != nil {
 		httpserver.WriteProblem(w, httpserver.Translate(err, requestID))
 		return
 	}
-	writeProfessional(w, professional)
+	body := MyProfessionalResponse{}
+	if found {
+		response := newProfessionalResponse(professional)
+		body.Professional = &response
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(body)
 }
 
 // LinkMyProfessionalHandler expone PUT /private/me/professional (DEC-100). Actúa siempre

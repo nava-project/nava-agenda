@@ -9,7 +9,7 @@
 openapi: 3.1.2
 info:
   title: API de Nava Agenda
-  version: 2.3.0
+  version: 3.0.0
   description: >
     Contrato HTTP entre apps/web y apps/api. Tres audiencias comparten este
     documento: /api/v1/public (reserva sin sesión), /api/v1/customer
@@ -260,6 +260,8 @@ components:
       $ref: './components/schemas/BrandTermGender.yaml'
     ProfessionalResponse:
       $ref: './components/schemas/ProfessionalResponse.yaml'
+    MyProfessionalResponse:
+      $ref: './components/schemas/MyProfessionalResponse.yaml'
     ProfessionalListResponse:
       $ref: './components/schemas/ProfessionalListResponse.yaml'
     CreateProfessionalRequest:
