@@ -1758,33 +1758,26 @@ async function onSubmitRename() {
   gap: var(--space-5);
 }
 
-/* El retrato lleva el monograma de la familia (#757): filete de latón y el
-   rombo asomando bajo el borde, como un sello. */
+/* El retrato lleva el monograma de la familia (#757): lo dibuja el propio
+   ProfessionalAvatar (BrassMonogram, #799), con el filete de latón y el rombo
+   asomando bajo el borde. El marco solo lo sitúa. */
 .staff-page__detail-frame {
-  position: relative;
   display: inline-flex;
   flex: none;
-  padding: 3px;
-  border: 1px solid var(--color-brass-line);
-  border-radius: 4px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
-.staff-page__detail-frame::after {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  content: '';
-  background-color: var(--color-brass-body);
-  border: 2px solid var(--color-surface);
-  transform: translateX(-50%) rotate(45deg);
+/* Mide lo que medía con el marco aparte: 84 px de retrato, 3 px de aire y 1 px
+   de filete por lado (72 px en móvil). */
+.staff-page__detail-frame .professional-avatar {
+  --avatar-size: 92px;
+  --monogram-pendant: 9px;
+  --monogram-radius: 4px;
 }
 
-.staff-page__detail-frame :deep(.professional-avatar) {
-  border-color: transparent;
-  border-radius: 2px;
+@media (max-width: 767px) {
+  .staff-page__detail-frame .professional-avatar {
+    --avatar-size: 80px;
+  }
 }
 
 .staff-page__detail-identity {
@@ -1933,7 +1926,7 @@ async function onSubmitRename() {
     animation-delay: 220ms;
   }
 
-  :root:not([data-motion='reduced']) .staff-page__detail-frame::after {
+  :root:not([data-motion='reduced']) .staff-page__detail-frame :deep(.brass-monogram::after) {
     animation: staff-ficha-mark 360ms 200ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
   }
 }

@@ -1819,41 +1819,19 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 /* Monograma de la familia (#757, 8d) en el disparador «Profesional» y en el
-   boleto: tarjeta recta con filete de latón y el rombo asomando bajo el borde,
-   en vez de la caja gris del retrato genérico. */
+   boleto: el retrato ya es de latón (BrassMonogram, #799); aquí solo se
+   enciende el rombo, que en los tamaños de selector va apagado, y se recorta
+   contra el fondo de cada sitio. */
 .new-appointment-page :deep(.professional-select__trigger .professional-avatar),
 .new-appointment-page__resumen :deep(.professional-avatar) {
-  --seal-ground: var(--color-field-strong);
-
-  position: relative;
-  overflow: visible;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-brass-line);
-  border-radius: 2px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
+  --monogram-pendant-display: block;
+  --monogram-pendant: 8px;
+  --monogram-cutout: var(--color-field-strong);
+  --monogram-radius: 2px;
 }
 
 .new-appointment-page__resumen :deep(.professional-avatar) {
-  --seal-ground: var(--ticket-bg);
-}
-
-.new-appointment-page :deep(.professional-select__trigger .professional-avatar)::after,
-.new-appointment-page__resumen :deep(.professional-avatar)::after {
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  content: '';
-  background-color: var(--color-brass-body);
-  border: 1.5px solid var(--seal-ground);
-  transform: translateX(-50%) rotate(45deg);
-}
-
-.new-appointment-page :deep(.professional-select__trigger .professional-avatar__photo),
-.new-appointment-page__resumen :deep(.professional-avatar__photo) {
-  border-radius: 1px;
+  --monogram-cutout: var(--ticket-bg);
 }
 
 /* ------------------------------------------------- estados de página completos */
