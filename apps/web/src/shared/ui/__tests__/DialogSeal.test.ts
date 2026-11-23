@@ -18,9 +18,11 @@ describe('DialogSeal (#791)', () => {
     expect(wrapper.classes()).toContain('dialog-seal--danger')
   })
 
-  it('cuelga un rombo (cuadrado girado 45°), no un círculo', () => {
+  it('es el retrato de latón compartido con su rombo colgante (#799)', () => {
+    const wrapper = mount(DialogSeal, { props: { glyph: 'C' } })
+    expect(wrapper.classes()).toContain('brass-monogram')
+    expect(wrapper.classes()).toContain('brass-monogram--pendant')
     const source = readFileSync(join(__dirname, '../DialogSeal.vue'), 'utf8')
-    expect(source).toMatch(/\.dialog-seal::after \{[^}]*rotate\(45deg\)/)
-    expect(source).not.toMatch(/border-radius:\s*50%/)
+    expect(source).toContain("import BrassMonogram from './BrassMonogram.vue'")
   })
 })

@@ -21,6 +21,7 @@ import {
   BaseBadge,
   BaseButton,
   BaseDialog,
+  BrassMonogram,
   DiamondLoader,
   PhoneDisplay,
   type AppointmentTicketState,
@@ -1022,9 +1023,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
     <template v-else-if="detail">
       <header class="appointment-detail-page__hero">
-        <div class="appointment-detail-page__avatar" aria-hidden="true">
-          {{ attendeeInitials }}
-        </div>
+        <BrassMonogram
+          class="appointment-detail-page__avatar"
+          :glyph="attendeeInitials"
+          face="serif"
+          pendant
+        />
         <div class="appointment-detail-page__identity">
           <h1 id="appointment-detail-page-title" class="appointment-detail-page__title">
             {{ detail.attendeeName }}
@@ -2172,37 +2176,15 @@ function occurredAtLabel(entry: HistoryEntry): string {
   border-bottom: 1px solid var(--rule);
 }
 
-/* Monograma de la familia (#757): una tarjeta cuadrada con filete de latón, las
-   iniciales en serif y el rombo de latón asomando bajo el borde, como un sello. */
+/* Monograma de la familia (#757): el retrato de latón compartido
+   (BrassMonogram, #799) con las iniciales en serif y el rombo asomando bajo el
+   borde, recortado contra el lienzo. */
 .appointment-detail-page__avatar {
-  position: relative;
-  display: grid;
-  flex: 0 0 68px;
-  place-items: center;
-  width: 68px;
-  height: 68px;
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-brass-line);
-  border-radius: 4px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
-}
-
-.appointment-detail-page__avatar::after {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  content: '';
-  background-color: var(--color-brass-body);
-  border: 2px solid var(--color-canvas);
-  transform: translateX(-50%) rotate(45deg);
+  --monogram-size: 68px;
+  --monogram-glyph-size: 30px;
+  --monogram-pendant: 9px;
+  --monogram-cutout: var(--color-canvas);
+  --monogram-radius: 4px;
 }
 
 .appointment-detail-page__identity {
@@ -2475,25 +2457,31 @@ function occurredAtLabel(entry: HistoryEntry): string {
 
 .appointment-detail-page__history-list {
   display: flex;
-  flex: 1 0 auto;
+  flex: 0 0 auto;
   flex-direction: column;
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-/* El riel llega hasta el final de la columna (#758): el último evento estira su
-   filete hasta el hito del turno o el rombo de cierre. Hacia un turno que aún no
-   ocurre, el tramo va punteado en latón: es tiempo por venir. */
-.appointment-detail-page__history-list--railed
-  > .appointment-detail-page__history-item:nth-last-child(2) {
-  flex-grow: 1;
-}
-
+/* El riel termina en el hito del turno o en el rombo de cierre (#758). Antes se
+   estiraba hasta el final de la columna, a la altura de la tarjeta, y a 1440×900
+   dejaba «Próximo» bajo el pliegue y detrás del dock (#799); ahora el tramo
+   hacia un turno que aún no ocurre se alarga una medida fija, punteado en
+   latón: es tiempo por venir, sin empujar el hito fuera de la vista. */
 .appointment-detail-page__history-list--upcoming
   > .appointment-detail-page__history-item:nth-last-child(2) {
   border-left-style: dashed;
   border-left-color: var(--color-brass-line);
+}
+
+/* Solo a dos columnas: apilado, el historial ya va bajo la tarjeta y alargar
+   el tramo solo alejaría más el hito. */
+@media (min-width: 1024px) {
+  .appointment-detail-page__history-list--upcoming
+    > .appointment-detail-page__history-item:nth-last-child(2) {
+    min-height: 112px;
+  }
 }
 
 .appointment-detail-page__history-end {
@@ -3240,10 +3228,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
   }
 
   .appointment-detail-page__avatar {
-    flex-basis: 56px;
-    width: 56px;
-    height: 56px;
-    font-size: 25px;
+    --monogram-size: 56px;
+    --monogram-glyph-size: 25px;
   }
 
   /* La serif necesita ~20 % más que la sans de antes para leerse igual (#726). */

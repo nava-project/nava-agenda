@@ -19,6 +19,7 @@ import {
   BaseDialog,
   BaseInput,
   BasePagination,
+  BrassMonogram,
   DialogSeal,
   DiamondLoader,
   EmptyScene,
@@ -1206,9 +1207,11 @@ async function reloadAfterConflict(serviceId: string) {
                 :style="{ '--i': index }"
               >
                 <div class="catalog-page__item-heading">
-                  <span class="catalog-page__item-icon" aria-hidden="true">{{
-                    serviceInitial(service.name)
-                  }}</span>
+                  <BrassMonogram
+                    class="catalog-page__item-icon"
+                    :glyph="serviceInitial(service.name)"
+                    pendant
+                  />
                   <div class="catalog-page__item-text">
                     <!-- El nombre es el disparador real del detalle (issue
                          2026-09-29, "que en el listado solo esté todo menos la
@@ -1323,9 +1326,12 @@ async function reloadAfterConflict(serviceId: string) {
       content-class="catalog-page__detail-dialog"
     >
       <template #icon>
-        <span class="catalog-page__detail-icon" aria-hidden="true">{{
-          detailTarget ? serviceInitial(detailTarget.name) : ''
-        }}</span>
+        <BrassMonogram
+          class="catalog-page__detail-icon"
+          :glyph="detailTarget ? serviceInitial(detailTarget.name) : ''"
+          face="serif"
+          pendant
+        />
       </template>
       <!-- catalog-page__lifecycle aporta solo el apilado, el color de texto
            y el par de botones del pie; el resto es propio del detalle. -->
@@ -2240,27 +2246,14 @@ async function reloadAfterConflict(serviceId: string) {
   gap: 12px;
 }
 
-/* Monograma del servicio: reemplaza el glifo "▧" genérico (issue reportado
-   2026-09-28, "se ve fea") por una ficha que encierra información real (la
-   inicial ayuda a escanear una lista larga), mismo vocabulario de campo
-   hundido que el resto de la pantalla sobre tinta, sin avatar circular
-   (StaffPage lo usa para personas; un servicio no es una persona). */
+/* Monograma del servicio: la inicial ayuda a escanear una lista larga (issue
+   2026-09-28, "se ve fea"). Es el retrato de latón de la familia
+   (BrassMonogram, #799), el mismo de profesionales y de la ficha; en sans 600
+   porque la serif por debajo de 20 px se ensucia (#726). */
 .catalog-page__item-icon {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: var(--color-surface-muted);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: var(--font-size-body-lg);
-  line-height: 1;
+  --monogram-size: 40px;
+  --monogram-glyph-size: var(--font-size-body-lg);
+  --monogram-pendant: 9px;
 }
 
 .catalog-page__item-text {
@@ -2577,25 +2570,12 @@ async function reloadAfterConflict(serviceId: string) {
    :deep(...), y sus equivalentes __edit-* / __lifecycle-*): viajan con el
    elemento sin importar dónde lo monte Vue. */
 
-/* Ficha del encabezado de la ficha de detalle. Alta, edición y estado usan
-   DialogSeal (#791): la ficha de latón con su rombo, en rojo al desactivar. */
+/* Ficha del encabezado de la ficha de detalle: el retrato de latón
+   (BrassMonogram, #799) con la inicial en serif a 24 px, como DialogSeal en
+   alta, edición y estado (#791). */
 .catalog-page__detail-icon {
-  position: relative;
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  background-color: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-  color: var(--color-text-primary);
-  border-radius: var(--radius-md);
-  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: var(--font-size-title-item);
-  line-height: 1;
+  --monogram-size: 44px;
+  --monogram-glyph-size: 24px;
 }
 
 /* Los campos de alta y edición usan BaseInput v2 tal cual (DEC-188):
@@ -3328,8 +3308,7 @@ async function reloadAfterConflict(serviceId: string) {
   }
 
   .catalog-page__item-icon {
-    width: 36px;
-    height: 36px;
+    --monogram-size: 36px;
   }
 }
 
@@ -3404,9 +3383,9 @@ async function reloadAfterConflict(serviceId: string) {
   }
 
   .catalog-page__item-icon {
-    width: 28px;
-    height: 28px;
-    font-size: var(--font-size-body-sm);
+    --monogram-size: 28px;
+    --monogram-glyph-size: var(--font-size-body-sm);
+    --monogram-pendant: 8px;
   }
 
   .catalog-page__item-name {
@@ -3541,28 +3520,6 @@ async function reloadAfterConflict(serviceId: string) {
   font-size: 30px !important;
   font-weight: 400 !important;
   line-height: 1.1 !important;
-}
-
-.catalog-page__detail-dialog .catalog-page__detail-icon {
-  overflow: visible;
-  width: 44px;
-  height: 44px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-brass-line);
-  border-radius: 4px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
-}
-
-.catalog-page__detail-dialog .catalog-page__detail-icon::after {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  content: '';
-  background-color: var(--color-brass-body);
-  border: 2px solid var(--color-surface);
-  transform: translateX(-50%) rotate(45deg);
 }
 
 .catalog-page__detail-dialog .base-dialog__footer {

@@ -724,6 +724,8 @@
 }
 
 .bk-chip .professional-avatar {
+  --monogram-radius: 50%;
+
   border-radius: 50%;
 }
 

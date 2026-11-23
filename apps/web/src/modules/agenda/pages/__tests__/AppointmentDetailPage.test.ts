@@ -9,6 +9,8 @@
  * appointmentsApi se sustituye por un doble de prueba; el recorrido real
  * contra el API vive en el E2E de HU-064/HU-065.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
@@ -345,6 +347,31 @@ describe('AppointmentDetailPage', () => {
     const end = wrapper.get('.appointment-detail-page__history-end--upcoming')
     expect(end.text()).toContain('El turno')
     expect(end.text()).toMatch(/Próximo · .*15.*9:00/)
+  })
+
+  it('el riel no se estira hasta la tarjeta: «Próximo» queda a la vista a 1440 (#799)', () => {
+    // CSS, no layout: jsdom no maqueta. A dos columnas, estirar el riel hasta el
+    // alto de la tarjeta empujaba el hito bajo el pliegue y detrás del dock.
+    const source = readFileSync(join(__dirname, '../AppointmentDetailPage.vue'), 'utf8')
+    expect(source).toMatch(/\.appointment-detail-page__history-list \{[^}]*flex: 0 0 auto/)
+    expect(source).not.toMatch(/history-list--railed\s*>[^{]*\{[^}]*flex-grow: 1/)
+    expect(source).toMatch(
+      /@media \(min-width: 1024px\) \{\s*\.appointment-detail-page__history-list--upcoming[^{]*\{\s*min-height: 112px/,
+    )
+  })
+
+  it('el avatar del turno es el retrato de latón compartido con su rombo', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+    const avatar = wrapper.get('.appointment-detail-page__avatar')
+    expect(avatar.classes()).toEqual(
+      expect.arrayContaining([
+        'brass-monogram',
+        'brass-monogram--serif',
+        'brass-monogram--pendant',
+      ]),
+    )
+    expect(avatar.attributes('aria-hidden')).toBe('true')
   })
 
   it('closes the history with a hidden diamond once the turn is past', async () => {

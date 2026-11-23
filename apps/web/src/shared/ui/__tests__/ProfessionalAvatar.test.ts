@@ -58,6 +58,42 @@ describe('ProfessionalAvatar', () => {
     expect(wrapper.get('.professional-avatar__photo').attributes('src')).toBe('/photo?v=2')
   })
 
+  it('es el retrato de latón compartido: rombo desde el tamaño de fila, no en los selectores (#799)', () => {
+    const row = mount(ProfessionalAvatar, { props: { fullName: 'Julián Rodríguez', size: 'row' } })
+    expect(row.classes()).toEqual(
+      expect.arrayContaining(['brass-monogram', 'brass-monogram--pendant']),
+    )
+    const closed = mount(ProfessionalAvatar, {
+      props: { fullName: 'Julián Rodríguez', size: 'closed' },
+    })
+    expect(closed.classes()).toContain('brass-monogram')
+    expect(closed.classes()).not.toContain('brass-monogram--pendant')
+    const forced = mount(ProfessionalAvatar, {
+      props: { fullName: 'Julián Rodríguez', size: 'option', pendant: true },
+    })
+    expect(forced.classes()).toContain('brass-monogram--pendant')
+  })
+
+  it('serif solo en retrato y héroe; sans en filas y selectores (#726)', () => {
+    for (const size of ['portrait', 'hero'] as const) {
+      expect(
+        mount(ProfessionalAvatar, { props: { fullName: 'Ana Gómez', size } }).classes(),
+      ).toContain('brass-monogram--serif')
+    }
+    for (const size of ['closed', 'option', 'row'] as const) {
+      expect(
+        mount(ProfessionalAvatar, { props: { fullName: 'Ana Gómez', size } }).classes(),
+      ).toContain('brass-monogram--sans')
+    }
+  })
+
+  it('con foto marca la variante para el paspartú dentro del filete', () => {
+    const wrapper = mount(ProfessionalAvatar, {
+      props: { fullName: 'Andrés Beltrán', photoUrl: '/photo?v=1', size: 'row' },
+    })
+    expect(wrapper.classes()).toContain('professional-avatar--photo')
+  })
+
   it('is always decorative: the adjacent visible name carries the accessible name', () => {
     const wrapper = mount(ProfessionalAvatar, { props: { fullName: 'Julián Rodríguez' } })
     expect(wrapper.attributes('aria-hidden')).toBe('true')

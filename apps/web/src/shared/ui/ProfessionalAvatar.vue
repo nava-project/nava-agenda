@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * ProfessionalAvatar - Retrato cuadrado de un profesional (issue #189, atlas
- * panel-agenda-eventos evento 12): radio medio, filete neutro (v2), monograma
- * derivado de `fullName` en la serif del wordmark sobre tinta cuando no hay
- * fotografía. Siempre decorativo (aria-hidden): el nombre adyacente visible
- * es la identidad accesible, nunca falta junto a un retrato.
+ * panel-agenda-eventos evento 12). Desde #799 es el retrato de latón de la
+ * familia (BrassMonogram): filete y base de latón, monograma derivado de
+ * `fullName` cuando no hay fotografía y, desde el tamaño de fila, el rombo
+ * colgante. Siempre decorativo (aria-hidden): el nombre adyacente visible es
+ * la identidad accesible, nunca falta junto a un retrato.
  *
  * Con `photoUrl` muestra la fotografía real del profesional (DEC-104, evento 12
  * del atlas); si la imagen no carga (borrada en otro dispositivo, red caída)
@@ -15,6 +16,7 @@
  * esta entrega y migra a este componente en un issue propio).
  */
 import { computed, ref, watch } from 'vue'
+import BrassMonogram from './BrassMonogram.vue'
 
 interface Props {
   fullName: string
@@ -24,11 +26,15 @@ interface Props {
    * edición del profesional. */
   size?: 'closed' | 'option' | 'row' | 'portrait' | 'hero'
   photoUrl?: string | null
+  /** Rombo colgante. Por omisión, desde el tamaño de fila; en los selectores
+   * (closed, option) no cabe. */
+  pendant?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'closed',
   photoUrl: null,
+  pendant: undefined,
 })
 
 function initials(fullName: string): string {
@@ -51,11 +57,22 @@ watch(
 )
 const showPhoto = computed(() => !!props.photoUrl && !photoFailed.value)
 
-const classes = computed(() => ['professional-avatar', `professional-avatar--${props.size}`])
+const classes = computed(() => [
+  'professional-avatar',
+  `professional-avatar--${props.size}`,
+  { 'professional-avatar--photo': showPhoto.value },
+])
+
+// La serif solo desde 20 px de glifo (#726): retrato y héroe; las filas y los
+// selectores van en sans 600.
+const face = computed(() => (props.size === 'portrait' || props.size === 'hero' ? 'serif' : 'sans'))
+const showPendant = computed(
+  () => props.pendant ?? (props.size !== 'closed' && props.size !== 'option'),
+)
 </script>
 
 <template>
-  <span :class="classes" aria-hidden="true">
+  <BrassMonogram :class="classes" :face="face" :pendant="showPendant">
     <img
       v-if="showPhoto"
       class="professional-avatar__photo"
@@ -65,26 +82,21 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
       @error="photoFailed = true"
     />
     <span v-else class="professional-avatar__monogram">{{ monogram }}</span>
-  </span>
+  </BrassMonogram>
 </template>
 
 <style scoped>
 .professional-avatar {
   --avatar-size: 28px;
+  --monogram-size: var(--avatar-size);
+  /* Con border-box el recorte de 2 px come por dentro: por debajo de 8 px el
+     rombo queda en un punto. */
+  --monogram-pendant: clamp(8px, calc(var(--avatar-size) * 0.17), 9px);
+}
 
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  overflow: hidden;
-  /* Tinta ligeramente más clara que el fondo de página (atlas: --ink-2,
-     #16243a) para que el retrato se distinga incluso antes de leer el
-     monograma o el filete. */
-  background-color: var(--color-field-strong-raised);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
+/* La foto queda dentro del filete con un paspartú fino, como en la ficha. */
+.professional-avatar--photo {
+  --monogram-mat: 2px;
 }
 
 .professional-avatar--option {
@@ -97,6 +109,11 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
 
 .professional-avatar--portrait {
   --avatar-size: 84px;
+}
+
+.professional-avatar--portrait.professional-avatar--photo,
+.professional-avatar--hero.professional-avatar--photo {
+  --monogram-mat: 3px;
 }
 
 .professional-avatar--hero {
@@ -126,19 +143,23 @@ const classes = computed(() => ['professional-avatar', `professional-avatar--${p
 }
 
 .professional-avatar__photo {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 1px;
 }
 
+/* Letra de monograma: sans 600 hasta el tamaño de fila; la serif por debajo
+   de 20 px se ensucia (#726). Retrato y héroe la llevan en serif. */
 .professional-avatar__monogram {
-  /* Letra de monograma: sans 600. La serif por debajo de 20 px se ensucia (#726). */
-  font-family: var(--font-sans);
-  font-weight: 600;
   font-size: calc(var(--avatar-size) * 0.38);
   line-height: 1;
-  letter-spacing: 0;
   white-space: nowrap;
-  color: var(--color-text-secondary);
+}
+
+.professional-avatar--portrait .professional-avatar__monogram,
+.professional-avatar--hero .professional-avatar__monogram {
+  font-size: calc(var(--avatar-size) * 0.42);
 }
 </style>

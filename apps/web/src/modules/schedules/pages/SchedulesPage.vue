@@ -2361,42 +2361,25 @@ const editPreview = computed(() =>
   white-space: nowrap;
 }
 
-/* El retrato con su marco mide lo mismo que la casilla del selector (47 px:
-   10 px de relleno por lado, una línea de 24 px y los filetes de 1 y 2 px) y
-   se apoya en su misma línea base (issue #575). El marco suma 3 px de aire y
-   1 px de filete por lado, así que la foto mide 39 px. Sin escala al pasar el
-   cursor, que lo sacaba de la línea. */
+/* El retrato mide lo mismo que la casilla del selector (47 px: 10 px de
+   relleno por lado, una línea de 24 px y los filetes de 1 y 2 px) y se apoya
+   en su misma línea base (issue #575). Lo dibuja ProfessionalAvatar con el
+   retrato de latón (BrassMonogram, #799): 1 px de filete y 3 px de paspartú por
+   lado, así que la foto sigue midiendo 39 px; el rombo recorta contra el
+   lienzo. Sin escala al pasar el cursor, que lo sacaba de la línea. */
 .schedules-page__frame {
-  position: relative;
   flex: 0 0 auto;
-  padding: 3px;
   line-height: 0;
-  border: 1px solid var(--color-brass-line);
-  border-radius: 4px;
-  box-shadow: inset 0 -2px 0 var(--color-brass-body);
 }
 
-.schedules-page__frame::after {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  content: '';
-  background-color: var(--color-brass-body);
-  border: 2px solid var(--color-canvas);
-  transform: translateX(-50%) rotate(45deg);
-}
-
-.schedules-page__portrait {
-  --avatar-size: 39px;
+.schedules-page__frame .schedules-page__portrait {
+  --avatar-size: 47px;
+  --monogram-mat: 3px;
+  --monogram-pendant: 9px;
+  --monogram-cutout: var(--color-canvas);
+  --monogram-radius: 4px;
 
   flex: 0 0 auto;
-}
-
-.schedules-page__frame :deep(.professional-avatar) {
-  border-color: transparent;
-  border-radius: 2px;
 }
 
 /* El selector conserva el aspecto v2 de BaseSelect: sin filete de acento. */
