@@ -389,19 +389,19 @@
     description: >
       Devuelve el profesional que el usuario autenticado declaró ser (`DEC-100`).
       El vínculo es opcional: el dueño que no atiende clientes puede no tener
-      profesional y recibe `404`. Nunca expone la identidad de otro usuario.
+      profesional y recibe `200` con `professional: null` (`DEC-192`). «Sin
+      ficha» es un estado, no un error, así que no hay `404`. Nunca expone la
+      identidad de otro usuario.
     operationId: getMyProfessional
     security:
       - SessionCookie: []
     x-business-rules: [RN-TEN-01, RN-DAT-02]
-    x-decisions: [DEC-019, DEC-047, DEC-099, DEC-100]
+    x-decisions: [DEC-019, DEC-047, DEC-099, DEC-100, DEC-192]
     responses:
       "200":
-        $ref: '../components/responses/ProfessionalSuccess.yaml'
+        $ref: '../components/responses/MyProfessionalSuccess.yaml'
       "401":
         $ref: '../components/responses/UnauthorizedProblem.yaml'
-      "404":
-        $ref: '../components/responses/NotFoundProblem.yaml'
       "500":
         $ref: '../components/responses/InternalErrorProblem.yaml'
   put:

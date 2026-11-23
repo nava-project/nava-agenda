@@ -1,0 +1,14 @@
+# Cuerpo de GET /private/me/professional (DEC-100, enmendada por DEC-192): «sin ficha» es un
+# estado del contrato, no un error, así que la consulta siempre responde 200.
+type: object
+description: Profesional propio del usuario autenticado, o `null` si no tiene.
+additionalProperties: false
+required: [professional]
+properties:
+  professional:
+    oneOf:
+      - $ref: './ProfessionalResponse.yaml'
+      - type: "null"
+    description: >
+      El profesional que el usuario autenticado declaró ser, o `null` si no
+      tiene ninguno vinculado (el dueño que no atiende clientes).

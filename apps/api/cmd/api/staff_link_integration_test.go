@@ -31,6 +31,32 @@ func doMyProfessionalRequest(router http.Handler, rawToken, method, rawBody stri
 	return rec
 }
 
+// readMyProfessional hace GET /private/me/professional y decodifica el sobre de DEC-192:
+// siempre 200 con la clave professional, nil cuando el usuario no tiene vínculo.
+func readMyProfessional(t *testing.T, router http.Handler, raw string) *professionalBody {
+	t.Helper()
+	rec := doMyProfessionalRequest(router, raw, http.MethodGet, "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /me/professional: expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal(rec.Body.Bytes(), &envelope); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	value, present := envelope["professional"]
+	if !present {
+		t.Fatalf("la clave professional es obligatoria, también sin vínculo: %s", rec.Body.String())
+	}
+	if string(value) == "null" {
+		return nil
+	}
+	var professional professionalBody
+	if err := json.Unmarshal(value, &professional); err != nil {
+		t.Fatalf("decode professional: %v", err)
+	}
+	return &professional
+}
+
 func createProfessionalVia(t *testing.T, router http.Handler, raw, name string) professionalBody {
 	t.Helper()
 	rec := doCreateProfessionalRequest(router, raw, uniqueToken(t, "link-key"), `{"fullName":"`+name+`"}`)
@@ -55,8 +81,8 @@ func TestMyProfessional_HTTP_LinkReadSwitchAndUnlinkJourney(t *testing.T) {
 	first := createProfessionalVia(t, router, raw, "Vínculo uno "+uniqueToken(t, "n"))
 	second := createProfessionalVia(t, router, raw, "Vínculo dos "+uniqueToken(t, "n"))
 
-	if rec := doMyProfessionalRequest(router, raw, http.MethodGet, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("sin vínculo se espera 404, got %d: %s", rec.Code, rec.Body.String())
+	if got := readMyProfessional(t, router, raw); got != nil {
+		t.Fatalf("sin vínculo se espera professional null, got %+v", got)
 	}
 
 	rec := doMyProfessionalRequest(router, raw, http.MethodPut, `{"professionalId":"`+first.ID+`"}`)
@@ -81,10 +107,8 @@ func TestMyProfessional_HTTP_LinkReadSwitchAndUnlinkJourney(t *testing.T) {
 	if rec := doMyProfessionalRequest(router, raw, http.MethodPut, `{"professionalId":"`+second.ID+`"}`); rec.Code != http.StatusOK {
 		t.Fatalf("cambiar de profesional: expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	rec = doMyProfessionalRequest(router, raw, http.MethodGet, "")
-	var current professionalBody
-	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &current) != nil || current.ID != second.ID {
-		t.Fatalf("tras cambiar debe leerse el segundo profesional: %d %s", rec.Code, rec.Body.String())
+	if current := readMyProfessional(t, router, raw); current == nil || current.ID != second.ID {
+		t.Fatalf("tras cambiar debe leerse el segundo profesional, got %+v", current)
 	}
 
 	if rec := doMyProfessionalRequest(router, raw, http.MethodDelete, ""); rec.Code != http.StatusNoContent {
@@ -93,8 +117,8 @@ func TestMyProfessional_HTTP_LinkReadSwitchAndUnlinkJourney(t *testing.T) {
 	if rec := doMyProfessionalRequest(router, raw, http.MethodDelete, ""); rec.Code != http.StatusNoContent {
 		t.Fatalf("quitar sin vínculo es idempotente, got %d", rec.Code)
 	}
-	if rec := doMyProfessionalRequest(router, raw, http.MethodGet, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("tras quitarlo se espera 404, got %d", rec.Code)
+	if got := readMyProfessional(t, router, raw); got != nil {
+		t.Fatalf("tras quitarlo se espera professional null, got %+v", got)
 	}
 	// Quitar el vínculo no borra al profesional.
 	if rec := doGetProfessionalRequest(router, raw, second.ID); rec.Code != http.StatusOK {
@@ -128,10 +152,8 @@ func TestMyProfessional_HTTP_ProfessionalOfAnotherUser_Is409AndPreservesPrevious
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var current professionalBody
-	rec = doMyProfessionalRequest(router, rawOne, http.MethodGet, "")
-	if rec.Code != http.StatusOK || json.Unmarshal(rec.Body.Bytes(), &current) != nil || current.ID != mine.ID {
-		t.Fatalf("el vínculo anterior debe conservarse: %d %s", rec.Code, rec.Body.String())
+	if current := readMyProfessional(t, router, rawOne); current == nil || current.ID != mine.ID {
+		t.Fatalf("el vínculo anterior debe conservarse, got %+v", current)
 	}
 }
 
@@ -155,8 +177,8 @@ func TestMyProfessional_HTTP_TwoTenants_AndNoCookie(t *testing.T) {
 	if cross.Code != http.StatusNotFound || missing.Code != http.StatusNotFound {
 		t.Fatalf("expected 404/404, got %d/%d", cross.Code, missing.Code)
 	}
-	if rec := doMyProfessionalRequest(router, rawA, http.MethodGet, ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("A no debe quedar vinculado a un profesional de B, got %d", rec.Code)
+	if got := readMyProfessional(t, router, rawA); got != nil {
+		t.Fatalf("A no debe quedar vinculado a un profesional de B, got %+v", got)
 	}
 
 	// El cuerpo nunca acepta el usuario de otra persona.

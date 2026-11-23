@@ -46,12 +46,6 @@ func (s *Service) notifyReleased(ctx context.Context, businessID, professionalID
 	}
 }
 
-// errNoLinkedProfessional es el 404 de «no tienes un profesional vinculado»: el vínculo
-// es opcional (DEC-100), no un fallo.
-func errNoLinkedProfessional() error {
-	return apperr.NotFound("el usuario no tiene un profesional vinculado")
-}
-
 // errProfessionalTaken es el 409 de «ese profesional ya es de otro usuario». No revela
 // quién es: el mensaje es el mismo sea cual sea el otro usuario.
 func errProfessionalTaken() error {
@@ -59,19 +53,18 @@ func errProfessionalTaken() error {
 }
 
 // LinkedProfessional devuelve el profesional del usuario autenticado. staffUserID llega
-// siempre de un auth.Principal ya autenticado: nunca de la solicitud (DEC-100).
-func (s *Service) LinkedProfessional(ctx context.Context, businessID, staffUserID string) (Professional, error) {
+// siempre de un auth.Principal ya autenticado: nunca de la solicitud (DEC-100). found es
+// false si el usuario no tiene ninguno: el vínculo es opcional y «sin ficha» es un
+// estado, no un error (DEC-192).
+func (s *Service) LinkedProfessional(ctx context.Context, businessID, staffUserID string) (professional Professional, found bool, err error) {
 	if err := ctx.Err(); err != nil {
-		return Professional{}, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de leer el profesional propio: %w", err))
+		return Professional{}, false, apperr.Internal(fmt.Errorf("staff: contexto cancelado antes de leer el profesional propio: %w", err))
 	}
-	professional, found, err := s.repo.GetLinked(ctx, businessID, staffUserID)
+	professional, found, err = s.repo.GetLinked(ctx, businessID, staffUserID)
 	if err != nil {
-		return Professional{}, apperr.Internal(fmt.Errorf("staff: leer profesional propio: %w", err))
+		return Professional{}, false, apperr.Internal(fmt.Errorf("staff: leer profesional propio: %w", err))
 	}
-	if !found {
-		return Professional{}, errNoLinkedProfessional()
-	}
-	return professional, nil
+	return professional, found, nil
 }
 
 // LinkMyProfessional vincula al usuario autenticado con professionalID, liberando el
@@ -129,11 +122,8 @@ func NewUserProfessionalLookup(service *Service) UserProfessionalLookup {
 // ProfessionalIDOfUser devuelve el id del profesional vinculado a staffUserID. found es
 // false si el usuario no tiene profesional (no es un error: el vínculo es opcional).
 func (l UserProfessionalLookup) ProfessionalIDOfUser(ctx context.Context, businessID, staffUserID string) (professionalID string, found bool, err error) {
-	professional, err := l.service.LinkedProfessional(ctx, businessID, staffUserID)
-	if err != nil {
-		if appErr, ok := apperr.As(err); ok && appErr.Kind == apperr.KindNotFound {
-			return "", false, nil
-		}
+	professional, found, err := l.service.LinkedProfessional(ctx, businessID, staffUserID)
+	if err != nil || !found {
 		return "", false, err
 	}
 	return professional.ID, true, nil

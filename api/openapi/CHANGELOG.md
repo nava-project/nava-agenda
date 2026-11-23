@@ -5,6 +5,26 @@ Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-proj
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
+## 3.0.0 · 2026-11-23
+
+### Cambiado (incompatible)
+
+- `GET /private/me/professional` (`getMyProfessional`, issue #721, `DEC-192`, que
+  enmienda la respuesta `404` de `DEC-100`): «sin ficha» deja de ser un error.
+  - Siempre responde `200` con `MyProfessionalResponse`, que es
+    `{ "professional": ProfessionalResponse | null }`: `null` si el usuario no tiene
+    profesional vinculado.
+  - Antes el `200` traía el profesional en la raíz del cuerpo y «sin ficha» respondía
+    `404`, que el navegador registraba como error de red en la consola de Profesionales.
+  - Se retira el `404` de la operación.
+- Incompatible porque cambia la forma del cuerpo de éxito y retira un código
+  (sección 18 del estándar).
+- Consumidores afectados: solo el panel web (`fetchMyProfessional` en `staffApi.ts`),
+  que viaja en el mismo artefacto y despliegue que el API. Ninguna integración externa
+  usa esta operación privada de sesión de panel.
+- Transición: ninguna. API y panel cambian juntos en un mismo despliegue.
+- `PUT` y `DELETE` de la misma ruta no cambian.
+
 ## 2.3.0 · 2026-11-21
 
 ### Agregado

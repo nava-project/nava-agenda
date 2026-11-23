@@ -88,3 +88,10 @@ func (o *OptionalText) UnmarshalJSON(data []byte) error {
 type LinkMyProfessionalRequest struct {
 	ProfessionalID string `json:"professionalId"`
 }
+
+// MyProfessionalResponse es el cuerpo de GET /private/me/professional (DEC-192). Professional
+// es nil, y se serializa como `null`, cuando el usuario no tiene profesional vinculado; la
+// clave siempre está presente porque el contrato la exige.
+type MyProfessionalResponse struct {
+	Professional *ProfessionalResponse `json:"professional"`
+}

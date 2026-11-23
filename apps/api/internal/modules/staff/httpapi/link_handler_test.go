@@ -29,25 +29,35 @@ func TestGetMyProfessionalHandler_UsesThePrincipalAndReturnsTheProfessional(t *t
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var body map[string]any
+	var body struct {
+		Professional map[string]any `json:"professional"`
+	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["id"] != myProfessionalID {
-		t.Fatalf("unexpected body: %v", body)
+	if body.Professional["id"] != myProfessionalID {
+		t.Fatalf("unexpected body: %s", rec.Body.String())
 	}
-	if _, leaked := body["staffUserId"]; leaked {
+	if _, leaked := body.Professional["staffUserId"]; leaked {
 		t.Fatal("la respuesta nunca debe exponer staffUserId")
 	}
 }
 
-func TestGetMyProfessionalHandler_WithoutLink_Is404(t *testing.T) {
+// «Sin ficha» es un estado del contrato (DEC-192, issue #721): 200 con professional null,
+// con la clave presente, en lugar del 404 que el navegador registraba como error de red.
+func TestGetMyProfessionalHandler_WithoutLink_Is200WithNull(t *testing.T) {
 	repo := &fakeRepository{getLinkedFn: func(string, string) (staff.Professional, bool, error) { return staff.Professional{}, false, nil }}
 	rec := httptest.NewRecorder()
 	httpapi.NewGetMyProfessionalHandler(staff.NewService(repo)).ServeHTTP(rec,
 		requestWithPrincipal(http.MethodGet, "/api/v1/private/me/professional", nil))
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", rec.Code)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `{"professional":null}` {
+		t.Fatalf("expected {\"professional\":null}, got %s", got)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Fatalf("expected application/json, got %q", ct)
 	}
 }
 

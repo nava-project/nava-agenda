@@ -198,10 +198,12 @@ export async function removeProfessionalPhoto(
 // operaciones actúan sobre la sesión: ninguna envía un identificador de usuario.
 export async function fetchMyProfessional(): Promise<FetchMyProfessionalOutcome> {
   try {
+    // «Sin ficha» es un 200 con `professional: null` (DEC-192, #721): ya no hay 404 que
+    // el navegador registre como error de red.
     const { data, response } = await httpClient.GET('/private/me/professional')
-    if (response.ok && data) return { kind: 'linked', professional: toProfessional(data) }
-    if (response.status === 404) return { kind: 'none' }
-    return { kind: 'unexpected-error' }
+    if (!response.ok || !data) return { kind: 'unexpected-error' }
+    if (data.professional === null) return { kind: 'none' }
+    return { kind: 'linked', professional: toProfessional(data.professional) }
   } catch {
     return { kind: 'network-error' }
   }
