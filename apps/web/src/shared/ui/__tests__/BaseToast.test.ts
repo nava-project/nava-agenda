@@ -2,6 +2,8 @@
  * Pruebas de BaseToast (DEC-095): anatomía del acordeón, palabra de estado,
  * roles ARIA por variante y eventos hacia la región.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -196,4 +198,16 @@ describe('BaseToast', () => {
       open.unmount()
     },
   )
+})
+
+describe('anillo de foco de la cabecera (#794, WCAG 2.4.7)', () => {
+  it('va por dentro de la cabecera y le gana a la regla general de botones', () => {
+    // El aviso recorta con `overflow: hidden`: con el desplazamiento general de +2 px el anillo
+    // queda fuera y no se ve. jsdom no resuelve la cascada, así que se fija el selector.
+    const sfc = readFileSync(join(__dirname, '..', 'BaseToast.vue'), 'utf8')
+    const css = sfc.slice(sfc.indexOf('<style')).replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).toMatch(/\.base-toast button:focus-visible \{[^}]*outline-offset: 2px;/)
+    expect(css).toMatch(/\.base-toast \.base-toast__head:focus-visible \{\s*outline-offset: -4px;/)
+    expect(css).not.toMatch(/(^|\})\s*\.base-toast__head:focus-visible \{/)
+  })
 })

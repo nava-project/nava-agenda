@@ -470,7 +470,9 @@ function onFocusOut(event: FocusEvent) {
   outline-offset: 2px;
 }
 
-.base-toast__head:focus-visible {
+/* La cabecera ocupa todo el ancho de un aviso con `overflow: hidden`: el anillo va por dentro o
+   queda recortado. El selector repite `.base-toast` para ganarle a la regla general de botones. */
+.base-toast .base-toast__head:focus-visible {
   outline-offset: -4px;
 }
 
