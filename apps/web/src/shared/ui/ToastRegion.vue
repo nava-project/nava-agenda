@@ -7,9 +7,14 @@
  *   el espacio entre la cabecera y la navegación; así nunca tapa ninguna de
  *   las dos ni depende de su altura.
  * La región es persistente para que los lectores de pantalla anuncien cada
- * aviso al insertarse; solo Escape descarta el aviso con foco, sin mover el
- * foco de la tarea en curso.
+ * aviso al insertarse. Un aviso nunca roba el foco de la tarea en curso; pero
+ * si el foco ya está dentro de la región y se descarta un aviso (Descartar,
+ * Escape, su acción o «Descartar todos»), no se pierde en el `body`
+ * (WCAG 2.4.3): pasa al encabezado del aviso siguiente, o al anterior, y si
+ * la región queda vacía vuelve a donde estaba antes de entrar en ella o, si
+ * ese elemento ya no existe, al `main`.
  */
+import { nextTick, ref } from 'vue'
 import {
   dismissAllToasts,
   dismissToast,
@@ -21,16 +26,87 @@ import BaseToast from './BaseToast.vue'
 
 withDefaults(defineProps<{ placement?: 'viewport' | 'host' }>(), { placement: 'viewport' })
 
+const region = ref<HTMLElement | null>(null)
+// Último elemento con foco fuera de la región antes de entrar en ella.
+let returnTarget: HTMLElement | null = null
+
+function onFocusIn(event: FocusEvent) {
+  const from = event.relatedTarget
+  if (from instanceof HTMLElement && !region.value?.contains(from)) returnTarget = from
+}
+
+function focusIsInside(): boolean {
+  const active = document.activeElement
+  return active instanceof HTMLElement && !!region.value?.contains(active)
+}
+
+// Tras descartar, el foco quedó en el `body` (el botón ya no existe) o sigue
+// en la región. Si otra cosa lo tomó (la acción del aviso), se respeta.
+function focusWasLost(): boolean {
+  const active = document.activeElement
+  return !active || active === document.body || focusIsInside()
+}
+
+function focusOutside() {
+  if (returnTarget?.isConnected && !region.value?.contains(returnTarget)) {
+    returnTarget.focus({ focusVisible: true })
+    return
+  }
+  const main = document.querySelector<HTMLElement>('main')
+  if (!main) return
+  // `main` no es enfocable por sí mismo; -1 lo permite sin meterlo en el orden de Tab.
+  if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1')
+  main.focus()
+}
+
+function focusToast(id: number) {
+  const head = region.value?.querySelector<HTMLElement>(
+    `.toast-region__item[data-toast-id="${id}"] .base-toast__head`,
+  )
+  head?.focus({ focusVisible: true })
+}
+
+async function dismissKeepingFocus(id: number) {
+  const hadFocus = focusIsInside()
+  const items = toastState.items
+  const index = items.findIndex((item) => item.id === id)
+  const neighbour = items[index + 1] ?? items[index - 1] ?? null
+  dismissToast(id)
+  if (!hadFocus) return
+  await nextTick()
+  if (!focusWasLost()) return
+  if (neighbour && toastState.items.some((item) => item.id === neighbour.id)) {
+    focusToast(neighbour.id)
+  } else {
+    focusOutside()
+  }
+}
+
+async function dismissAllKeepingFocus() {
+  const hadFocus = focusIsInside()
+  dismissAllToasts()
+  if (!hadFocus) return
+  await nextTick()
+  if (focusWasLost()) focusOutside()
+}
+
 function onAction(id: number, run: (() => void) | undefined) {
   // Se descarta primero para que un aviso emitido por la acción no compita
-  // con el que la originó por el cupo máximo de la cola.
-  dismissToast(id)
+  // con el que la originó por el cupo máximo de la cola. Si la acción mueve
+  // el foco a otro sitio, ese movimiento prevalece.
+  void dismissKeepingFocus(id)
   run?.()
 }
 </script>
 
 <template>
-  <div :class="['toast-region', `toast-region--${placement}`]" role="region" aria-label="Avisos">
+  <div
+    ref="region"
+    :class="['toast-region', `toast-region--${placement}`]"
+    role="region"
+    aria-label="Avisos"
+    @focusin="onFocusIn"
+  >
     <!-- Movimiento (#743): cada aviso cae con resorte, se va hacia el lado y
          los que quedan se reacomodan deslizando (FLIP con transform). -->
     <TransitionGroup name="toast-motion">
@@ -38,7 +114,8 @@ function onAction(id: number, run: (() => void) | undefined) {
         v-for="toast in toastState.items"
         :key="toast.id"
         class="toast-region__item"
-        @keydown.esc="dismissToast(toast.id)"
+        :data-toast-id="toast.id"
+        @keydown.esc="dismissKeepingFocus(toast.id)"
       >
         <BaseToast
           :variant="toast.variant"
@@ -51,7 +128,7 @@ function onAction(id: number, run: (() => void) | undefined) {
           :held="toast.expanded || toast.hovered || toast.focused"
           :duration-ms="toast.durationMs"
           @toggle="toggleToast(toast.id)"
-          @dismiss="dismissToast(toast.id)"
+          @dismiss="dismissKeepingFocus(toast.id)"
           @action="onAction(toast.id, toast.action?.run)"
           @hover="setToastHeld(toast.id, 'hovered', $event)"
           @focus="setToastHeld(toast.id, 'focused', $event)"
@@ -63,7 +140,7 @@ function onAction(id: number, run: (() => void) | undefined) {
       v-if="toastState.items.length > 1"
       type="button"
       class="toast-region__clear"
-      @click="dismissAllToasts()"
+      @click="dismissAllKeepingFocus()"
     >
       <svg
         width="12"
