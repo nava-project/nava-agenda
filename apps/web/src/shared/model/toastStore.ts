@@ -47,7 +47,8 @@ export interface ToastItem {
 /**
  * Tiempo en pantalla por variante (DEC-095): un error necesita más lectura
  * que una confirmación. La cuenta atrás se detiene mientras el aviso está
- * abierto, con el cursor encima o con foco de teclado (WCAG 2.2 AA 2.2.1).
+ * abierto, con el cursor encima o con foco de teclado, y la de toda la cola
+ * mientras el foco esté en cualquier parte de la región (WCAG 2.2 AA 2.2.1).
  */
 export const TOAST_DURATION_MS: Readonly<Record<ToastVariant, number>> = {
   success: 5000,
@@ -72,9 +73,12 @@ interface Countdown {
 
 const countdowns = new Map<number, Countdown>()
 let nextId = 1
+// Foco de teclado en la región (un aviso o «Descartar todos»): quien lee la
+// pila no la ve encogerse y ningún control desaparece con el foco dentro.
+let queueHeld = false
 
 function isHeld(item: ToastItem): boolean {
-  return item.expanded || item.hovered || item.focused
+  return queueHeld || item.expanded || item.hovered || item.focused
 }
 
 function stopCountdown(countdown: Countdown): void {
@@ -151,8 +155,16 @@ export function setToastHeld(id: number, source: 'hovered' | 'focused', value: b
   syncCountdown(item)
 }
 
+/** Retiene o libera la cuenta atrás de toda la cola (foco en la región). */
+export function setToastQueueHeld(value: boolean): void {
+  if (queueHeld === value) return
+  queueHeld = value
+  for (const item of state.items) syncCountdown(item)
+}
+
 /** Vacía la cola y sus temporizadores; solo para pruebas. */
 export function resetToasts(): void {
   dismissAllToasts()
+  queueHeld = false
   nextId = 1
 }

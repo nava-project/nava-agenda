@@ -6,7 +6,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
-import { TOAST_DURATION_MS, pushToast, resetToasts, toastState } from '@/shared/model/toastStore'
+import {
+  TOAST_DURATION_MS,
+  dismissToast,
+  pushToast,
+  resetToasts,
+  toastState,
+} from '@/shared/model/toastStore'
 import ToastRegion from '../ToastRegion.vue'
 
 const axeOptions = { rules: { region: { enabled: false }, 'color-contrast': { enabled: false } } }
@@ -247,6 +253,54 @@ describe('ToastRegion', () => {
 
       origin.focus()
       dismissOf('Uno').click()
+      await flushPromises()
+      expect(document.activeElement).toBe(origin)
+      wrapper.unmount()
+    })
+
+    it('holds the whole queue while focus is in the region, so "Descartar todos" never vanishes under it', async () => {
+      const { origin, wrapper } = setup()
+      // Solo se simula el temporizador: con el reloj real, `focusin` conserva su marca de tiempo.
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      pushToast({ variant: 'success', title: 'Uno' })
+      pushToast({ variant: 'info', title: 'Dos' })
+      pushToast({ variant: 'warning', title: 'Tres' })
+      await wrapper.vm.$nextTick()
+
+      origin.focus()
+      const clear = document.querySelector<HTMLElement>('.toast-region__clear')!
+      clear.focus()
+      vi.advanceTimersByTime(60_000)
+      await flushPromises()
+      expect(toastState.items).toHaveLength(3)
+      expect(document.activeElement).toBe(clear)
+
+      // Al salir de la región la cola vuelve a caducar con el tiempo que le quedaba.
+      origin.focus()
+      vi.advanceTimersByTime(TOAST_DURATION_MS.warning)
+      await flushPromises()
+      expect(toastState.items).toHaveLength(0)
+      expect(document.activeElement).toBe(origin)
+      vi.useRealTimers()
+      wrapper.unmount()
+    })
+
+    it('recovers focus when another module removes the focused control', async () => {
+      const { origin, wrapper } = setup()
+      const keep = pushToast({ variant: 'success', title: 'Uno' })
+      const gone = pushToast({ variant: 'info', title: 'Dos' })
+      await wrapper.vm.$nextTick()
+
+      // Con un solo aviso «Descartar todos» sale del DOM: el foco va al aviso que queda.
+      origin.focus()
+      document.querySelector<HTMLElement>('.toast-region__clear')!.focus()
+      dismissToast(gone)
+      await flushPromises()
+      expect(document.querySelector('.toast-region__clear')).toBeNull()
+      expect(document.activeElement).toBe(headOf('Uno'))
+
+      // Sin avisos, vuelve a donde estaba antes de entrar en la región.
+      dismissToast(keep)
       await flushPromises()
       expect(document.activeElement).toBe(origin)
       wrapper.unmount()

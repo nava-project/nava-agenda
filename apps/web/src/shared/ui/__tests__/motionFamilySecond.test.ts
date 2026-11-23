@@ -46,7 +46,7 @@ describe('movimiento de la familia, 2.ª entrega (#743)', () => {
   })
 
   it('los avisos caen con resorte, se van de lado y se reacomodan', () => {
-    expect(toasts).toMatch(/<TransitionGroup name="toast-motion">/)
+    expect(toasts).toMatch(/<TransitionGroup name="toast-motion"[ >]/)
     expect(toasts).toMatch(
       /\.toast-motion-enter-active \{\s*animation: toast-motion-in 420ms var\(--motion-ease-spring/,
     )

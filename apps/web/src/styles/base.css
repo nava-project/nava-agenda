@@ -114,6 +114,13 @@ a {
   outline-offset: 2px;
 }
 
+/* `main` solo recibe foco por código (tabindex -1), como destino de reserva
+   cuando el control enfocado desaparece: el anillo de un contenedor tan grande
+   queda casi todo fuera de la vista y se lee como una raya suelta. */
+main[tabindex='-1']:focus {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
