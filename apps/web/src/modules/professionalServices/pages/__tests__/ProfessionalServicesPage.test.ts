@@ -19,6 +19,14 @@ const fetchAssignmentsMock = vi.hoisted(() => vi.fn())
 const assignServiceMock = vi.hoisted(() => vi.fn())
 const unassignServiceMock = vi.hoisted(() => vi.fn())
 
+// La gracia del cargador (#820) es instantánea con el reloj real: la carga simulada
+// es inmediata y una máquina cargada no debe convertirla en una espera (#834).
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
+
 vi.mock('../../api/professionalServicesApi', () => ({
   fetchProfessionalSummaries: fetchProfessionalSummariesMock,
   fetchServiceSummaries: fetchServiceSummariesMock,
@@ -255,31 +263,89 @@ describe('ProfessionalServicesPage', () => {
 
   // Issue #575: cambiar de persona vaciaba la ficha y la tabla y la pantalla
   // saltaba. Ahora la tabla anterior queda debajo de un velo de carga, inerte.
-  it('keeps the previous catalog in place, inert, under a loading veil while switching professionals', async () => {
-    const wrapper = await mountReady(fourProfessionals, twoServices, ['s-1'])
+  describe('el velo al cambiar de profesional (#841: asoma a los LOADER_APPEAR_MS)', () => {
+    // Montada con el reloj real (la gracia del doble es instantánea); después se
+    // controla solo el temporizador del velo.
+    afterEach(() => vi.useRealTimers())
 
-    let resolveAssignments: (value: unknown) => void = () => {}
-    fetchAssignmentsMock.mockReturnValueOnce(
-      new Promise((resolve) => (resolveAssignments = resolve)),
-    )
-    await chooseProfessional(wrapper, fourProfessionals[1]!.fullName)
+    async function switchPending() {
+      const wrapper = await mountReady(fourProfessionals, twoServices, ['s-1'])
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      let resolveAssignments: (value: unknown) => void = () => {}
+      fetchAssignmentsMock.mockReturnValueOnce(
+        new Promise((resolve) => (resolveAssignments = resolve)),
+      )
+      await chooseProfessional(wrapper, fourProfessionals[1]!.fullName)
+      await flushPromises()
+      return { wrapper, resolve: resolveAssignments }
+    }
 
-    const fieldset = wrapper.find('fieldset')
-    expect(fieldset.exists()).toBe(true)
-    expect(fieldset.attributes('inert')).toBeDefined()
-    expect(wrapper.find('.professional-services-page__panel').attributes('aria-busy')).toBe('true')
-    expect(wrapper.find('[role="status"]').text()).toContain(
-      `Cargando los servicios de ${fourProfessionals[1]!.fullName}`,
-    )
+    it('keeps the previous catalog in place, inert, and covers it with the veil once the wait passes 300 ms', async () => {
+      const { wrapper, resolve } = await switchPending()
 
-    resolveAssignments({ kind: 'success', page: { items: [], nextCursor: null } })
-    await flushPromises()
+      const fieldset = wrapper.find('fieldset')
+      expect(fieldset.exists()).toBe(true)
+      expect(fieldset.attributes('inert')).toBeDefined()
+      expect(wrapper.find('.professional-services-page__panel').attributes('aria-busy')).toBe(
+        'true',
+      )
+      // Todavía no asoma: una respuesta rápida no debe pintar nada.
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
 
-    expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
-    expect(
-      wrapper.find('.professional-services-page__panel').attributes('aria-busy'),
-    ).toBeUndefined()
-    expect(checkbox(wrapper, 's-1').checked).toBe(false)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(wrapper.find('[role="status"]').text()).toContain(
+        `Cargando los servicios de ${fourProfessionals[1]!.fullName}`,
+      )
+      expect(wrapper.find('fieldset').classes()).toContain(
+        'professional-services-page__fieldset--dimmed',
+      )
+
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+      // El velo que asomó se queda su mínimo (entrada + 300 ms) y después se va.
+      await vi.advanceTimersByTimeAsync(500)
+
+      expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
+      expect(
+        wrapper.find('.professional-services-page__panel').attributes('aria-busy'),
+      ).toBeUndefined()
+      expect(checkbox(wrapper, 's-1').checked).toBe(false)
+    })
+
+    it('once shown, keeps the veil and its loader at least its entry plus 300 ms, even if the answer arrives first (#842 C1)', async () => {
+      const { wrapper, resolve } = await switchPending()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(true)
+      // El cargador del velo no espera su propio retardo: es el mismo nodo, ya montado.
+      expect(wrapper.find('.professional-services-page__veil .diamond-loader').exists()).toBe(true)
+
+      await vi.advanceTimersByTimeAsync(50)
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+      // 180 ms de entrada + 300 ms a la vista desde que se montó: a los 470 ms sigue.
+      await vi.advanceTimersByTimeAsync(420)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(true)
+      expect(wrapper.find('fieldset').attributes('inert')).toBeDefined()
+
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
+      expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
+    })
+
+    it('never mounts the veil nor dims the catalog when the answer arrives before 300 ms', async () => {
+      const { wrapper, resolve } = await switchPending()
+      await vi.advanceTimersByTimeAsync(200)
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
+      expect(wrapper.find('fieldset').classes()).not.toContain(
+        'professional-services-page__fieldset--dimmed',
+      )
+      expect(wrapper.get('.professional-services-page__meter').classes()).not.toContain(
+        'professional-services-page__meter--busy',
+      )
+    })
   })
 
   it('checking a box assigns the service and reflects success only after the server responds', async () => {
@@ -429,6 +495,154 @@ describe('ProfessionalServicesPage', () => {
 
     const results = await axe(wrapper.element, axeOptionsWithAlert)
     expect(results).toHaveNoViolations()
+  })
+
+  describe('en renglones con el retrato de latón (#841)', () => {
+    const row = (wrapper: VueWrapper, serviceId: string) =>
+      checkbox(wrapper, serviceId).closest('li') as HTMLLIElement
+    const state = (wrapper: VueWrapper, serviceId: string) =>
+      Array.from(
+        row(wrapper, serviceId).querySelector('.professional-services-page__assignment')!.classList,
+      )
+        .find((c) => c.startsWith('professional-services-page__assignment--'))
+        ?.replace('professional-services-page__assignment--', '')
+
+    it('pinta cada renglón sin el cuadrito de la inicial y con el rombo y la palabra (CA-1, CA-3)', async () => {
+      const wrapper = await mountReady(oneProfessional, twoServices, ['s-1'])
+      expect(wrapper.find('.professional-services-page__service-icon').exists()).toBe(false)
+      expect(state(wrapper, 's-1')).toBe('on')
+      expect(state(wrapper, 's-2')).toBe('off')
+      // Las tres palabras viven en la misma celda (ancho reservado, CA-16).
+      const words = row(wrapper, 's-1').querySelectorAll(
+        '.professional-services-page__assignment-words > span',
+      )
+      expect(Array.from(words).map((w) => w.textContent)).toEqual([
+        'Asignado',
+        'No asignado',
+        'Guardando…',
+      ])
+    })
+
+    it('anuncia una sola vez: la casilla se llama como el servicio y el estado visible va aria-hidden (CA-17)', async () => {
+      const wrapper = await mountReady(oneProfessional, twoServices, ['s-1'])
+      const box = checkbox(wrapper, 's-1')
+      expect(box.labels?.[0]?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Corte clásico')
+      expect(
+        row(wrapper, 's-1')
+          .querySelector('.professional-services-page__assignment')!
+          .getAttribute('aria-hidden'),
+      ).toBe('true')
+      // Ninguna región viva dentro de la lista: el aviso emergente es el único anuncio.
+      expect(wrapper.find('.professional-services-page__list [aria-live]').exists()).toBe(false)
+    })
+
+    it('mientras guarda, el sol ocupa el sitio del rombo y la casilla sigue enfocada (CA-5, CA-24)', async () => {
+      let finish: (value: unknown) => void = () => {}
+      assignServiceMock.mockReturnValue(new Promise((r) => (finish = r)))
+      const wrapper = await mountReady()
+      const box = checkbox(wrapper, 's-1')
+      box.focus()
+      box.checked = true
+      box.dispatchEvent(new Event('change'))
+      await flushPromises()
+      expect(state(wrapper, 's-1')).toBe('pending')
+      expect(row(wrapper, 's-1').querySelector('.sun-diamond, svg')).not.toBeNull()
+      expect(box.getAttribute('aria-disabled')).toBe('true')
+      expect(box.disabled).toBe(false)
+      expect(document.activeElement).toBe(box)
+      finish({ kind: 'success' })
+      await flushPromises()
+      expect(state(wrapper, 's-1')).toBe('on')
+      expect(document.activeElement).toBe(box)
+    })
+
+    it.each([
+      ['red', { kind: 'network-error' }, 'No pudimos conectar'],
+      ['inesperado', { kind: 'unexpected-error' }, 'Ocurrió un error inesperado'],
+    ])(
+      'si falla (%s), la casilla vuelve, el foco se queda y el aviso va bajo su renglón (CA-18)',
+      async (_name, outcome, text) => {
+        assignServiceMock.mockResolvedValue(outcome)
+        const wrapper = await mountReady()
+        const box = checkbox(wrapper, 's-2')
+        box.focus()
+        box.checked = true
+        box.dispatchEvent(new Event('change'))
+        await flushPromises()
+        expect(box.checked).toBe(false)
+        expect(document.activeElement).toBe(box)
+        const error = row(wrapper, 's-2').querySelector('[role="alert"]')!
+        expect(error.textContent).toContain('No pudimos guardar el cambio.')
+        expect(error.textContent).toContain(text)
+        expect(box.getAttribute('aria-describedby')).toBe(error.id)
+        // Nada arriba de la lista: el único aviso es el del renglón.
+        expect(wrapper.findAll('[role="alert"]')).toHaveLength(1)
+        expect(row(wrapper, 's-1').querySelector('[role="alert"]')).toBeNull()
+      },
+    )
+
+    it('varios cambios seguidos no reordenan los renglones y cada casilla termina como dijo el servidor (CA-21)', async () => {
+      const services = [
+        { id: 's-1', name: 'Corte clásico' },
+        { id: 's-2', name: 'Barba' },
+        { id: 's-3', name: 'Color completo' },
+      ]
+      const finishers: Record<string, (value: unknown) => void> = {}
+      assignServiceMock.mockImplementation(
+        (_professionalId: string, serviceId: string) =>
+          new Promise((r) => (finishers[serviceId] = r)),
+      )
+      const wrapper = await mountReady(oneProfessional, services)
+      for (const id of ['s-1', 's-2', 's-3']) {
+        const box = checkbox(wrapper, id)
+        box.checked = true
+        box.dispatchEvent(new Event('change'))
+      }
+      await flushPromises()
+      finishers['s-3']!({ kind: 'success' })
+      finishers['s-1']!({ kind: 'network-error' })
+      finishers['s-2']!({ kind: 'success' })
+      await flushPromises()
+      const order = wrapper
+        .findAll('.professional-services-page__service-name')
+        .map((n) => n.text())
+      expect(order).toEqual(['Corte clásico', 'Barba', 'Color completo'])
+      expect(['s-1', 's-2', 's-3'].map((id) => checkbox(wrapper, id).checked)).toEqual([
+        false,
+        true,
+        true,
+      ])
+      expect(['s-1', 's-2', 's-3'].map((id) => state(wrapper, id))).toEqual(['off', 'on', 'on'])
+    })
+
+    it('dice la cifra en texto, «n de m servicios», y la barra no se anuncia (CA-7)', async () => {
+      const wrapper = await mountReady(oneProfessional, twoServices, ['s-1'])
+      expect(
+        wrapper.get('.professional-services-page__meter-figure').text().replace(/\s+/g, ' '),
+      ).toBe('1 de 2 servicios')
+      expect(
+        wrapper.get('.professional-services-page__meter-track').attributes('aria-hidden'),
+      ).toBe('true')
+      expect(wrapper.find('[role="progressbar"]').exists()).toBe(false)
+    })
+
+    it('dice «servicio» en singular con un solo servicio en el catálogo', async () => {
+      const wrapper = await mountReady(oneProfessional, [{ id: 's-1', name: 'Corte' }])
+      expect(
+        wrapper.get('.professional-services-page__meter-figure').text().replace(/\s+/g, ' '),
+      ).toBe('0 de 1 servicio')
+    })
+
+    it('deja el foco en el selector al cambiar de profesional (CA-20)', async () => {
+      const wrapper = await mountReady(fourProfessionals)
+      fetchAssignmentsMock.mockResolvedValueOnce({
+        kind: 'success',
+        page: { items: [], nextCursor: null },
+      })
+      await chooseProfessional(wrapper, 'Ana Torres')
+      await flushPromises()
+      expect(document.activeElement?.id).toBe('professional-services-professional-select')
+    })
   })
 
   describe('panel del empleado (DEC-173)', () => {
