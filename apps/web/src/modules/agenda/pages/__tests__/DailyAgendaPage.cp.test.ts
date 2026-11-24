@@ -10,7 +10,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { DEFAULT_MIN_HOLD_MS } from '@/shared/composables'
 import { resetBrand } from '@/shared/model'
 
 const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())
@@ -80,9 +79,9 @@ function buildRouter() {
 }
 
 async function settle() {
+  // La primera vista se destapa en cuanto hay algo entero que mostrar (#822):
+  // con dobles inmediatos no hay retención que esperar.
   await flushPromises()
-  // La primera carga se sostiene al menos DEFAULT_MIN_HOLD_MS con un setTimeout real.
-  await new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
   await flushPromises()
 }
 

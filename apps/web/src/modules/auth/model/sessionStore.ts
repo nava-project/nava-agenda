@@ -38,6 +38,12 @@ export const sessionState: DeepReadonly<{ bootstrap: BootstrapState }> = readonl
  * principal. */
 export const sessionStatus = computed(() => state.bootstrap.status)
 
+/** Negocio de la sesión autenticada, o `null`: la clave con la que otros
+ * módulos guardan lo leído, para no servirlo nunca a otra sesión (#822). */
+export const sessionBusinessId = computed(() =>
+  state.bootstrap.status === 'authenticated' ? state.bootstrap.businessId : null,
+)
+
 function setChecking(): void {
   state.bootstrap = { status: 'checking' }
 }

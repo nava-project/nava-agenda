@@ -1,8 +1,10 @@
 import { createApp as createVueApp, watch, type App as VueApp } from 'vue'
 import App from '@/App.vue'
 import { router } from '@/app/router'
+import { agendaContextInvalidation, forgetAgendaContext } from '@/modules/agenda'
 import { installSessionHandling, sessionStatus } from '@/modules/auth'
 import { loadWorkspaceBrand } from '@/modules/settings'
+import { httpClient } from '@/shared/api/httpClient'
 import { resetBrand } from '@/shared/model'
 
 /**
@@ -17,6 +19,10 @@ export function createApplication(): VueApp {
   // (no dentro de `modules/auth`) porque es el único punto que posee la
   // instancia real del router.
   installSessionHandling(router)
+  // #822: lo que la Agenda guarda (profesionales y zona) se olvida tras una
+  // escritura que pueda cambiarlo y cada vez que la sesión deja de estar
+  // autenticada, para no mostrar nunca datos de otra sesión.
+  httpClient.use(agendaContextInvalidation)
   // DEC-110: la marca y el vocabulario del negocio viajan con la sesión. Se
   // piden al autenticarse y se descartan al salir, para que la siguiente
   // negocio nunca herede el acento ni las palabras de la anterior.
@@ -25,6 +31,7 @@ export function createApplication(): VueApp {
     (status) => {
       if (status === 'authenticated') void loadWorkspaceBrand()
       else if (status === 'unauthenticated') resetBrand()
+      if (status !== 'authenticated') forgetAgendaContext()
     },
     { immediate: true },
   )
