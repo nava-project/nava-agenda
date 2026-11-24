@@ -320,6 +320,8 @@ describe('GoogleCalendarPage', () => {
     expect(syncMock).toHaveBeenCalledTimes(1)
     // En espera con aria-disabled, sin el atributo nativo (#840 r2).
     expect(button(wrapper, 'Desconectar').attributes('aria-disabled')).toBe('true')
+    // Con la marca con la que BaseButton quita el realce de hover y de pulsación (r3, N1).
+    expect(button(wrapper, 'Desconectar').classes()).toContain('base-button--loading')
     expect(button(wrapper, 'Desconectar').attributes('disabled')).toBeUndefined()
 
     finish({ kind: 'success', pendingSyncJobs: 2, failedSyncJobs: 0 })

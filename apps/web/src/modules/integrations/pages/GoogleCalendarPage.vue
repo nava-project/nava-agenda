@@ -564,7 +564,7 @@ const HOW_IT_WORKS = [
               type="button"
               size="lg"
               :variant="connectVariant"
-              :class="{ 'gcal-wait': syncWaiting }"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
               :disabled="(busy !== null && busy !== 'sync') || redirecting"
               :aria-disabled="syncWaiting ? 'true' : undefined"
               @click="onConnect"
@@ -596,7 +596,7 @@ const HOW_IT_WORKS = [
               type="button"
               size="lg"
               :variant="syncVariant"
-              :class="{ 'gcal-wait': syncWaiting }"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
               :disabled="busy !== null && busy !== 'sync'"
               :aria-disabled="syncWaiting ? 'true' : undefined"
               @click="onSync"
@@ -624,7 +624,7 @@ const HOW_IT_WORKS = [
             <BaseButton
               v-if="actionsConnectedLike || actionsView === 'reauth'"
               class="gcal-hero__disconnect"
-              :class="{ 'gcal-wait': syncWaiting }"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
               type="button"
               size="lg"
               variant="secondary"
@@ -1070,11 +1070,14 @@ const HOW_IT_WORKS = [
    secundario con el texto en el rojo de peligro (≥ 4,5:1 en Día y Noche): el rojo
    lleno queda para la confirmación del diálogo (#838). */
 .gcal-hero__actions .gcal-wait {
-  /* La espera de la sincronización (#840 r2): el aspecto de deshabilitado de
-     BaseButton, sin el atributo nativo para que el foco no se pierda. */
+  /* La espera de la sincronización (#840): el aspecto de deshabilitado de
+     BaseButton, sin el atributo nativo para que el foco no se pierda. Sin
+     pointer-events: none (r3, N1): anulaba el cursor de espera y el clic caía
+     en el pie y soltaba el foco al body. Los manejadores ignoran el clic y el
+     Enter; `base-button--loading` (puesto junto a esta clase) es la marca con
+     la que BaseButton ya excluye el realce de hover y de pulsación. */
   opacity: 0.48;
   cursor: progress;
-  pointer-events: none;
 }
 
 .gcal-hero__actions .gcal-hero__disconnect {
