@@ -19,6 +19,14 @@ const disconnectMock = vi.hoisted(() => vi.fn())
 const reminderMock = vi.hoisted(() => vi.fn())
 const linkSoleMock = vi.hoisted(() => vi.fn())
 
+// La gracia del cargador (#820) es instantánea con el reloj real: la carga simulada
+// es inmediata y una máquina cargada no debe convertirla en una espera (#834).
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
+
 vi.mock('../../api/googleCalendarApi', () => ({
   fetchConnection: fetchMock,
   startConnect: startConnectMock,
@@ -62,8 +70,16 @@ async function mountWith(connection: object): Promise<VueWrapper> {
   return wrapper
 }
 
+// El texto visible del botón: la palabra que no toca (`.gcal-action__off`, oculta con
+// visibility para reservar el ancho, #838) no cuenta, como no la ve ni la oye nadie.
+function visibleText(el: Element): string {
+  const clone = el.cloneNode(true) as Element
+  clone.querySelectorAll('.gcal-action__off').forEach((n) => n.remove())
+  return (clone.textContent ?? '').replace(/\s+/g, ' ').trim()
+}
+
 function button(wrapper: VueWrapper, text: string) {
-  const found = wrapper.findAll('button').find((b) => b.text() === text)
+  const found = wrapper.findAll('button').find((b) => visibleText(b.element) === text)
   if (!found) throw new Error(`button ${JSON.stringify(text)} not found`)
   return found
 }
@@ -435,6 +451,110 @@ describe('GoogleCalendarPage', () => {
     expect(button(wrapper, 'Guardando…').attributes('disabled')).toBeDefined()
     finish({ kind: 'success', connection: connected })
     await flushPromises()
+  })
+
+  // --- En la familia (#838, DEC-189) -------------------------------------------------
+
+  describe('en la familia (#838)', () => {
+    const filled = (wrapper: VueWrapper) =>
+      wrapper
+        .findAll('.gcal-hero__actions button')
+        .filter((b) =>
+          b.classes().some((c) => c === 'base-button--primary' || c === 'base-button--danger'),
+        )
+        .map((b) => visibleText(b.element))
+
+    it.each([
+      ['no conectado', base, ['Conectar Google Calendar']],
+      ['conectado al día', connected, []],
+      ['sincronizando', { ...connected, pendingSyncJobs: 2 }, []],
+      ['error de sincronización', { ...connected, failedSyncJobs: 1 }, ['Sincronizar ahora']],
+      ['reconexión', { ...base, status: 'reauth_required' }, ['Volver a conectar']],
+    ])('lleva como mucho una acción llena en «%s»', async (_name, connection, expected) => {
+      const wrapper = await mountWith(connection)
+      expect(filled(wrapper)).toEqual(expected)
+    })
+
+    it('deja «Desconectar» en secundario; el rojo lleno queda en el diálogo', async () => {
+      const wrapper = await mountWith(connected)
+      const hero = button(wrapper, 'Desconectar')
+      expect(hero.classes()).toContain('base-button--secondary')
+      expect(hero.classes()).not.toContain('base-button--danger')
+      await hero.trigger('click')
+      await flushPromises()
+      expect(dialogButton(wrapper, 'Desconectar').className).toContain('base-button--danger')
+    })
+
+    it('dice el estado con un rombo y la palabra, nunca con el rojo sin conexión', async () => {
+      const wrapper = await mountWith(base)
+      const hero = wrapper.get('.gcal-hero')
+      expect(hero.classes()).toContain('gcal-hero--not-connected')
+      const status = wrapper.get('.gcal-status')
+      expect(status.text()).toBe('No conectado')
+      expect(status.get('.gcal-status__mark').attributes('aria-hidden')).toBe('true')
+      // La insignia del emblema va hueca sin conexión y llena con ella.
+      expect(wrapper.get('.gcal-emblem__badge').classes()).toContain('gcal-emblem__badge--hollow')
+      const live = await mountWith(connected)
+      expect(live.get('.gcal-emblem__badge').classes()).not.toContain('gcal-emblem__badge--hollow')
+    })
+
+    it('dibuja el emblema con la hoja de calendario de la familia, oculta al lector', async () => {
+      const wrapper = await mountWith(connected)
+      const emblem = wrapper.get('.gcal-emblem')
+      expect(emblem.attributes('aria-hidden')).toBe('true')
+      expect(emblem.find('.calendar-leaf').exists()).toBe(true)
+      expect(emblem.get('.calendar-leaf__month').text()).toMatch(/^[A-ZÁÉÍÓÚ]{3,4}$/)
+    })
+
+    it('pone los datos de la conexión en un <dl> real', async () => {
+      const wrapper = await mountWith(connected)
+      const facts = wrapper.get('dl.gcal-facts')
+      expect(facts.findAll('dt').map((d) => d.text())).toEqual([
+        'Cuenta de Google',
+        'Calendario',
+        'Última sincronización',
+      ])
+      expect(facts.findAll('dd')).toHaveLength(3)
+    })
+
+    it('reserva el renglón de la hora relativa aunque todavía no haya sincronizado', async () => {
+      const wrapper = await mountWith({ ...connected, lastSyncedAt: null })
+      const last = wrapper.get('dl.gcal-facts').findAll('dd')[2]!
+      expect(last.find('small').exists()).toBe(true)
+      expect(last.get('small').attributes('aria-hidden')).toBe('true')
+    })
+
+    it('pone «Cómo funciona» en una lista ordenada con el número solo visual', async () => {
+      const wrapper = await mountWith(base)
+      const list = wrapper.get('ol.gcal-how__list')
+      const items = list.findAll('li')
+      expect(items).toHaveLength(4)
+      for (const item of items) {
+        expect(item.get('.gcal-how__num').attributes('aria-hidden')).toBe('true')
+      }
+    })
+
+    it('no cambia el ancho de «Sincronizar ahora»: las dos palabras comparten celda', async () => {
+      let finish: (value: unknown) => void = () => {}
+      syncMock.mockReturnValue(new Promise((r) => (finish = r)))
+      const wrapper = await mountWith(connected)
+      const sync = button(wrapper, 'Sincronizar ahora')
+      expect(sync.findAll('.gcal-action__swap > span')).toHaveLength(2)
+      await sync.trigger('click')
+      const busy = button(wrapper, 'Sincronizando…')
+      expect(busy.findAll('.gcal-action__swap > span')).toHaveLength(2)
+      expect(busy.get('.gcal-action__off').text()).toBe('Sincronizar ahora')
+      finish({ kind: 'success', pendingSyncJobs: 0, failedSyncJobs: 0 })
+      await flushPromises()
+    })
+
+    it('no trae nada de la marca de Google: ni su logo ni su botón', async () => {
+      for (const connection of [base, connected, { ...base, status: 'reauth_required' }]) {
+        const wrapper = await mountWith(connection)
+        expect(wrapper.find('img').exists()).toBe(false)
+        expect(wrapper.html()).not.toMatch(/#4285f4|#34a853|#fbbc0[45]|#ea4335/i)
+      }
+    })
   })
 
   // --- Accesibilidad ----------------------------------------------------------------
