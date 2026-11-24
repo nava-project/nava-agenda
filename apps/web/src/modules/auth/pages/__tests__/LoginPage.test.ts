@@ -138,6 +138,14 @@ describe('LoginPage', () => {
     expect(notice.contains(document.activeElement)).toBe(false)
   })
 
+  it('gives the focus back to Correo when the expiry notice is dismissed (#810)', async () => {
+    const { wrapper } = await mountPage({ motivo: 'sesion-expirada' })
+    const email = wrapper.get<HTMLInputElement>('input[name="email"]').element
+    const focus = vi.spyOn(email, 'focus')
+    await wrapper.get('.base-alert__dismiss').trigger('click')
+    expect(focus).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps the session marker on a plain visit to /acceso (#810)', async () => {
     window.localStorage.setItem('nava.session.v1', '1')
     await mountPage()

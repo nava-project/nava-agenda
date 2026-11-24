@@ -36,6 +36,8 @@ const isSubmitting = computed(() => screenState.value.status === 'submitting')
 // pantalla solo le da el mensaje en contexto que el estándar exige. No
 // distingue más motivo que este (nunca revela detalle de seguridad) y deja
 // de mostrarse en cuanto el profesional reintenta un envío.
+const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
+
 const showSessionExpired = computed(
   () => route.query.motivo === 'sesion-expirada' && screenState.value.status === 'idle',
 )
@@ -155,11 +157,13 @@ const onChallengeVerified = () => {
       title="Tu sesión venció"
       role="status"
       dismissible
+      @dismiss="loginFormRef?.focusEmail()"
     >
       Inicia sesión de nuevo para continuar.
     </BaseAlert>
 
     <LoginForm
+      ref="loginFormRef"
       :email="email"
       :password="password"
       :submitting="isSubmitting"
