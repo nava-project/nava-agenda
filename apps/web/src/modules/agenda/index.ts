@@ -9,5 +9,6 @@
 import type { NavItem } from '@/shared/navigation/navItem'
 
 export { agendaPrivateShellChildRoutes } from './routes'
+export { agendaContextInvalidation, forgetAgendaContext } from './model/agendaContext'
 
 export const agendaNavItems: NavItem[] = []

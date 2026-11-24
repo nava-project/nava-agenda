@@ -13,18 +13,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { axe } from 'vitest-axe'
 import { shiftCivilDate } from '@/shared/time/civilDate'
-import { DEFAULT_MIN_HOLD_MS } from '@/shared/composables'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 
-// useMinHoldLoading (issue 2026-09-28, "se ve como se genera el objeto")
-// mantiene pageStatus/agendaStatus en su primera carga con un setTimeout
-// REAL de al menos DEFAULT_MIN_HOLD_MS antes de pasar a listo/error;
-// flushPromises() (solo microtareas) no alcanza a esperarlo. Con margen
-// sobre el valor exacto para no quedar al borde por jitter del entorno de
-// pruebas. No aplica a la actualización por cambio de fecha/profesional (usa
-// 'updating', sin retraso propio, sin tocar).
-function waitOutInitialLoadHold() {
-  return new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
+// La primera vista se destapa cuando ya hay algo entero que mostrar y el cargador
+// no destellaría (useLoaderGrace, #822). Con dobles que responden al instante
+// no hay retención: basta con vaciar las microtareas (y la del destape).
+async function waitOutInitialLoadHold() {
+  await flushPromises()
 }
 
 const fetchProfessionalSummariesMock = vi.hoisted(() => vi.fn())

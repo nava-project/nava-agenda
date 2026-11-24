@@ -17,14 +17,14 @@
 // bloque.
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
-import { useMinHoldLoading, useVocabulary } from '@/shared/composables'
+import { useLoaderGrace, useVocabulary } from '@/shared/composables'
 import { capitalize, isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import {
   ProfessionalSelect,
   BaseAlert,
   BaseBadge,
   BaseButton,
-  DiamondLoader,
+  ContentReveal,
   EmptyScene,
   PageState,
   DayRuler,
@@ -46,6 +46,7 @@ import {
   fetchDailyAgenda,
 } from '../api/appointmentsApi'
 import type { ProfessionalSummary } from '../model/appointment'
+import { knownAgendaContext, rememberAgendaContext } from '../model/agendaContext'
 import { summarizeDay } from '../model/daySummary'
 import {
   APPOINTMENT_STATUS_BADGE_VARIANT,
@@ -55,6 +56,7 @@ import {
 import AgendaSkeleton from '../components/AgendaSkeleton.vue'
 import { DaylightStrip, type DaylightMark } from '@/modules/public-booking'
 import BaseDatePicker from '@/shared/ui/BaseDatePicker.vue'
+import { sessionBusinessId } from '@/modules/auth'
 
 type PageStatus = 'loading' | 'ready' | 'load-error'
 // 'updating' (CA-063): ya hubo una agenda confirmada antes (para otra
@@ -146,21 +148,54 @@ function withQuery(overrides: Record<string, string | undefined>): LocationQuery
   return merged
 }
 
-// useMinHoldLoading (issue reportado 2026-09-28: "al entrar a Agenda o
-// Servicios se ve como se genera el objeto... quiero el tema de la carga
-// para tapar ese evento"): el rombo del evento 02 se muestra de inmediato
-// (sigue siendo `pageStatus.value = 'loading'` lo primero que pasa), pero
-// no cede el paso a "ready"/"load-error" hasta que pase un mínimo, para que
-// una respuesta rápida no lo retire a medio parpadeo dejando ver la
-// construcción cruda de los controles/el eje por debajo.
 // Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
 
-const { start: startPageHold, hold: holdPageReveal } = useMinHoldLoading()
+// La entrada a la Agenda (#822, F2/F6): una sola espera, con la forma de la
+// pantalla (controles y agenda), desde el primer cuadro hasta la primera vista
+// completa. Antes la página se quedaba con solo su título ~300–420 ms, luego
+// «Cargando profesionales…» asomaba 35–85 ms y después venía otro esqueleto;
+// con red lenta, dos esperas distintas encadenadas. La tapa (ContentReveal) se
+// va cuando hay algo entero que mostrar: la agenda del día, un aviso o el
+// estado sin profesionales. Su cargador o no asoma o se queda a la vista
+// (useLoaderGrace). Con la tapa, las retenciones mínimas de antes
+// (useMinHoldLoading, issue 2026-09-28) ya no hacen falta: nada «se arma» a la
+// vista. Lo que viene después (otro día, otro profesional) usa el velado de
+// siempre (evento 06).
+const loaderGrace = useLoaderGrace()
+loaderGrace.start()
+const firstViewShown = ref(false)
+const firstViewSettled = computed(() => {
+  if (pageStatus.value === 'loading') return false
+  if (pageStatus.value === 'load-error' || professionals.value.length === 0) return true
+  return agendaStatus.value !== 'idle' && agendaStatus.value !== 'loading'
+})
+watch(firstViewSettled, async (settled) => {
+  if (!settled || firstViewShown.value) return
+  await loaderGrace.settled()
+  if (firstViewSettled.value) firstViewShown.value = true
+})
+// Una etiqueta corta y de una sola línea: con el nombre del profesional se
+// partía en dos en móvil y empujaba el esqueleto al cambiar (#822).
+const coverLabel = computed(() =>
+  pageStatus.value === 'loading' ? `Cargando ${v.value.professionals}…` : 'Cargando la agenda…',
+)
 
 async function loadPage() {
+  const businessId = sessionBusinessId.value
+  // Lo ya leído en esta sesión dibuja la pantalla al instante y se relee por
+  // detrás (#822): volver a la Agenda no vuelve a esperar a los profesionales.
+  const known = knownAgendaContext(businessId)
+  if (known) {
+    professionals.value = known.professionals
+    businessTimezone.value = known.timezone
+    pageStatus.value = 'ready'
+    void revalidateContext(businessId)
+    if (professionals.value.length > 0) await syncFromRoute()
+    return
+  }
+
   pageStatus.value = 'loading'
-  startPageHold()
   const [professionalsOutcome, timezoneOutcome] = await Promise.all([
     fetchProfessionalSummaries(),
     fetchBusinessTimezone(),
@@ -169,26 +204,58 @@ async function loadPage() {
   businessTimezone.value = timezoneOutcome.kind === 'success' ? timezoneOutcome.timezone : null
 
   if (professionalsOutcome.kind !== 'success') {
-    holdPageReveal(() => {
-      pageStatus.value = 'load-error'
-    })
+    pageStatus.value = 'load-error'
     return
   }
 
   professionals.value = professionalsOutcome.items
-  holdPageReveal(() => {
-    pageStatus.value = 'ready'
-    // El esqueleto empieza a verse justo ahora: su retención mínima cuenta
-    // desde este instante, no desde que se pidió la agenda (ver loadAgenda).
-    if (agendaStatus.value === 'loading') startAgendaHold()
-  })
+  // Solo se guarda un contexto completo: sin zona, la próxima entrada la vuelve a pedir.
+  if (timezoneOutcome.kind === 'success')
+    rememberAgendaContext(businessId, {
+      professionals: professionalsOutcome.items,
+      timezone: timezoneOutcome.timezone,
+    })
+  pageStatus.value = 'ready'
 
   if (professionals.value.length > 0) await syncFromRoute()
+}
+
+// La relectura por detrás: si algo cambió (un alta o una baja desde otro
+// dispositivo), la pantalla se pone al día; si falla, lo que se ve se queda.
+async function revalidateContext(businessId: string | null) {
+  const [professionalsOutcome, timezoneOutcome] = await Promise.all([
+    fetchProfessionalSummaries(),
+    fetchBusinessTimezone(),
+  ])
+  if (professionalsOutcome.kind !== 'success' || timezoneOutcome.kind !== 'success') return
+  // La sesión cambió mientras tanto: esta respuesta no es de quien mira.
+  if (sessionBusinessId.value !== businessId) return
+  const fresh = professionalsOutcome.items
+  rememberAgendaContext(businessId, { professionals: fresh, timezone: timezoneOutcome.timezone })
+  if (timezoneOutcome.timezone !== businessTimezone.value)
+    businessTimezone.value = timezoneOutcome.timezone
+  if (sameProfessionals(fresh, professionals.value)) return
+  professionals.value = fresh
+  // El profesional que se miraba ya no está: la URL se normaliza con la lista nueva.
+  if (fresh.length > 0 && !fresh.some((p) => p.id === selectedProfessionalId.value))
+    await syncFromRoute()
+}
+
+function sameProfessionals(a: ProfessionalSummary[], b: ProfessionalSummary[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (p, k) => p.id === b[k].id && p.fullName === b[k].fullName && p.photoUrl === b[k].photoUrl,
+    )
+  )
 }
 
 onMounted(loadPage)
 
 function onRetryLoad() {
+  // El reintento vuelve a la misma espera con forma.
+  firstViewShown.value = false
+  loaderGrace.start()
   void loadPage()
 }
 
@@ -244,24 +311,10 @@ watch(
   () => void syncFromRoute(),
 )
 
-// Mismo criterio que startPageHold/holdPageReveal (issue 2026-09-28), pero
-// solo para la PRIMERA carga ('loading', AgendaSkeleton): 'updating' ya
-// tiene su propio transition-delay (.daily-agenda-page--updating, más
-// abajo) para el caso "cambio de fecha/profesional con contenido previo", que
-// no es el problema reportado y no se toca.
-const { start: startAgendaHold, hold: holdAgendaReveal } = useMinHoldLoading()
-
 async function loadAgenda(professionalId: string, date: string | null) {
   const requestId = ++agendaRequestSeq
   const isFirstLoad = !hasLoadedEntriesOnce.value
   agendaStatus.value = isFirstLoad ? 'loading' : 'updating'
-  // Mientras el spinner de página siga visible (pageStatus 'loading') el
-  // esqueleto aún no se ve: su retención arranca al revelarse la página. Sin
-  // esto, ambos temporizadores vencían con ~10 ms de diferencia y el
-  // esqueleto parpadeaba un solo fotograma entre el spinner y la agenda
-  // (issue reportado 2026-09-30: "al acceder a la pantalla de agenda, hay
-  // un espasmo").
-  if (isFirstLoad && pageStatus.value === 'ready') startAgendaHold()
 
   const outcome = await fetchDailyAgenda(professionalId, date ?? undefined)
 
@@ -271,24 +324,19 @@ async function loadAgenda(professionalId: string, date: string | null) {
   // con una respuesta obsoleta).
   if (requestId !== agendaRequestSeq) return
 
-  function apply() {
-    switch (outcome.kind) {
-      case 'success':
-        entries.value = [...outcome.items].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-        agendaDate.value = date
-        agendaStatus.value = 'ready'
-        hasLoadedEntriesOnce.value = true
-        return
-      case 'not-found':
-        agendaStatus.value = 'not-found'
-        return
-      default:
-        agendaStatus.value = 'error'
-    }
+  switch (outcome.kind) {
+    case 'success':
+      entries.value = [...outcome.items].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+      agendaDate.value = date
+      agendaStatus.value = 'ready'
+      hasLoadedEntriesOnce.value = true
+      return
+    case 'not-found':
+      agendaStatus.value = 'not-found'
+      return
+    default:
+      agendaStatus.value = 'error'
   }
-
-  if (isFirstLoad && pageStatus.value === 'ready') holdAgendaReveal(apply)
-  else apply()
 }
 
 function onProfessionalSelect(professionalId: string) {
@@ -341,6 +389,13 @@ function statusBadgeVariant(entry: DailyAgendaEntry) {
 // `route.query.professionalId` (DEC-074): solo desaparece el control.
 const hideProfessionalPicker = computed(
   () => worksOwnProfessional.value && professionals.value.length === 1,
+)
+// La silueta de la espera lo anticipa antes de saber cuántos hay: quien trabaja
+// su propio perfil casi siempre tiene uno solo.
+const coverHidesPicker = computed(
+  () =>
+    worksOwnProfessional.value &&
+    (pageStatus.value === 'loading' || professionals.value.length === 1),
 )
 
 // «Mi día» (DEC-115): una frase con lo que queda de hoy, derivada de los turnos ya
@@ -1022,6 +1077,15 @@ const dayChangeMarkerPercent = computed(() => {
               · {{ timezoneLabel(businessTimezone) }}</template
             ></template
           >
+          <!-- Fecha y zona por separado: en un móvil estrecho la línea real se
+               parte en dos y la silueta se parte igual (sin salto al llegar). -->
+          <template v-else-if="!firstViewShown"
+            ><span
+              class="daily-agenda-page__skel daily-agenda-page__skel--date"
+              aria-hidden="true" /><span
+              class="daily-agenda-page__skel daily-agenda-page__skel--zone"
+              aria-hidden="true"
+          /></template>
         </p>
         <p v-if="soloDaySummary" class="daily-agenda-page__summary">{{ soloDaySummary }}</p>
       </div>
@@ -1034,247 +1098,282 @@ const dayChangeMarkerPercent = computed(() => {
       >
         Nuevo turno
       </BaseButton>
+      <!-- Su sitio se reserva mientras llegan los profesionales: en móvil ocupa
+           una fila entera y aparecer después empujaría toda la agenda (#822). -->
+      <span
+        v-else-if="pageStatus === 'loading'"
+        class="daily-agenda-page__cta daily-agenda-page__skel daily-agenda-page__skel--cta"
+        aria-hidden="true"
+      />
     </header>
 
-    <!-- Evento 02 del atlas: sin profesional/zona resueltos, nada que anticipar
-         todavía — estado de página centrado con spinner, sin divisor. -->
-    <div v-if="pageStatus === 'loading'" class="daily-agenda-page__loading" role="status">
-      <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="overlay" />
-    </div>
-
-    <!-- Evento 03: fallo al cargar el contexto inicial. -->
-    <PageState
-      v-else-if="pageStatus === 'load-error'"
-      variant="warning"
-      status-label="Atención"
-      headline="No pudimos cargar esta sección"
-      role="alert"
-    >
-      Revisa tu conexión e inténtalo de nuevo.
-      <template #action>
-        <BaseButton type="button" variant="secondary" @click="onRetryLoad">Reintentar</BaseButton>
-      </template>
-    </PageState>
-
-    <template v-else>
-      <!-- Evento 04: sin profesionales activos, sin selección inventada ni CTA. -->
-      <EmptyScene v-if="professionals.length === 0" scene="team" role="status">
-        <template #title>Aún no tienes {{ v.professionalsRegistered }}.</template>
-        <template #hint>
-          <template v-if="isSoloProfile">
-            Crea tu perfil en
-            <RouterLink :to="{ name: 'staff-profesionales' }">«Mi perfil»</RouterLink>
-            para ver tu agenda.
-          </template>
-          <template v-else>
-            Agrega {{ v.oneProfessional }} en la sección
-            <RouterLink :to="{ name: 'staff-profesionales' }">«{{ v.Professionals }}»</RouterLink>
-            para ver su agenda.
-          </template>
-        </template>
-      </EmptyScene>
-
-      <template v-else>
-        <div class="daily-agenda-page__controls">
-          <div v-if="!hideProfessionalPicker" class="daily-agenda-page__picker">
-            <label for="daily-agenda-professional-select" class="daily-agenda-page__label">{{
-              v.Professional
-            }}</label>
-            <ProfessionalSelect
-              compact
-              :model-value="selectedProfessionalId"
-              :professionals="professionals"
-              @update:model-value="onProfessionalSelect"
-            />
-          </div>
-
-          <div class="daily-agenda-page__date-nav">
-            <BaseButton
-              type="button"
-              variant="ghost"
-              :disabled="!canNavigateDates"
-              aria-label="Día anterior"
-              @click="goToPreviousDay"
-            >
-              <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M10 3.5 5.5 8l4.5 4.5" />
-              </svg>
-              <span class="daily-agenda-page__nav-word">Anterior</span>
-            </BaseButton>
-            <div class="daily-agenda-page__date-input-wrap">
-              <label
-                id="daily-agenda-date-label"
-                for="daily-agenda-date-picker"
-                class="daily-agenda-page__label"
-                >Fecha</label
-              >
-              <BaseDatePicker
-                trigger-id="daily-agenda-date-picker"
-                :model-value="selectedDate"
-                :today="todayCivilDate"
-                :disabled="!canNavigateDates"
-                label-id="daily-agenda-date-label"
-                :format-value="(date: string) => formatCivilDateShort(date, todayCivilDate)"
-                @update:model-value="goToDate"
+    <!-- #822: una sola espera con la forma de la pantalla, desde el primer
+         cuadro hasta la primera vista completa (antes, evento 02 con el rombo
+         sobre una página vacía y luego el evento 05). Debajo, el contenido se
+         arma sin verse. -->
+    <ContentReveal class="daily-agenda-page__stage" :loading="!firstViewShown">
+      <template #loading>
+        <div class="daily-agenda-page__cover">
+          <div class="daily-agenda-page__controls" aria-hidden="true">
+            <div v-if="!coverHidesPicker" class="daily-agenda-page__picker">
+              <span
+                class="daily-agenda-page__label daily-agenda-page__skel daily-agenda-page__skel--label"
               />
+              <span class="daily-agenda-page__skel daily-agenda-page__skel--field" />
             </div>
-            <BaseButton
-              type="button"
-              variant="ghost"
-              :disabled="!canNavigateDates"
-              aria-label="Día siguiente"
-              @click="goToNextDay"
-            >
-              <span class="daily-agenda-page__nav-word">Siguiente</span>
-              <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M6 3.5 10.5 8 6 12.5" />
-              </svg>
-            </BaseButton>
+            <div class="daily-agenda-page__date-nav">
+              <span class="daily-agenda-page__skel daily-agenda-page__skel--step" />
+              <div class="daily-agenda-page__date-input-wrap">
+                <span
+                  class="daily-agenda-page__label daily-agenda-page__skel daily-agenda-page__skel--label"
+                />
+                <span class="daily-agenda-page__skel daily-agenda-page__skel--field" />
+              </div>
+              <span class="daily-agenda-page__skel daily-agenda-page__skel--step" />
+            </div>
           </div>
+          <AgendaSkeleton :label="coverLabel" />
         </div>
+      </template>
 
-        <!-- Evento 10: la zona horaria no se pudo confirmar. La agenda sigue
+      <div class="daily-agenda-page__body">
+        <!-- Evento 03: fallo al cargar el contexto inicial. -->
+        <PageState
+          v-if="pageStatus === 'load-error'"
+          variant="warning"
+          status-label="Atención"
+          headline="No pudimos cargar esta sección"
+          role="alert"
+        >
+          Revisa tu conexión e inténtalo de nuevo.
+          <template #action>
+            <BaseButton type="button" variant="secondary" @click="onRetryLoad"
+              >Reintentar</BaseButton
+            >
+          </template>
+        </PageState>
+
+        <template v-else-if="pageStatus === 'ready'">
+          <!-- Evento 04: sin profesionales activos, sin selección inventada ni CTA. -->
+          <EmptyScene v-if="professionals.length === 0" scene="team" role="status">
+            <template #title>Aún no tienes {{ v.professionalsRegistered }}.</template>
+            <template #hint>
+              <template v-if="isSoloProfile">
+                Crea tu perfil en
+                <RouterLink :to="{ name: 'staff-profesionales' }">«Mi perfil»</RouterLink>
+                para ver tu agenda.
+              </template>
+              <template v-else>
+                Agrega {{ v.oneProfessional }} en la sección
+                <RouterLink :to="{ name: 'staff-profesionales' }"
+                  >«{{ v.Professionals }}»</RouterLink
+                >
+                para ver su agenda.
+              </template>
+            </template>
+          </EmptyScene>
+
+          <template v-else>
+            <div class="daily-agenda-page__controls">
+              <div v-if="!hideProfessionalPicker" class="daily-agenda-page__picker">
+                <label for="daily-agenda-professional-select" class="daily-agenda-page__label">{{
+                  v.Professional
+                }}</label>
+                <ProfessionalSelect
+                  compact
+                  :model-value="selectedProfessionalId"
+                  :professionals="professionals"
+                  @update:model-value="onProfessionalSelect"
+                />
+              </div>
+
+              <div class="daily-agenda-page__date-nav">
+                <BaseButton
+                  type="button"
+                  variant="ghost"
+                  :disabled="!canNavigateDates"
+                  aria-label="Día anterior"
+                  @click="goToPreviousDay"
+                >
+                  <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M10 3.5 5.5 8l4.5 4.5" />
+                  </svg>
+                  <span class="daily-agenda-page__nav-word">Anterior</span>
+                </BaseButton>
+                <div class="daily-agenda-page__date-input-wrap">
+                  <label
+                    id="daily-agenda-date-label"
+                    for="daily-agenda-date-picker"
+                    class="daily-agenda-page__label"
+                    >Fecha</label
+                  >
+                  <BaseDatePicker
+                    trigger-id="daily-agenda-date-picker"
+                    :model-value="selectedDate"
+                    :today="todayCivilDate"
+                    :disabled="!canNavigateDates"
+                    label-id="daily-agenda-date-label"
+                    :format-value="(date: string) => formatCivilDateShort(date, todayCivilDate)"
+                    @update:model-value="goToDate"
+                  />
+                </div>
+                <BaseButton
+                  type="button"
+                  variant="ghost"
+                  :disabled="!canNavigateDates"
+                  aria-label="Día siguiente"
+                  @click="goToNextDay"
+                >
+                  <span class="daily-agenda-page__nav-word">Siguiente</span>
+                  <svg class="daily-agenda-page__chevron" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M6 3.5 10.5 8 6 12.5" />
+                  </svg>
+                </BaseButton>
+              </div>
+            </div>
+
+            <!-- Evento 10: la zona horaria no se pudo confirmar. La agenda sigue
              visible (§ trabajo requerido 5): esta es una nota al margen que
              acompaña contenido que sigue visible, no un PageState de página
              completa. -->
-        <BaseAlert
-          v-if="pageStatus === 'ready' && !businessTimezone"
-          variant="warning"
-          title="No pudimos confirmar la zona horaria"
-          role="alert"
-        >
-          La agenda sigue visible, pero la navegación por fecha queda bloqueada hasta recuperar ese
-          dato.
-          <template #action>
-            <BaseButton type="button" variant="secondary" @click="onRetryLoad">
-              Reintentar
-            </BaseButton>
-          </template>
-        </BaseAlert>
+            <BaseAlert
+              v-if="pageStatus === 'ready' && !businessTimezone"
+              variant="warning"
+              title="No pudimos confirmar la zona horaria"
+              role="alert"
+            >
+              La agenda sigue visible, pero la navegación por fecha queda bloqueada hasta recuperar
+              ese dato.
+              <template #action>
+                <BaseButton type="button" variant="secondary" @click="onRetryLoad">
+                  Reintentar
+                </BaseButton>
+              </template>
+            </BaseAlert>
 
-        <!-- Evento 05: profesional y fecha ya resueltos, la espera conserva la
+            <!-- Evento 05: profesional y fecha ya resueltos, la espera conserva la
              geometría del contenido por llegar (esqueleto, no spinner). -->
-        <AgendaSkeleton
-          v-if="agendaStatus === 'loading'"
-          :label="`Cargando la agenda de ${selectedProfessional?.fullName}…`"
-        />
+            <AgendaSkeleton
+              v-if="agendaStatus === 'loading'"
+              :label="`Cargando la agenda de ${selectedProfessional?.fullName}…`"
+            />
 
-        <template v-else>
-          <!-- Evento 06: cambio de fecha, agenda anterior conservada. -->
-          <p
-            v-if="agendaStatus === 'updating'"
-            class="daily-agenda-page__updating"
-            role="status"
-            aria-live="polite"
-          >
-            Actualizando…
-          </p>
+            <template v-else>
+              <!-- Evento 06: cambio de fecha, agenda anterior conservada. -->
+              <p
+                v-if="agendaStatus === 'updating'"
+                class="daily-agenda-page__updating"
+                role="status"
+                aria-live="polite"
+              >
+                Actualizando…
+              </p>
 
-          <!-- Evento 08: el profesional solicitado ya no está disponible. -->
-          <PageState
-            v-if="agendaStatus === 'not-found'"
-            variant="warning"
-            status-label="Atención"
-            :headline="`${capitalize(v.thisProfessional)} ya no está disponible`"
-            role="alert"
-          >
-            Elige {{ v.anotherProfessional }} {{ v.professional }} en la lista.
-          </PageState>
+              <!-- Evento 08: el profesional solicitado ya no está disponible. -->
+              <PageState
+                v-if="agendaStatus === 'not-found'"
+                variant="warning"
+                status-label="Atención"
+                :headline="`${capitalize(v.thisProfessional)} ya no está disponible`"
+                role="alert"
+              >
+                Elige {{ v.anotherProfessional }} {{ v.professional }} en la lista.
+              </PageState>
 
-          <!-- Evento 07: error recuperable de la agenda, profesional/fecha
+              <!-- Evento 07: error recuperable de la agenda, profesional/fecha
                conservados para reintentar. -->
-          <PageState
-            v-else-if="agendaStatus === 'error'"
-            variant="warning"
-            status-label="Atención"
-            :headline="`No pudimos cargar la agenda ${v.ofThisProfessional}`"
-            role="alert"
-          >
-            Revisa tu conexión e inténtalo de nuevo.
-            <template #action>
-              <BaseButton type="button" variant="secondary" @click="onRetryAgenda">
-                Reintentar
-              </BaseButton>
-            </template>
-          </PageState>
+              <PageState
+                v-else-if="agendaStatus === 'error'"
+                variant="warning"
+                status-label="Atención"
+                :headline="`No pudimos cargar la agenda ${v.ofThisProfessional}`"
+                role="alert"
+              >
+                Revisa tu conexión e inténtalo de nuevo.
+                <template #action>
+                  <BaseButton type="button" variant="secondary" @click="onRetryAgenda">
+                    Reintentar
+                  </BaseButton>
+                </template>
+              </PageState>
 
-          <template
-            v-if="
-              agendaStatus === 'ready' || (hasLoadedEntriesOnce && agendaStatus !== 'not-found')
-            "
-          >
-            <!-- Línea temporal horizontal de escritorio: presentación
+              <template
+                v-if="
+                  agendaStatus === 'ready' || (hasLoadedEntriesOnce && agendaStatus !== 'not-found')
+                "
+              >
+                <!-- Línea temporal horizontal de escritorio: presentación
                  visual adicional del mismo turno de la lista de abajo, que
                  sigue siendo la fuente accesible equivalente (§7.2, §8.1).
                  aria-hidden + tabindex="-1" evitan una segunda forma
                  redundante de llegar al mismo detalle para teclado/lector.
                  Se dibuja también con la lista vacía (evento 09): el eje del
                  día vacío se conserva con el marcador "Ahora". -->
-            <div v-if="timelineBounds" class="daily-agenda-page__timeline-wrapper">
-              <!-- Control de zoom (pedido explícito del propietario,
+                <div v-if="timelineBounds" class="daily-agenda-page__timeline-wrapper">
+                  <!-- Control de zoom (pedido explícito del propietario,
                    2026-09-04): no representado en el atlas — es una imagen
                    estática sin controles — y por eso vive fuera del bloque
                    aria-hidden de abajo, como un control real más de la
                    pantalla. Cada nivel reduce el paso del eje (1h → 30min →
                    15min) y ensancha el carril en la misma proporción, para
                    que una ficha corta deje de ir en modo compacto. -->
-              <!-- Sin turnos no hay fichas que acercar (pedido del propietario,
+                  <!-- Sin turnos no hay fichas que acercar (pedido del propietario,
                    2026-11-15): el zoom se oculta y el carril cabe en el ancho. -->
-              <div v-if="headRuler" class="daily-agenda-page__timeline-head">
-                <!-- La regla del día ocupa la fila del zoom, que antes quedaba
+                  <div v-if="headRuler" class="daily-agenda-page__timeline-head">
+                    <!-- La regla del día ocupa la fila del zoom, que antes quedaba
                      vacía a la izquierda: la vista general no le quita alto a
                      la lista (G3, #802). -->
-                <DayRuler
-                  class="daily-agenda-page__ruler"
-                  size="compact"
-                  :from="headRuler.from"
-                  :to="headRuler.to"
-                  :marks="headRuler.marks"
-                  :now="stripNowMinute"
-                  :label="headRuler.label"
-                />
-                <div v-if="entries.length > 0" class="daily-agenda-page__timeline-zoom">
-                  <button
-                    type="button"
-                    class="daily-agenda-page__timeline-zoom-btn"
-                    :disabled="!canZoomOutTimeline"
-                    aria-label="Alejar el calendario"
-                    @click="zoomTimelineOut"
-                  >
-                    −
-                  </button>
-                  <span class="daily-agenda-page__timeline-zoom-label">{{
-                    timelineZoomLabel
-                  }}</span>
-                  <button
-                    type="button"
-                    class="daily-agenda-page__timeline-zoom-btn"
-                    :disabled="!canZoomInTimeline"
-                    aria-label="Acercar el calendario"
-                    @click="zoomTimelineIn"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+                    <DayRuler
+                      class="daily-agenda-page__ruler"
+                      size="compact"
+                      :from="headRuler.from"
+                      :to="headRuler.to"
+                      :marks="headRuler.marks"
+                      :now="stripNowMinute"
+                      :label="headRuler.label"
+                    />
+                    <div v-if="entries.length > 0" class="daily-agenda-page__timeline-zoom">
+                      <button
+                        type="button"
+                        class="daily-agenda-page__timeline-zoom-btn"
+                        :disabled="!canZoomOutTimeline"
+                        aria-label="Alejar el calendario"
+                        @click="zoomTimelineOut"
+                      >
+                        −
+                      </button>
+                      <span class="daily-agenda-page__timeline-zoom-label">{{
+                        timelineZoomLabel
+                      }}</span>
+                      <button
+                        type="button"
+                        class="daily-agenda-page__timeline-zoom-btn"
+                        :disabled="!canZoomInTimeline"
+                        aria-label="Acercar el calendario"
+                        @click="zoomTimelineIn"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
 
-              <div
-                ref="timelineViewport"
-                @scroll.passive="onTimelineScroll"
-                class="daily-agenda-page__timeline"
-                role="region"
-                tabindex="0"
-                :aria-label="timelineRegionLabel"
-              >
-                <div
-                  aria-hidden="true"
-                  class="daily-agenda-page__timeline-scroll"
-                  :style="{
-                    width: `${timelineZoom * 100}%`,
-                    ...(timelineMinWidthPx > 0 ? { minWidth: `${timelineMinWidthPx}px` } : {}),
-                  }"
-                >
-                  <!-- Eje (horas) y marcas (Ahora/Cambio de día) del atlas son
+                  <div
+                    ref="timelineViewport"
+                    @scroll.passive="onTimelineScroll"
+                    class="daily-agenda-page__timeline"
+                    role="region"
+                    tabindex="0"
+                    :aria-label="timelineRegionLabel"
+                  >
+                    <div
+                      aria-hidden="true"
+                      class="daily-agenda-page__timeline-scroll"
+                      :style="{
+                        width: `${timelineZoom * 100}%`,
+                        ...(timelineMinWidthPx > 0 ? { minWidth: `${timelineMinWidthPx}px` } : {}),
+                      }"
+                    >
+                      <!-- Eje (horas) y marcas (Ahora/Cambio de día) del atlas son
                        dos filas propias, apiladas ANTES del carril (.axis →
                        .marks → .track en
                        tools/mockups/panel-agenda-eventos/render.mjs) — nunca
@@ -1284,231 +1383,242 @@ const dayChangeMarkerPercent = computed(() => {
                        encima del tiempo"): ocupan bandas verticales
                        disjuntas, no compiten por el mismo espacio aunque
                        coincidan en x. -->
-                  <div class="daily-agenda-page__timeline-axis">
-                    <span
-                      v-for="tick in timelineLabeledTicks"
-                      :key="tick.minute"
-                      class="daily-agenda-page__timeline-tick-wrap"
-                      :class="`daily-agenda-page__timeline-tick-wrap--${tick.align}`"
-                      :style="{ left: timelinePercent(tick.minute) }"
-                    >
-                      <span
-                        class="daily-agenda-page__timeline-tick-label"
-                        :class="{
-                          'daily-agenda-page__timeline-tick-label--clipped': isTickClipped(tick),
-                        }"
-                        >{{ tick.label }}</span
-                      >
-                    </span>
-                  </div>
+                      <div class="daily-agenda-page__timeline-axis">
+                        <span
+                          v-for="tick in timelineLabeledTicks"
+                          :key="tick.minute"
+                          class="daily-agenda-page__timeline-tick-wrap"
+                          :class="`daily-agenda-page__timeline-tick-wrap--${tick.align}`"
+                          :style="{ left: timelinePercent(tick.minute) }"
+                        >
+                          <span
+                            class="daily-agenda-page__timeline-tick-label"
+                            :class="{
+                              'daily-agenda-page__timeline-tick-label--clipped':
+                                isTickClipped(tick),
+                            }"
+                            >{{ tick.label }}</span
+                          >
+                        </span>
+                      </div>
 
-                  <div class="daily-agenda-page__timeline-marks">
-                    <span
-                      v-if="nowMarkerPercent"
-                      class="daily-agenda-page__timeline-mark-label daily-agenda-page__timeline-mark-label--now"
-                      :style="{ left: nowMarkerPercent }"
-                      >Ahora</span
-                    >
-                    <span
-                      v-if="dayChangeMarkerPercent"
-                      class="daily-agenda-page__timeline-mark-label daily-agenda-page__timeline-mark-label--day-change"
-                      :style="{ left: dayChangeMarkerPercent }"
-                      >Cambio de día</span
-                    >
-                  </div>
+                      <div class="daily-agenda-page__timeline-marks">
+                        <span
+                          v-if="nowMarkerPercent"
+                          class="daily-agenda-page__timeline-mark-label daily-agenda-page__timeline-mark-label--now"
+                          :style="{ left: nowMarkerPercent }"
+                          >Ahora</span
+                        >
+                        <span
+                          v-if="dayChangeMarkerPercent"
+                          class="daily-agenda-page__timeline-mark-label daily-agenda-page__timeline-mark-label--day-change"
+                          :style="{ left: dayChangeMarkerPercent }"
+                          >Cambio de día</span
+                        >
+                      </div>
 
-                  <div class="daily-agenda-page__timeline-track">
-                    <div class="daily-agenda-page__timeline-sky" :style="timelineSkyStyle" />
-                    <div
-                      v-for="minute in timelineHalfHourGuides"
-                      :key="`half-${minute}`"
-                      class="daily-agenda-page__timeline-guide"
-                      :style="{ left: timelinePercent(minute) }"
-                    />
+                      <div class="daily-agenda-page__timeline-track">
+                        <div class="daily-agenda-page__timeline-sky" :style="timelineSkyStyle" />
+                        <div
+                          v-for="minute in timelineHalfHourGuides"
+                          :key="`half-${minute}`"
+                          class="daily-agenda-page__timeline-guide"
+                          :style="{ left: timelinePercent(minute) }"
+                        />
 
-                    <div
-                      v-for="tick in timelineTicks"
-                      :key="tick.minute"
-                      class="daily-agenda-page__timeline-tick"
-                      :style="{ left: timelinePercent(tick.minute) }"
-                    />
+                        <div
+                          v-for="tick in timelineTicks"
+                          :key="tick.minute"
+                          class="daily-agenda-page__timeline-tick"
+                          :style="{ left: timelinePercent(tick.minute) }"
+                        />
 
-                    <div
-                      v-if="nowMarkerPercent"
-                      class="daily-agenda-page__timeline-mark daily-agenda-page__timeline-mark--now"
-                      :style="{ left: nowMarkerPercent }"
-                    />
+                        <div
+                          v-if="nowMarkerPercent"
+                          class="daily-agenda-page__timeline-mark daily-agenda-page__timeline-mark--now"
+                          :style="{ left: nowMarkerPercent }"
+                        />
 
-                    <div
-                      v-if="dayChangeMarkerPercent"
-                      class="daily-agenda-page__timeline-mark daily-agenda-page__timeline-mark--day-change"
-                      :style="{ left: dayChangeMarkerPercent }"
-                    />
+                        <div
+                          v-if="dayChangeMarkerPercent"
+                          class="daily-agenda-page__timeline-mark daily-agenda-page__timeline-mark--day-change"
+                          :style="{ left: dayChangeMarkerPercent }"
+                        />
 
-                    <RouterLink
-                      v-for="entry in entries"
-                      :key="`timeline-${entry.id}`"
-                      tabindex="-1"
-                      class="daily-agenda-page__timeline-slip"
-                      :class="{
-                        'daily-agenda-page__timeline-slip--terminal': entry.status !== 'confirmed',
-                        'daily-agenda-page__timeline-slip--current': isEntryInProgress(entry),
-                        'daily-agenda-page__timeline-slip--pending': isEntryPending(entry),
-                        'daily-agenda-page__timeline-slip--completed': entry.status === 'completed',
-                        'daily-agenda-page__timeline-slip--no-show': entry.status === 'no_show',
-                        'daily-agenda-page__timeline-slip--cancelled': isEntryCancelled(entry),
-                        'daily-agenda-page__timeline-slip--expanded': expandedSlipId === entry.id,
-                        'daily-agenda-page__timeline-slip--end':
-                          timelineSlipStyle(entry).right !== undefined,
-                      }"
-                      :style="timelineSlipStyle(entry)"
-                      :to="{
-                        name: 'agenda-detalle-turno',
-                        params: { appointmentId: entry.id },
-                        query: withQuery({}),
-                      }"
-                      @pointerdown="onSlipPointerDown"
-                      @click.capture="onSlipClick($event, entry.id)"
-                    >
-                      <span class="daily-agenda-page__timeline-slip-time">{{
-                        timelineSlipWidthPx(entry) >= TIMELINE_SLIP_RANGE_PX ||
-                        expandedSlipId === entry.id
-                          ? entryTimeRange(entry)
-                          : entryTime(entry)
-                      }}</span>
-                      <span
-                        v-if="timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id"
-                        class="daily-agenda-page__timeline-slip-name"
-                        >{{ entry.attendeeName }}</span
-                      >
-                      <span v-else class="daily-agenda-page__timeline-slip-initial">{{
-                        entry.attendeeName.trim().slice(0, 1).toUpperCase()
-                      }}</span>
-                      <span
-                        v-if="timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id"
-                        class="daily-agenda-page__timeline-slip-service"
-                        >{{ entry.serviceName }}</span
-                      >
-                    </RouterLink>
+                        <RouterLink
+                          v-for="entry in entries"
+                          :key="`timeline-${entry.id}`"
+                          tabindex="-1"
+                          class="daily-agenda-page__timeline-slip"
+                          :class="{
+                            'daily-agenda-page__timeline-slip--terminal':
+                              entry.status !== 'confirmed',
+                            'daily-agenda-page__timeline-slip--current': isEntryInProgress(entry),
+                            'daily-agenda-page__timeline-slip--pending': isEntryPending(entry),
+                            'daily-agenda-page__timeline-slip--completed':
+                              entry.status === 'completed',
+                            'daily-agenda-page__timeline-slip--no-show': entry.status === 'no_show',
+                            'daily-agenda-page__timeline-slip--cancelled': isEntryCancelled(entry),
+                            'daily-agenda-page__timeline-slip--expanded':
+                              expandedSlipId === entry.id,
+                            'daily-agenda-page__timeline-slip--end':
+                              timelineSlipStyle(entry).right !== undefined,
+                          }"
+                          :style="timelineSlipStyle(entry)"
+                          :to="{
+                            name: 'agenda-detalle-turno',
+                            params: { appointmentId: entry.id },
+                            query: withQuery({}),
+                          }"
+                          @pointerdown="onSlipPointerDown"
+                          @click.capture="onSlipClick($event, entry.id)"
+                        >
+                          <span class="daily-agenda-page__timeline-slip-time">{{
+                            timelineSlipWidthPx(entry) >= TIMELINE_SLIP_RANGE_PX ||
+                            expandedSlipId === entry.id
+                              ? entryTimeRange(entry)
+                              : entryTime(entry)
+                          }}</span>
+                          <span
+                            v-if="
+                              timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id
+                            "
+                            class="daily-agenda-page__timeline-slip-name"
+                            >{{ entry.attendeeName }}</span
+                          >
+                          <span v-else class="daily-agenda-page__timeline-slip-initial">{{
+                            entry.attendeeName.trim().slice(0, 1).toUpperCase()
+                          }}</span>
+                          <span
+                            v-if="
+                              timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id
+                            "
+                            class="daily-agenda-page__timeline-slip-service"
+                            >{{ entry.serviceName }}</span
+                          >
+                        </RouterLink>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- Evento 09: día válido sin turnos. La libreta en blanco (#809,
+                <!-- Evento 09: día válido sin turnos. La libreta en blanco (#809,
                  DEC-189): la regla del día, sin rombos, y la hoja con sus
                  renglones y el margen de latón. «Nuevo turno» ya está en la
                  cabecera: aquí no se repite (una sola acción principal). Con
                  el carril visible (escritorio, hoy) la regla va sobre el
                  carril, como en G3, y aquí se oculta. -->
-            <div v-if="entries.length === 0" class="daily-agenda-page__blank">
-              <!-- El mensaje va antes que la regla: es lo que se lee primero y, en
+                <div v-if="entries.length === 0" class="daily-agenda-page__blank">
+                  <!-- El mensaje va antes que la regla: es lo que se lee primero y, en
                    el teléfono, lo que debe quedar sobre el dock (#809). Desde
                    768 px la regla sube por CSS, como en G3. -->
-              <div class="daily-agenda-page__blank-page">
-                <p class="daily-agenda-page__blank-title">
-                  No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
-                </p>
-                <p class="daily-agenda-page__blank-hint">
-                  Cuando alguien reserve o registres un turno, aparecerá aquí.
-                </p>
-              </div>
-              <DayRuler
-                v-if="blankRuler"
-                class="daily-agenda-page__blank-ruler"
-                :class="{ 'daily-agenda-page__blank-ruler--lane': timelineBounds }"
-                size="compact"
-                :from="blankRuler.from"
-                :to="blankRuler.to"
-                :now="stripNowMinute"
-                :label="blankRuler.label"
-              />
-            </div>
+                  <div class="daily-agenda-page__blank-page">
+                    <p class="daily-agenda-page__blank-title">
+                      No hay turnos para {{ selectedProfessional?.fullName }}
+                      {{ emptyStateDateText }}.
+                    </p>
+                    <p class="daily-agenda-page__blank-hint">
+                      Cuando alguien reserve o registres un turno, aparecerá aquí.
+                    </p>
+                  </div>
+                  <DayRuler
+                    v-if="blankRuler"
+                    class="daily-agenda-page__blank-ruler"
+                    :class="{ 'daily-agenda-page__blank-ruler--lane': timelineBounds }"
+                    size="compact"
+                    :from="blankRuler.from"
+                    :to="blankRuler.to"
+                    :now="stripNowMinute"
+                    :label="blankRuler.label"
+                  />
+                </div>
 
-            <DaylightStrip
-              v-if="entries.length > 0 && stripWindow"
-              class="daily-agenda-page__strip"
-              variant="band"
-              :open="[]"
-              :window="stripWindow"
-              :marks="stripMarks"
-              :now="stripNowMinute"
-              @mark="focusEntry"
-            />
+                <DaylightStrip
+                  v-if="entries.length > 0 && stripWindow"
+                  class="daily-agenda-page__strip"
+                  variant="band"
+                  :open="[]"
+                  :window="stripWindow"
+                  :marks="stripMarks"
+                  :now="stripNowMinute"
+                  @mark="focusEntry"
+                />
 
-            <ul
-              v-if="entries.length > 0"
-              ref="entryList"
-              :key="`${selectedProfessionalId}-${selectedDate}`"
-              class="daily-agenda-page__list"
-              :aria-label="`Turnos de ${selectedProfessional?.fullName}`"
-            >
-              <template v-for="(entry, index) in entries" :key="entry.id">
-                <li v-if="index === nowSeparatorIndex" class="daily-agenda-page__now">
-                  {{ nowSeparatorLabel }}
-                </li>
-                <li
-                  :data-entry-id="entry.id"
-                  class="daily-agenda-page__item nv-stagger"
-                  :style="{ '--i': index }"
-                  :class="{
-                    'daily-agenda-page__item--terminal': entry.status !== 'confirmed',
-                    'daily-agenda-page__item--current': isEntryInProgress(entry),
-                    'daily-agenda-page__item--pending': isEntryPending(entry),
-                    'daily-agenda-page__item--completed': entry.status === 'completed',
-                    'daily-agenda-page__item--no-show': entry.status === 'no_show',
-                    'daily-agenda-page__item--cancelled': isEntryCancelled(entry),
-                  }"
+                <ul
+                  v-if="entries.length > 0"
+                  ref="entryList"
+                  :key="`${selectedProfessionalId}-${selectedDate}`"
+                  class="daily-agenda-page__list"
+                  :aria-label="`Turnos de ${selectedProfessional?.fullName}`"
                 >
-                  <RouterLink
-                    class="daily-agenda-page__item-main"
-                    :to="{
-                      name: 'agenda-detalle-turno',
-                      params: { appointmentId: entry.id },
-                      query: withQuery({}),
-                    }"
-                  >
-                    <span class="daily-agenda-page__item-time"
-                      ><span class="daily-agenda-page__item-start"
-                        >{{ listTimes.get(entry.id)?.start
-                        }}<small v-if="listTimes.get(entry.id)?.startPeriod">{{
-                          ` ${listTimes.get(entry.id)?.startPeriod}`
-                        }}</small></span
-                      ><span class="daily-agenda-page__item-end"
-                        ><span class="daily-agenda-page__item-until">{{
-                          ` – ${listTimes.get(entry.id)?.end}`
-                        }}</span
-                        >{{ ' '
-                        }}<span class="daily-agenda-page__item-period">{{
-                          listTimes.get(entry.id)?.endPeriod
-                        }}</span></span
-                      ></span
+                  <template v-for="(entry, index) in entries" :key="entry.id">
+                    <li v-if="index === nowSeparatorIndex" class="daily-agenda-page__now">
+                      {{ nowSeparatorLabel }}
+                    </li>
+                    <li
+                      :data-entry-id="entry.id"
+                      class="daily-agenda-page__item nv-stagger"
+                      :style="{ '--i': index }"
+                      :class="{
+                        'daily-agenda-page__item--terminal': entry.status !== 'confirmed',
+                        'daily-agenda-page__item--current': isEntryInProgress(entry),
+                        'daily-agenda-page__item--pending': isEntryPending(entry),
+                        'daily-agenda-page__item--completed': entry.status === 'completed',
+                        'daily-agenda-page__item--no-show': entry.status === 'no_show',
+                        'daily-agenda-page__item--cancelled': isEntryCancelled(entry),
+                      }"
                     >
-                    <span class="daily-agenda-page__item-details">
-                      <span class="daily-agenda-page__item-name">{{ entry.attendeeName }}</span>
-                      <span class="daily-agenda-page__item-service"
-                        >{{ entry.serviceName
-                        }}<template v-if="entry.homeService"> · A domicilio</template></span
+                      <RouterLink
+                        class="daily-agenda-page__item-main"
+                        :to="{
+                          name: 'agenda-detalle-turno',
+                          params: { appointmentId: entry.id },
+                          query: withQuery({}),
+                        }"
                       >
-                    </span>
-                  </RouterLink>
-                  <BaseBadge
-                    :variant="statusBadgeVariant(entry)"
-                    size="sm"
-                    :label="statusLabel(entry)"
-                  >
-                    {{ statusLabel(entry) }}
-                  </BaseBadge>
-                </li>
+                        <span class="daily-agenda-page__item-time"
+                          ><span class="daily-agenda-page__item-start"
+                            >{{ listTimes.get(entry.id)?.start
+                            }}<small v-if="listTimes.get(entry.id)?.startPeriod">{{
+                              ` ${listTimes.get(entry.id)?.startPeriod}`
+                            }}</small></span
+                          ><span class="daily-agenda-page__item-end"
+                            ><span class="daily-agenda-page__item-until">{{
+                              ` – ${listTimes.get(entry.id)?.end}`
+                            }}</span
+                            >{{ ' '
+                            }}<span class="daily-agenda-page__item-period">{{
+                              listTimes.get(entry.id)?.endPeriod
+                            }}</span></span
+                          ></span
+                        >
+                        <span class="daily-agenda-page__item-details">
+                          <span class="daily-agenda-page__item-name">{{ entry.attendeeName }}</span>
+                          <span class="daily-agenda-page__item-service"
+                            >{{ entry.serviceName
+                            }}<template v-if="entry.homeService"> · A domicilio</template></span
+                          >
+                        </span>
+                      </RouterLink>
+                      <BaseBadge
+                        :variant="statusBadgeVariant(entry)"
+                        size="sm"
+                        :label="statusLabel(entry)"
+                      >
+                        {{ statusLabel(entry) }}
+                      </BaseBadge>
+                    </li>
+                  </template>
+                  <li v-if="nowSeparatorIndex === entries.length" class="daily-agenda-page__now">
+                    {{ nowSeparatorLabel }}
+                  </li>
+                </ul>
               </template>
-              <li v-if="nowSeparatorIndex === entries.length" class="daily-agenda-page__now">
-                {{ nowSeparatorLabel }}
-              </li>
-            </ul>
+            </template>
           </template>
         </template>
-      </template>
-    </template>
+      </div>
+    </ContentReveal>
   </section>
 </template>
 
@@ -1753,10 +1863,93 @@ const dayChangeMarkerPercent = computed(() => {
   }
 }
 
-.daily-agenda-page__loading {
+.daily-agenda-page__stage,
+.daily-agenda-page__body {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* La tapa y el contenido comparten la celda (ContentReveal); los dos llenan el
+   alto que queda bajo la cabecera, para que la lista siga siendo la única
+   región con scroll (issue #189). */
+.daily-agenda-page__stage {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.daily-agenda-page__stage > :deep(.daily-agenda-page__body),
+.daily-agenda-page__stage > :deep(.content-reveal__cover) {
+  align-self: stretch;
+  min-height: 0;
+}
+
+.daily-agenda-page__body,
+.daily-agenda-page__cover {
   display: flex;
-  flex: 1;
   flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+/* La silueta de los controles: mismas cajas que los reales (rótulo de 16 px y
+   campo del alto de control), en el tono de AgendaSkeleton. */
+.daily-agenda-page__skel {
+  display: block;
+  background-color: color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+  border-radius: var(--radius-lg);
+}
+
+.daily-agenda-page__skel--label {
+  width: 72px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+}
+
+.daily-agenda-page__skel--field {
+  height: 44px;
+}
+
+.daily-agenda-page__skel--step {
+  flex: none;
+  height: var(--control-height);
+}
+
+.daily-agenda-page__skel--date,
+.daily-agenda-page__skel--zone {
+  display: inline-block;
+  max-width: 100%;
+  height: 12px;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+}
+
+/* Lo que miden «martes, 24 de noviembre de 2026» y « · Hora de Colombia». */
+.daily-agenda-page__skel--date {
+  width: 210px;
+  margin-right: 10px;
+}
+
+.daily-agenda-page__skel--zone {
+  width: 120px;
+}
+
+.daily-agenda-page__skel--cta {
+  height: 44px;
+}
+
+/* En escritorio, el ancho de «Anterior», «Siguiente» y «Nuevo turno»; debajo,
+   la rejilla de la fecha y el ancho completo ya les dan su caja. */
+@media (min-width: 1024px) {
+  .daily-agenda-page__skel--step:first-child {
+    width: 109px;
+  }
+
+  .daily-agenda-page__skel--step:last-child {
+    width: 117px;
+  }
+
+  .daily-agenda-page__skel--cta {
+    width: 126px;
+  }
 }
 
 /* ── Profesional y fecha ──────────────────────────────────────────────── */
