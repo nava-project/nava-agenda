@@ -263,31 +263,67 @@ describe('ProfessionalServicesPage', () => {
 
   // Issue #575: cambiar de persona vaciaba la ficha y la tabla y la pantalla
   // saltaba. Ahora la tabla anterior queda debajo de un velo de carga, inerte.
-  it('keeps the previous catalog in place, inert, under a loading veil while switching professionals', async () => {
-    const wrapper = await mountReady(fourProfessionals, twoServices, ['s-1'])
+  describe('el velo al cambiar de profesional (#841: asoma a los LOADER_APPEAR_MS)', () => {
+    // Montada con el reloj real (la gracia del doble es instantánea); después se
+    // controla solo el temporizador del velo.
+    afterEach(() => vi.useRealTimers())
 
-    let resolveAssignments: (value: unknown) => void = () => {}
-    fetchAssignmentsMock.mockReturnValueOnce(
-      new Promise((resolve) => (resolveAssignments = resolve)),
-    )
-    await chooseProfessional(wrapper, fourProfessionals[1]!.fullName)
+    async function switchPending() {
+      const wrapper = await mountReady(fourProfessionals, twoServices, ['s-1'])
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      let resolveAssignments: (value: unknown) => void = () => {}
+      fetchAssignmentsMock.mockReturnValueOnce(
+        new Promise((resolve) => (resolveAssignments = resolve)),
+      )
+      await chooseProfessional(wrapper, fourProfessionals[1]!.fullName)
+      await flushPromises()
+      return { wrapper, resolve: resolveAssignments }
+    }
 
-    const fieldset = wrapper.find('fieldset')
-    expect(fieldset.exists()).toBe(true)
-    expect(fieldset.attributes('inert')).toBeDefined()
-    expect(wrapper.find('.professional-services-page__panel').attributes('aria-busy')).toBe('true')
-    expect(wrapper.find('[role="status"]').text()).toContain(
-      `Cargando los servicios de ${fourProfessionals[1]!.fullName}`,
-    )
+    it('keeps the previous catalog in place, inert, and covers it with the veil once the wait passes 300 ms', async () => {
+      const { wrapper, resolve } = await switchPending()
 
-    resolveAssignments({ kind: 'success', page: { items: [], nextCursor: null } })
-    await flushPromises()
+      const fieldset = wrapper.find('fieldset')
+      expect(fieldset.exists()).toBe(true)
+      expect(fieldset.attributes('inert')).toBeDefined()
+      expect(wrapper.find('.professional-services-page__panel').attributes('aria-busy')).toBe(
+        'true',
+      )
+      // Todavía no asoma: una respuesta rápida no debe pintar nada.
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
 
-    expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
-    expect(
-      wrapper.find('.professional-services-page__panel').attributes('aria-busy'),
-    ).toBeUndefined()
-    expect(checkbox(wrapper, 's-1').checked).toBe(false)
+      await vi.advanceTimersByTimeAsync(300)
+      expect(wrapper.find('[role="status"]').text()).toContain(
+        `Cargando los servicios de ${fourProfessionals[1]!.fullName}`,
+      )
+      expect(wrapper.find('fieldset').classes()).toContain(
+        'professional-services-page__fieldset--dimmed',
+      )
+
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+
+      expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
+      expect(
+        wrapper.find('.professional-services-page__panel').attributes('aria-busy'),
+      ).toBeUndefined()
+      expect(checkbox(wrapper, 's-1').checked).toBe(false)
+    })
+
+    it('never mounts the veil nor dims the catalog when the answer arrives before 300 ms', async () => {
+      const { wrapper, resolve } = await switchPending()
+      await vi.advanceTimersByTimeAsync(200)
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
+      expect(wrapper.find('fieldset').classes()).not.toContain(
+        'professional-services-page__fieldset--dimmed',
+      )
+      expect(wrapper.get('.professional-services-page__meter').classes()).not.toContain(
+        'professional-services-page__meter--busy',
+      )
+    })
   })
 
   it('checking a box assigns the service and reflects success only after the server responds', async () => {

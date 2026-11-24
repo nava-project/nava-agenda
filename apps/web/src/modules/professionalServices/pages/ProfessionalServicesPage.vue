@@ -14,7 +14,7 @@
 // puede retirar a cualquier profesional, también al último de un servicio (DEC-114). Cada asignación o retiro
 // confirmado añade un aviso emergente (DEC-095); el error sigue en línea.
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
-import { useLoaderGrace, useToast, useVocabulary } from '@/shared/composables'
+import { LOADER_APPEAR_MS, useLoaderGrace, useToast, useVocabulary } from '@/shared/composables'
 import { capitalize, isEmployeeProfile, worksOwnProfessional } from '@/shared/model'
 import {
   BaseAlert,
@@ -66,6 +66,7 @@ const firstReady = ref(false)
 // La tabla anterior sigue debajo (atenuada e inerte), así cambiar de persona no
 // vacía la pantalla ni la hace saltar de alto.
 const catalogBusy = computed(() => assignmentsStatus.value === 'loading' || fitPending.value)
+
 // Primera carga: todavía no hay asignaciones reales que mostrar debajo del velo.
 const hasShownAssignments = ref(false)
 
@@ -93,6 +94,27 @@ const MIN_FIT_ROWS = 4
 const currentPage = ref(1)
 const pageSize = ref(FALLBACK_PAGE_SIZE)
 const fitPending = ref(true)
+
+// El velo y la atenuación asoman solo si la espera pasa de LOADER_APPEAR_MS, con
+// un temporizador y no con un transition-delay: si la respuesta llegaba antes,
+// Vue cancelaba la entrada y la salida partía de opacidad 1, un destello de
+// ~130 ms (#841, medido en Chromium y Firefox). Antes de la primera revelación
+// ya está a la vista el cargador de entrada.
+const veilShown = ref(false)
+let veilTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => catalogBusy.value && firstReady.value,
+  (busy) => {
+    clearTimeout(veilTimer)
+    veilTimer = undefined
+    if (!busy) {
+      veilShown.value = false
+      return
+    }
+    veilTimer = setTimeout(() => (veilShown.value = true), LOADER_APPEAR_MS)
+  },
+)
+
 const pageRef = ref<HTMLElement | null>(null)
 const listRef = ref<HTMLElement | null>(null)
 const footerRef = ref<HTMLElement | null>(null)
@@ -186,6 +208,7 @@ onUnmounted(() => {
   observer?.disconnect()
   window.removeEventListener('resize', scheduleFit)
   if (resizeTimer !== undefined) clearTimeout(resizeTimer)
+  clearTimeout(veilTimer)
 })
 
 async function loadPage() {
@@ -490,7 +513,9 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
                atenúa, así la ficha conserva su alto. -->
           <div
             class="professional-services-page__meter"
-            :class="{ 'professional-services-page__meter--busy': assignmentsStatus !== 'ready' }"
+            :class="{
+              'professional-services-page__meter--busy': veilShown || assignmentsStatus === 'error',
+            }"
             role="group"
             aria-label="Servicios asignados"
           >
@@ -520,7 +545,7 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
         >
           <Transition name="professional-services-veil">
             <div
-              v-if="catalogBusy && assignmentsStatus !== 'error'"
+              v-if="veilShown && assignmentsStatus !== 'error'"
               class="professional-services-page__veil"
               role="status"
               aria-live="polite"
@@ -554,7 +579,7 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
             class="professional-services-page__fieldset"
             :class="{
               'professional-services-page__fieldset--hidden': !hasShownAssignments,
-              'professional-services-page__fieldset--dimmed': hasShownAssignments && catalogBusy,
+              'professional-services-page__fieldset--dimmed': hasShownAssignments && veilShown,
             }"
             :inert="catalogBusy || undefined"
           >
@@ -947,8 +972,6 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
 
 .professional-services-page__fieldset--dimmed {
   opacity: 0.22;
-  /* Mismo retraso que el velo: una respuesta rápida no llega a atenuar. */
-  transition-delay: 300ms;
 }
 
 .professional-services-page__veil {
@@ -962,11 +985,11 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
   backdrop-filter: blur(2px);
 }
 
-/* El velo entra a los 300 ms, cuando asoma el cargador (LOADER_APPEAR_MS de
-   useLoaderGrace): si la respuesta llega antes, nunca se pinta; si asomó, la
-   gracia lo deja a la vista lo bastante para leerse (#841, CA-9). */
+/* El velo se monta a los LOADER_APPEAR_MS (veilShown): si la respuesta llega
+   antes, nunca se pinta; si asomó, la gracia lo deja a la vista lo bastante
+   para leerse (#841, CA-9). */
 .professional-services-veil-enter-active {
-  transition: opacity 180ms var(--motion-easing-standard) 300ms;
+  transition: opacity 180ms var(--motion-easing-standard);
 }
 
 .professional-services-veil-leave-active {
