@@ -1167,6 +1167,7 @@ const editPreview = computed(() =>
           class="schedules-page__stats"
           :class="{ 'schedules-page__stats--busy': veilShown }"
           :aria-busy="statsPending || undefined"
+          :inert="veilShown || undefined"
         >
           <div>
             <dt>Horas por semana</dt>

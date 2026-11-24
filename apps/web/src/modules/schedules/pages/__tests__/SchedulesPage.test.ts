@@ -340,9 +340,12 @@ describe('SchedulesPage', () => {
       expect(wrapper.get('.schedules-page__board').attributes('inert')).toBeDefined()
       expect(veil(wrapper)).toBe(false)
       expect(dimmed(wrapper)).toBe(false)
+      expect(wrapper.get('.schedules-page__stats').attributes('inert')).toBeUndefined()
       await vi.advanceTimersByTimeAsync(300)
       expect(veil(wrapper)).toBe(true)
       expect(dimmed(wrapper)).toBe(true)
+      // Las cifras atenuadas son contenido inactivo mientras tanto, como el tablero.
+      expect(wrapper.get('.schedules-page__stats').attributes('inert')).toBeDefined()
       arrive()
       await flushPromises()
       wrapper.unmount()
