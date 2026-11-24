@@ -11,9 +11,17 @@ export interface BookingChrome {
    * completa y el enlace de retorno deja de ofrecerse, porque volver atrás
    * ya no cambiaría nada. */
   completed: Ref<boolean>
+  /** Dónde se acopla, en el teléfono, la barra fija de una pantalla (el pase
+   * de «Día y hora», H9 #827): fuera del `main` que se desliza al entrar. */
+  fixedDock?: string
 }
 
 export const bookingChromeKey: InjectionKey<BookingChrome> = Symbol('bookingChrome')
+
+/** El destino de la barra fija, o `null` sin cascarón. */
+export function bookingFixedDock(): string | null {
+  return inject(bookingChromeKey, null)?.fixedDock ?? null
+}
 
 export function useBookingChrome(): BookingChrome {
   const chrome = inject(bookingChromeKey, null) ?? { completed: ref(false) }

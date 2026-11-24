@@ -355,4 +355,15 @@ describe('PublicBookingLayout · cambio de paso (#820)', () => {
       /\.bk:has\(> main\[aria-busy='true'\]\) > \.bk-foot \{\s*visibility: hidden;\s*\}/,
     )
   })
+
+  // H9 (#827): la barra fija del teléfono se acopla fuera del `main` que se
+  // desliza al entrar el paso, antes del pie, sin caja propia.
+  it('offers a dock for the fixed bar outside the sliding main, with no box of its own', async () => {
+    const { wrapper } = await mountAt(`/reservar/b/servicios/${SERVICE}/horario`)
+    const dock = wrapper.get('.bk > .bk-fixed-dock').element
+    expect(dock.closest('main')).toBeNull()
+    expect(dock.nextElementSibling?.matches('footer.bk-foot')).toBe(true)
+    const css = readFileSync(resolve(__dirname, '../../styles/bookingV2.css'), 'utf8')
+    expect(css).toMatch(/\.bk-fixed-dock \{\s*display: contents;\s*\}/)
+  })
 })

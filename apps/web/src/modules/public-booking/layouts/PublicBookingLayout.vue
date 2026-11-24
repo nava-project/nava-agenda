@@ -31,7 +31,12 @@ import '../styles/bookingV2.css'
 const route = useRoute()
 
 const completed = ref(false)
-provide(bookingChromeKey, { completed })
+// La barra fija del teléfono (el pase) se acopla aquí, fuera del `main` que
+// se desliza al entrar el paso: un `transform` en un antepasado convierte a
+// ese antepasado en el bloque contenedor de lo fijo, y el pase se iba al pie
+// de la página durante el deslizamiento (H9, #827).
+const FIXED_DOCK_CLASS = 'bk-fixed-dock'
+provide(bookingChromeKey, { completed, fixedDock: `.${FIXED_DOCK_CLASS}` })
 
 // Vocabulario del negocio (DEC-119): se lee una vez del perfil público del enlace
 // y se ofrece a todas las pantallas, que pueden abrirse directamente desde un enlace.
@@ -275,6 +280,7 @@ const arriving = arrival.arriving
         <component :is="Component" :key="String(current.name)" />
       </Transition>
     </RouterView>
+    <div :class="FIXED_DOCK_CLASS" />
 
     <!-- El negocio lleva la jerarquía; NAVA solo firma al pie y lleva a su
          banda en nava.wtf, para que nadie crea que reserva en «NAVA». -->
