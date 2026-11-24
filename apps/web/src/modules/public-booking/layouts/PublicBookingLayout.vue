@@ -3,13 +3,14 @@
 // entre ellas lo que no debe reiniciarse: la cabecera con el negocio, el enlace
 // de retorno, los pasos y la firma. Cada pantalla conserva su propio `<main>`, su
 // estado y su `<h1>`; el cascarón solo aporta el marco (el `<header>` es el
-// único landmark de banner) y la transición de entrada/salida entre pasos.
+// único landmark de banner), la transición entre pasos y el foco al cambiar de
+// paso.
 //
 // v2 «La luz del día» (DEC-188): sigue al modo del sistema (Día/Noche), lleva el
 // color de SU negocio (DEC-171, «que mande el negocio») y el nombre del negocio
 // es la jerarquía principal; NAVA solo firma al pie (estandar-diseno-visual.md
 // §3.2). Tres pasos: Servicio → Día y hora → Tus datos, y la confirmación.
-import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, type RouteLocationRaw } from 'vue-router'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { NAVA_PRIVACY_URL, NAVA_TERMS_URL } from '@/shared/model/navaSite'
@@ -118,9 +119,9 @@ const entry = computed<RouteLocationRaw>(() => ({
   params: { slug: currentSlug.value },
 }))
 
-// La página sale hacia el lado contrario al volver atrás. Se decide con
-// `flush: 'sync'` para que el nombre de la transición ya sea el correcto
-// cuando Vue pinta la pantalla que sale.
+// La página entra desde el lado del paso: adelante desde la derecha, atrás
+// desde la izquierda. Se decide con `flush: 'sync'` para que el nombre de la
+// transición ya sea el correcto cuando Vue monta la pantalla que entra.
 const direction = ref<'forward' | 'back'>('forward')
 watch(
   step,
@@ -129,6 +130,75 @@ watch(
   },
   { flush: 'sync' },
 )
+
+// Sin `mode="out-in"` y sin fundido de salida (#820, F3): antes la pantalla
+// que se iba se desvanecía hasta 0 y solo entonces entraba la siguiente,
+// también desde 0, y la reserva quedaba medio segundo en blanco. Ahora la
+// que se va sale en el mismo cuadro en que entra la nueva (nunca hay dos
+// `<main>` a la vez) y la nueva, ya opaca, solo se desliza 22 px.
+function leaveAtOnce(_el: Element, done: () => void): void {
+  done()
+}
+
+// El foco al cambiar de paso (#820). El enlace o el botón que llevó al paso
+// siguiente desaparece con su pantalla y el foco caería en <body>: el teclado
+// volvería a empezar desde la cabecera y el lector de pantalla no diría nada.
+// Se lleva al título de la pantalla nueva cuando ya tiene su contenido (no
+// mientras carga, que se cambiaría enseguida), solo si nadie movió el foco
+// entretanto. Al abrir el enlace no se toca, tampoco si la entrada salta sola
+// a «Día y hora» (un único servicio): sin una tecla o un toque de la persona,
+// manda el navegador.
+const root = ref<HTMLElement | null>(null)
+let interacted = false
+function noteInteraction(): void {
+  interacted = true
+}
+let stepFocusWatch: MutationObserver | null = null
+let stepFocusTimer: ReturnType<typeof setTimeout> | undefined
+
+function stopStepFocus(): void {
+  stepFocusWatch?.disconnect()
+  stepFocusWatch = null
+  clearTimeout(stepFocusTimer)
+}
+
+function focusLost(): boolean {
+  const active = document.activeElement
+  return !active || active === document.body || !active.isConnected
+}
+
+function tryStepFocus(): boolean {
+  const heading = root.value?.querySelector<HTMLElement>('main:not([aria-busy="true"]) h1')
+  if (!heading) return false
+  if (focusLost()) {
+    if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1')
+    heading.setAttribute('data-step-focus', '')
+    heading.focus({ preventScroll: true })
+  }
+  return true
+}
+
+watch(
+  () => route.name,
+  async (name, previous) => {
+    stopStepFocus()
+    if (!interacted || previous === undefined || name === previous) return
+    await nextTick()
+    if (tryStepFocus() || !root.value) return
+    stepFocusWatch = new MutationObserver(() => {
+      if (tryStepFocus()) stopStepFocus()
+    })
+    stepFocusWatch.observe(root.value, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-busy'],
+    })
+    // Una carga que nunca termina no deja el observador colgado.
+    stepFocusTimer = setTimeout(stopStepFocus, 20_000)
+  },
+)
+onBeforeUnmount(stopStepFocus)
 
 // Llegada (DEC-188): un solo momento al abrir el enlace. La pantalla que se
 // abre la empieza cuando ya tiene su contenido (no durante la carga); un clic
@@ -139,7 +209,13 @@ const arriving = arrival.arriving
 </script>
 
 <template>
-  <div class="pb-layout bk" :class="{ 'bk--arrive': arriving }">
+  <div
+    ref="root"
+    class="pb-layout bk"
+    :class="{ 'bk--arrive': arriving }"
+    @pointerdown.capture="noteInteraction"
+    @keydown.capture="noteInteraction"
+  >
     <header class="bk-top">
       <div class="bk-top__inner">
         <div v-if="back" class="bk-top__lead">
@@ -195,7 +271,7 @@ const arriving = arrival.arriving
       <DiamondLoader layout="overlay" label="Abriendo la reserva…" announce />
     </main>
     <RouterView v-else v-slot="{ Component, route: current }">
-      <Transition :name="`pb-step-${direction}`" mode="out-in">
+      <Transition :name="`pb-step-${direction}`" @leave="leaveAtOnce">
         <component :is="Component" :key="String(current.name)" />
       </Transition>
     </RouterView>

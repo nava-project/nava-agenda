@@ -23,6 +23,11 @@ export function loadPublicServices(slug: string): Promise<ListPublicServicesOutc
   return request
 }
 
+/** El catálogo ya leído del enlace, o `null` si aún no se leyó (#820). */
+export function publicServicesFor(slug: string): PublicService[] | null {
+  return servicesBySlug.get(slug) ?? null
+}
+
 /** Solo para pruebas: olvida lo leído. */
 export function resetPublicServicesCache(): void {
   servicesBySlug.clear()

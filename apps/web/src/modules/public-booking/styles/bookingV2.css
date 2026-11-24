@@ -1816,7 +1816,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bk *,
+  /* El cargador conserva su animación: base.css la deja en 0,01 ms y así
+     mantiene el retardo de 300 ms. Sin ella asomaba desde el primer cuadro y
+     destellaba en cada respuesta rápida (#820). */
+  .bk *:not(.diamond-loader),
   .bk-skel {
     transition: none !important;
     animation: none !important;

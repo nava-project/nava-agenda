@@ -164,34 +164,28 @@
   order: 2;
 }
 
-/* Un paso adelante entra desde la derecha y uno atrás desde la izquierda. El
-   que sale solo se desvanece: sin `transform` en la salida, un elemento
-   `sticky` (la barra de acción) no salta mientras se retira. */
+/* Un paso adelante entra desde la derecha y uno atrás desde la izquierda,
+   ya opaco: solo se desliza (#820, F3). La pantalla que sale no tiene
+   transición; el cascarón la retira en el mismo cuadro (`leaveAtOnce`), así
+   la reserva nunca queda en blanco entre dos pasos. Con movimiento reducido
+   base.css deja la transición en 0,01 ms. */
 .pb-step-forward-enter-active,
 .pb-step-back-enter-active {
-  transition:
-    opacity 360ms var(--pb-ease),
-    transform 360ms var(--pb-ease);
-}
-
-.pb-step-forward-leave-active,
-.pb-step-back-leave-active {
-  transition: opacity 140ms ease;
+  transition: transform 360ms var(--pb-ease);
 }
 
 .pb-step-forward-enter-from {
-  opacity: 0;
   transform: translateX(22px);
 }
 
 .pb-step-back-enter-from {
-  opacity: 0;
   transform: translateX(-22px);
 }
 
-.pb-step-forward-leave-to,
-.pb-step-back-leave-to {
-  opacity: 0;
+/* El título que recibe el foco al cambiar de paso (tabindex -1): es un
+   destino de lectura, no un control; el siguiente Tab sigue desde ahí. */
+.bk h1[data-step-focus]:focus {
+  outline: none;
 }
 
 /* ── Cabecera de pantalla: rótulo, título, regla y entradilla ───────────── */

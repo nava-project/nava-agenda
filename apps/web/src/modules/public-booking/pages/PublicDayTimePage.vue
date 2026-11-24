@@ -19,6 +19,7 @@
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { arrivalKey } from '@/shared/composables/useArrival'
+import { useLoaderGrace } from '@/shared/composables/useLoaderGrace'
 import { formatMoney } from '@/shared/model/money'
 import { DiamondLoader, ProfessionalAvatar, StarRating } from '@/shared/ui'
 import { civilDateChip, formatCivilDateFull } from '@/shared/time/civilDate'
@@ -36,6 +37,7 @@ import {
 } from '../model/daylight'
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
+import { rememberPublicProfessionals } from '../model/publicProfessionals'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import type { PublicServiceSlot } from '../model/publicServiceAvailabilityOutcome'
 import type { PublicService } from '../model/publicServiceListOutcome'
@@ -78,10 +80,13 @@ const activeDate = ref<string | null>(null)
 const selected = ref<DaylightSlot | null>(null)
 
 let requestToken = 0
+// «Cargando las horas libres…» o no asoma o se queda a la vista (#820).
+const loaderGrace = useLoaderGrace()
 
 async function load() {
   const token = ++requestToken
   screenState.value = { status: 'loading' }
+  loaderGrace.start()
   selected.value = null
   activeDate.value = null
 
@@ -92,6 +97,8 @@ async function load() {
     // El horario del local pinta la franja; si falla, la franja usa las horas libres.
     publicProfileFor(props.slug) ? Promise.resolve() : loadPublicProfile(props.slug),
   ])
+  if (token !== requestToken) return
+  await loaderGrace.settled()
   if (token !== requestToken) return
 
   const failed = [availability, professionals, services].find((o) => o.kind !== 'success')
@@ -109,6 +116,7 @@ async function load() {
   )
     return
 
+  rememberPublicProfessionals(props.slug, props.serviceId, professionals.professionals)
   arrival?.begin()
   screenState.value = {
     status: 'success',

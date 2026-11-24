@@ -3,6 +3,8 @@
  * la vista y accesible, el diamante dentro del sol decorativo, sin
  * temporizadores, y su región viva solo cuando se pide (`announce`).
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -58,5 +60,13 @@ describe('DiamondLoader', () => {
     })
     expect(await axe(wrapper.element as HTMLElement, axeOptions)).toHaveNoViolations()
     wrapper.unmount()
+  })
+
+  it('keeps its 300 ms delay with reduced motion: it only loses the fade, never flashes (#820)', () => {
+    const source = readFileSync(resolve(__dirname, '../DiamondLoader.vue'), 'utf8')
+    // base.css deja la animación en 0,01 ms y conserva el retardo; quitarla
+    // entera la hacía visible desde el primer cuadro.
+    expect(source).not.toMatch(/animation:\s*none/)
+    expect(source).toMatch(/animation: diamond-loader-in 200ms ease-out 300ms backwards;/)
   })
 })
