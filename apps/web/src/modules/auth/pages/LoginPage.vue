@@ -3,7 +3,7 @@
 // §10): posee estado y navegación; `LoginForm.vue` solo presenta. Traduce
 // `LoginOutcome` (ya libre de detalles de transporte) a texto seguro para
 // el profesional, nunca al revés.
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BaseAlert } from '@/shared/ui'
 import AuthSplitLayout from '../components/AuthSplitLayout.vue'
@@ -17,6 +17,7 @@ import {
   notifyUnexpectedError,
 } from '../model/authFeedback'
 import { resetForFreshLogin } from '../model/sessionStore'
+import { clearSessionMarker } from '../model/sessionMarker'
 import { isSafeInternalRedirect } from '../model/redirectTarget'
 import type { LoginOutcome } from '../model/loginOutcome'
 import type { LoginScreenState } from '../model/loginScreenState'
@@ -37,6 +38,16 @@ const isSubmitting = computed(() => screenState.value.status === 'submitting')
 // de mostrarse en cuanto el profesional reintenta un envío.
 const showSessionExpired = computed(
   () => route.query.motivo === 'sesion-expirada' && screenState.value.status === 'idle',
+)
+
+// El aviso se da una vez (#810): mostrado, la marca de sesión se consume y una
+// próxima visita a una ruta privada sin entrar lleva al acceso normal.
+watch(
+  showSessionExpired,
+  (shown) => {
+    if (shown) clearSessionMarker()
+  },
+  { immediate: true },
 )
 
 // HU-007 (DEC-062): un 429 ofrece el reto telefónico como salida inmediata,
@@ -136,6 +147,18 @@ const onChallengeVerified = () => {
       <p class="au-lead">Tu agenda y tu equipo, en un solo lugar.</p>
     </div>
 
+    <!-- Antes del formulario (#810): primero por qué se está aquí, luego qué
+         hacer, también para el lector de pantalla. -->
+    <BaseAlert
+      v-if="showSessionExpired"
+      variant="info"
+      title="Tu sesión venció"
+      role="status"
+      dismissible
+    >
+      Inicia sesión de nuevo para continuar.
+    </BaseAlert>
+
     <LoginForm
       :email="email"
       :password="password"
@@ -146,16 +169,6 @@ const onChallengeVerified = () => {
       @update:password="(value) => (password = value)"
       @submit="onSubmit"
     />
-
-    <BaseAlert
-      v-if="showSessionExpired"
-      variant="info"
-      title="Tu sesión venció"
-      role="status"
-      dismissible
-    >
-      Inicia sesión de nuevo para continuar.
-    </BaseAlert>
 
     <PhoneChallengeForm
       v-if="showPhoneChallenge"

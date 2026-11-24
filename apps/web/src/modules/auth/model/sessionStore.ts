@@ -10,6 +10,7 @@
 import { computed, reactive, readonly, type DeepReadonly } from 'vue'
 import type { SessionContext } from './sessionContext'
 import { fetchSessionContext } from '../api/sessionContextApi'
+import { markSessionStarted } from './sessionMarker'
 
 /**
  * Estado discriminado y explícito del bootstrap de la aplicación (trabajo
@@ -43,6 +44,9 @@ function setChecking(): void {
 
 function setAuthenticated(ctx: SessionContext): void {
   state.bootstrap = { status: 'authenticated', ...ctx }
+  // Si luego el arranque responde 401, fue una sesión que venció y no
+  // alguien que nunca entró (#810).
+  markSessionStarted()
 }
 
 function setUnauthenticated(): void {

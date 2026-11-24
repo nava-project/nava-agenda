@@ -123,6 +123,28 @@ describe('LoginPage', () => {
     expect(wrapper.text()).toContain('Tu sesión venció')
   })
 
+  it('consumes the session marker once the expiry notice shows (#810)', async () => {
+    window.localStorage.setItem('nava.session.v1', '1')
+    const { wrapper } = await mountPage({ motivo: 'sesion-expirada' })
+    expect(wrapper.get('[role="status"]').text()).toContain('Tu sesión venció')
+    expect(window.localStorage.getItem('nava.session.v1')).toBeNull()
+  })
+
+  it('puts the expiry notice before the form, without taking the focus (#810)', async () => {
+    const { wrapper } = await mountPage({ motivo: 'sesion-expirada' })
+    const notice = wrapper.get('[role="status"]').element
+    const form = wrapper.get('form').element
+    expect(notice.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(notice.contains(document.activeElement)).toBe(false)
+  })
+
+  it('keeps the session marker on a plain visit to /acceso (#810)', async () => {
+    window.localStorage.setItem('nava.session.v1', '1')
+    await mountPage()
+    expect(window.localStorage.getItem('nava.session.v1')).toBe('1')
+    window.localStorage.removeItem('nava.session.v1')
+  })
+
   it('does not show the session-expired message on a plain visit to /acceso', async () => {
     const { wrapper } = await mountPage()
     expect(wrapper.text()).not.toContain('Tu sesión venció')

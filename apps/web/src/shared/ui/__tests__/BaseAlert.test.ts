@@ -116,6 +116,35 @@ describe('BaseAlert', () => {
       expect(wrapper.classes()).toContain('base-alert--dismissible')
     })
 
+    it('never steals or traps the focus: it is a note, not a modal (WCAG 2.1.2, #810)', async () => {
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      const before = document.createElement('input')
+      document.body.insertBefore(before, host)
+      before.focus()
+      const wrapper = mount(BaseAlert, { props: { dismissible: true }, attachTo: host })
+      // Montarse no le quita el foco al campo en el que estaba la persona.
+      expect(document.activeElement).toBe(before)
+      // Tab desde «Descartar» sigue su curso: nadie cancela el evento.
+      const dismiss = wrapper.get<HTMLButtonElement>('.base-alert__dismiss').element
+      dismiss.focus()
+      const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+      dismiss.dispatchEvent(tab)
+      expect(tab.defaultPrevented).toBe(false)
+      wrapper.unmount()
+      before.remove()
+      host.remove()
+    })
+
+    it('dismisses on Escape only with the focus inside the alert (#810)', async () => {
+      const wrapper = mount(BaseAlert, { props: { dismissible: true }, attachTo: document.body })
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      expect(wrapper.emitted('dismiss')).toBeFalsy()
+      await wrapper.get('.base-alert__dismiss').trigger('keydown', { key: 'Escape' })
+      expect(wrapper.emitted('dismiss')).toHaveLength(1)
+      wrapper.unmount()
+    })
+
     it('emits dismiss event when dismiss button clicked', async () => {
       const wrapper = mount(BaseAlert, { props: { dismissible: true } })
       await wrapper.find('.base-alert__dismiss').trigger('click')

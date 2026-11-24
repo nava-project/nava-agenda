@@ -6,6 +6,7 @@
 import type { NavigationGuardWithThis } from 'vue-router'
 import { ensureBootstrapped, sessionState } from '../model/sessionStore'
 import { isSafeInternalRedirect } from '../model/redirectTarget'
+import { hadSessionHere } from '../model/sessionMarker'
 
 export const requireSession: NavigationGuardWithThis<undefined> = async (to) => {
   await ensureBootstrapped()
@@ -17,7 +18,11 @@ export const requireSession: NavigationGuardWithThis<undefined> = async (to) => 
     // interna segura; nunca un destino externo ni un ciclo hacia
     // acceso/logout (trabajo requerido §3).
     const redirect = isSafeInternalRedirect(to.fullPath) ? to.fullPath : undefined
-    return { name: 'acceso', query: redirect ? { redirect } : undefined }
+    // Con la marca de una sesión anterior en este navegador, la sesión venció
+    // y el acceso lo avisa (#810). Sin ella, el acceso normal.
+    const motivo = hadSessionHere() ? 'sesion-expirada' : undefined
+    const query = { ...(motivo && { motivo }), ...(redirect && { redirect }) }
+    return { name: 'acceso', query: Object.keys(query).length > 0 ? query : undefined }
   }
 
   // `connection-lost`: deja entrar a la ruta privada. El cascarón (HU-012)
