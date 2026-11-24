@@ -799,10 +799,73 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.getComponent(DayRuler).props('marks')).toHaveLength(3)
     })
 
-    it('an empty day has no ruler', async () => {
+    it('an empty past day is a blank notebook page: its ruler without marks or Sun (#809)', async () => {
       const { wrapper } = await mountWithFixedDate([])
-      expect(wrapper.findComponent(DayRuler).exists()).toBe(false)
+      // Un día vacío que no es hoy no tiene carril: la regla va en la hoja.
       expect(wrapper.find('.daily-agenda-page__timeline-head').exists()).toBe(false)
+      const rulers = wrapper.findAllComponents(DayRuler)
+      expect(rulers).toHaveLength(1)
+      expect(rulers[0]!.classes()).toContain('daily-agenda-page__blank-ruler')
+      expect(rulers[0]!.props('marks')).toEqual([])
+      expect(rulers[0]!.props('now')).toBeNull()
+      expect(rulers[0]!.props('from')).toBe(6 * 60)
+      expect(rulers[0]!.props('to')).toBe(21 * 60)
+      expect(rulers[0]!.attributes('aria-label')).toBe('Regla del día: sin turnos')
+      expect(wrapper.get('.daily-agenda-page__blank-title').text()).toContain(
+        'No hay turnos para Carlos Ramírez el',
+      )
+    })
+
+    it('an empty today draws the Sun at «now», also on the ruler over the lane (#809)', async () => {
+      // 10:00 a. m. en Bogotá.
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-19T15:00:00Z') })
+      onTestFinished(() => {
+        vi.useRealTimers()
+      })
+      fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+      const { wrapper } = await mountReady()
+
+      const blank = wrapper.getComponent<typeof DayRuler>('.daily-agenda-page__blank-ruler')
+      expect(blank.props('now')).toBe(10 * 60)
+      expect(blank.attributes('aria-label')).toBe('Regla del día: sin turnos; ahora, 10:00 a. m.')
+      // Hoy hay carril: sobre él va la misma regla (G3) y la de la hoja se
+      // oculta en escritorio por su modificador.
+      expect(blank.classes()).toContain('daily-agenda-page__blank-ruler--lane')
+      const head = wrapper.get('.daily-agenda-page__timeline-head')
+      expect(head.findComponent(DayRuler).props('now')).toBe(10 * 60)
+      expect(head.find('.daily-agenda-page__timeline-zoom').exists()).toBe(false)
+    })
+
+    it('opens the blank ruler to include «now» late at night (#809)', async () => {
+      // 10:40 p. m. en Bogotá: fuera de la jornada de 6 a 9.
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-20T03:40:00Z') })
+      onTestFinished(() => {
+        vi.useRealTimers()
+      })
+      fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [] })
+      const { wrapper } = await mountReady()
+      const blank = wrapper.getComponent<typeof DayRuler>('.daily-agenda-page__blank-ruler')
+      expect(blank.props('from')).toBe(6 * 60)
+      expect(blank.props('to')).toBe(24 * 60)
+      expect(blank.props('now')).toBe(22 * 60 + 40)
+    })
+
+    it('keeps a single «Nuevo turno» on an empty day: the header one (#809)', async () => {
+      const { wrapper } = await mountWithFixedDate([])
+      const buttons = wrapper.findAll('button').filter((b) => b.text() === 'Nuevo turno')
+      expect(buttons).toHaveLength(1)
+      expect(buttons[0]!.classes()).toContain('daily-agenda-page__cta')
+      expect(wrapper.find('.daily-agenda-page__blank button').exists()).toBe(false)
+    })
+
+    it('writes the blank page in the serif from 20 px, on brass rules (#809, DEC-189)', () => {
+      const title = /\.daily-agenda-page__blank-title \{([^}]*)\}/.exec(pageSource)?.[1] ?? ''
+      expect(title).toContain('font-family: var(--font-display)')
+      for (const m of pageSource.matchAll(
+        /\.daily-agenda-page__blank-title \{[^}]*font-size: (\d+)px/g,
+      ))
+        expect(Number(m[1])).toBeGreaterThanOrEqual(20)
+      expect(pageSource).toMatch(/--ag-rule-line: color-mix\(in srgb, var\(--color-brass-line\)/)
     })
 
     it('keeps the margin time in the tabular sans: the serif 1 reads as «l» (G3, #802)', () => {

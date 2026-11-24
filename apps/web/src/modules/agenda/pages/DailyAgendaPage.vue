@@ -930,6 +930,33 @@ const dayRuler = computed(() => {
   }
 })
 
+// La regla del día sin turnos (#809, DEC-189): la hoja de libreta en blanco
+// lleva su regla, sin rombos. El Sol marca «ahora» solo si el día mostrado es
+// hoy (stripNowMinute ya es null en cualquier otro día). La ventana es la
+// jornada habitual, de 6 a. m. a 9 p. m., y se abre en horas enteras hasta
+// incluir «ahora» con media hora de aire.
+const BLANK_FROM = 6 * 60
+const BLANK_TO = 21 * 60
+const blankRuler = computed(() => {
+  if (entries.value.length > 0 || !agendaDate.value || !businessTimezone.value) return null
+  const now = stripNowMinute.value
+  const from =
+    now === null ? BLANK_FROM : Math.max(0, Math.min(BLANK_FROM, Math.floor((now - 30) / 60) * 60))
+  const to =
+    now === null ? BLANK_TO : Math.min(24 * 60, Math.max(BLANK_TO, Math.ceil((now + 30) / 60) * 60))
+  const label =
+    now === null
+      ? 'Regla del día: sin turnos'
+      : `Regla del día: sin turnos; ahora, ${formatAgendaTime(new Date().toISOString())}`
+  return { from, to, label }
+})
+
+// Sobre el carril (escritorio, hoy) va la regla de los turnos o, sin turnos, la
+// de la hoja en blanco: el mismo lugar que en G3.
+const headRuler = computed(
+  () => dayRuler.value ?? (blankRuler.value ? { ...blankRuler.value, marks: [] } : null),
+)
+
 // Un toque en una marca lleva a su ficha de la lista y la enfoca.
 const entryList = ref<HTMLElement | null>(null)
 function focusEntry(entryId: string) {
@@ -1193,21 +1220,20 @@ const dayChangeMarkerPercent = computed(() => {
                    que una ficha corta deje de ir en modo compacto. -->
               <!-- Sin turnos no hay fichas que acercar (pedido del propietario,
                    2026-11-15): el zoom se oculta y el carril cabe en el ancho. -->
-              <div v-if="entries.length > 0" class="daily-agenda-page__timeline-head">
+              <div v-if="headRuler" class="daily-agenda-page__timeline-head">
                 <!-- La regla del día ocupa la fila del zoom, que antes quedaba
                      vacía a la izquierda: la vista general no le quita alto a
                      la lista (G3, #802). -->
                 <DayRuler
-                  v-if="dayRuler"
                   class="daily-agenda-page__ruler"
                   size="compact"
-                  :from="dayRuler.from"
-                  :to="dayRuler.to"
-                  :marks="dayRuler.marks"
+                  :from="headRuler.from"
+                  :to="headRuler.to"
+                  :marks="headRuler.marks"
                   :now="stripNowMinute"
-                  :label="dayRuler.label"
+                  :label="headRuler.label"
                 />
-                <div class="daily-agenda-page__timeline-zoom">
+                <div v-if="entries.length > 0" class="daily-agenda-page__timeline-zoom">
                   <button
                     type="button"
                     class="daily-agenda-page__timeline-zoom-btn"
@@ -1369,28 +1395,32 @@ const dayChangeMarkerPercent = computed(() => {
               </div>
             </div>
 
-            <!-- Evento 09: día válido sin turnos. El eje vacío se conserva
-                 (arriba); esta composición local vive dentro del contenido,
-                 no reemplaza la pantalla completa como PageState — por eso
-                 no usa ese componente. "Nuevo turno" vive aquí una sola vez,
-                 no se repite en el encabezado. -->
-            <EmptyScene
-              v-if="entries.length === 0"
-              scene="agenda"
-              class="daily-agenda-page__empty-state"
-            >
-              <template #title>
-                No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
-              </template>
-              <template #hint>
-                Cuando alguien reserve, o registres un turno a mano, aparecerá aquí en su hora.
-              </template>
-              <template #action>
-                <BaseButton type="button" variant="primary" @click="goToNewAppointment">
-                  Nuevo turno
-                </BaseButton>
-              </template>
-            </EmptyScene>
+            <!-- Evento 09: día válido sin turnos. La libreta en blanco (#809,
+                 DEC-189): la regla del día, sin rombos, y la hoja con sus
+                 renglones y el margen de latón. «Nuevo turno» ya está en la
+                 cabecera: aquí no se repite (una sola acción principal). Con
+                 el carril visible (escritorio, hoy) la regla va sobre el
+                 carril, como en G3, y aquí se oculta. -->
+            <div v-if="entries.length === 0" class="daily-agenda-page__blank">
+              <DayRuler
+                v-if="blankRuler"
+                class="daily-agenda-page__blank-ruler"
+                :class="{ 'daily-agenda-page__blank-ruler--lane': timelineBounds }"
+                size="compact"
+                :from="blankRuler.from"
+                :to="blankRuler.to"
+                :now="stripNowMinute"
+                :label="blankRuler.label"
+              />
+              <div class="daily-agenda-page__blank-page">
+                <p class="daily-agenda-page__blank-title">
+                  No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
+                </p>
+                <p class="daily-agenda-page__blank-hint">
+                  Cuando alguien reserve, o registres un turno a mano, aparecerá aquí en su hora.
+                </p>
+              </div>
+            </div>
 
             <DaylightStrip
               v-if="entries.length > 0 && stripWindow"
@@ -1584,13 +1614,13 @@ const dayChangeMarkerPercent = computed(() => {
    no parpadea. */
 .daily-agenda-page__timeline-wrapper,
 .daily-agenda-page__list,
-.daily-agenda-page__empty-state {
+.daily-agenda-page__blank {
   transition: opacity 0.15s ease;
 }
 
 .daily-agenda-page--updating .daily-agenda-page__timeline-wrapper,
 .daily-agenda-page--updating .daily-agenda-page__list,
-.daily-agenda-page--updating .daily-agenda-page__empty-state {
+.daily-agenda-page--updating .daily-agenda-page__blank {
   opacity: 0.55;
   transition-delay: 0.25s;
 }
@@ -1598,57 +1628,107 @@ const dayChangeMarkerPercent = computed(() => {
 @media (prefers-reduced-motion: reduce) {
   .daily-agenda-page__timeline-wrapper,
   .daily-agenda-page__list,
-  .daily-agenda-page__empty-state {
+  .daily-agenda-page__blank {
     transition: none;
   }
 }
 
-/* Día sin turnos (pedido del propietario, 2026-11-15): bajo el carril el vacío
-   es una nota, no una portada, y no obliga a desplazar la página. */
-.daily-agenda-page__empty-state {
+/* Día sin turnos: la libreta en blanco (#809, DEC-189). Bajo el carril el vacío
+   es una nota, no una portada, y no obliga a desplazar la página (pedido del
+   propietario, 2026-11-15). La hoja repite la libreta de G3: el margen fijo con
+   su regla de latón y renglones finos de latón; el titular va en serif. */
+.daily-agenda-page__blank {
+  --ag-margin: 128px;
+  --ag-margin-gap: var(--space-5);
+
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  min-height: 0;
-  padding: var(--space-6) var(--space-5);
-  gap: var(--space-2);
+  gap: var(--space-4);
+  margin-top: var(--space-2);
 }
 
-@media (max-height: 860px) {
-  .daily-agenda-page__empty-state {
-    padding: var(--space-5);
-  }
-
-  .daily-agenda-page__empty-state :deep(.empty-scene__art) {
+/* Con el carril visible (desde 1024 px, hoy) la regla ya va sobre el carril. */
+@media (min-width: 1024px) {
+  .daily-agenda-page__blank-ruler--lane {
     display: none;
   }
 }
 
-@media (max-height: 860px) and (min-width: 1024px) {
-  .daily-agenda-page__empty-state {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: var(--space-6);
-    row-gap: var(--space-1);
-    padding: var(--space-4) var(--space-6);
-    text-align: left;
-  }
+.daily-agenda-page__blank-page {
+  --ag-rule-line: color-mix(in srgb, var(--color-brass-line) 30%, transparent);
 
-  .daily-agenda-page__empty-state :deep(.empty-scene__title),
-  .daily-agenda-page__empty-state :deep(.empty-scene__hint) {
-    grid-column: 1;
-    margin: 0;
-  }
+  position: relative;
+  padding: var(--space-3) var(--space-5) var(--space-5)
+    calc(var(--space-4) + var(--ag-margin) + var(--ag-margin-gap));
+  background-color: var(--color-surface);
+  /* Renglones cada 40 px, el alto del titular: la hoja de un cuaderno. */
+  background-image: linear-gradient(
+    to bottom,
+    transparent calc(100% - 1px),
+    var(--ag-rule-line) calc(100% - 1px)
+  );
+  background-position: 0 var(--space-3);
+  background-size: 100% 40px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+}
 
-  .daily-agenda-page__empty-state :deep(.empty-scene__action) {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    margin: 0;
+/* La regla del margen, de borde a borde de la hoja. Decorativa. */
+.daily-agenda-page__blank-page::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--space-4) + var(--ag-margin) + var(--ag-margin-gap) / 2);
+  width: 1px;
+  pointer-events: none;
+  content: '';
+  background-color: color-mix(in srgb, var(--color-brass-line) 72%, transparent);
+}
+
+.daily-agenda-page__blank-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 40px;
+  letter-spacing: -0.005em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+/* Cada línea escrita cae en su renglón, también la pista: con 20 px una de
+   cada dos quedaría tachada por la raya. */
+.daily-agenda-page__blank-hint {
+  max-width: 64ch;
+  margin: 0;
+  font-size: 15px;
+  line-height: 40px;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+@media (max-width: 1023px) {
+  .daily-agenda-page__blank {
+    --ag-margin: 60px;
+    --ag-margin-gap: var(--space-3);
   }
 }
 
-.daily-agenda-page__empty-state :deep(.empty-scene__art) {
-  width: 176px;
-  height: 110px;
+@media (max-width: 767px) {
+  .daily-agenda-page__blank-page {
+    padding-right: var(--space-4);
+    padding-left: calc(var(--space-3) + var(--ag-margin) + var(--ag-margin-gap));
+  }
+
+  .daily-agenda-page__blank-page::before {
+    left: calc(var(--space-3) + var(--ag-margin) + var(--ag-margin-gap) / 2);
+  }
+
+  .daily-agenda-page__blank-title {
+    font-size: 22px;
+    line-height: 40px;
+  }
 }
 
 .daily-agenda-page__loading {
