@@ -145,20 +145,23 @@ function restoreChosen() {
   if (!day || !slot) {
     forgetChosenStart(props.slug, props.serviceId)
     lostChoice.value = true
+    // La posición de antes ya no lleva a nada: el aviso queda a la vista.
+    void nextTick(() => bringIntoView('.bk-daytime__lost'))
     return
   }
   activeDate.value = day.civilDate
   selected.value = slot
-  void nextTick(revealChosen)
+  void nextTick(() => bringIntoView('.bk-min[aria-checked="true"]'))
 }
 
-// La hora recuperada queda a la vista. Con «atrás» del navegador ya lo está: la
+// Lo que se recupera al volver queda a la vista: la hora elegida o el aviso de
+// que ya no está libre. Con «atrás» del navegador la hora ya lo está, porque la
 // posición restaurada la deja ahí (restoreWhenStepReady). Con el enlace «Día y
-// hora» la pantalla empieza arriba y la hora puede quedar bajo el pliegue, o
-// bajo la barra fija del pase en el teléfono.
-function revealChosen() {
-  const hour = page.value?.querySelector<HTMLElement>('.bk-min[aria-checked="true"]')
-  if (!hour) return
+// hora» la pantalla empieza arriba y la hora puede quedar bajo el pliegue, o bajo
+// la barra fija del pase en el teléfono.
+function bringIntoView(selector: string) {
+  const target = page.value?.querySelector<HTMLElement>(selector)
+  if (!target) return
   const pase = page.value?.querySelector<HTMLElement>('.bk-pase')
   // La barra fija puede estar entrando (desplazada hacia abajo): cuenta su alto
   // de maqueta, no su posición de ese instante.
@@ -166,7 +169,7 @@ function revealChosen() {
     pase && getComputedStyle(pase).position === 'fixed'
       ? window.innerHeight - pase.offsetHeight
       : window.innerHeight
-  const box = hour.getBoundingClientRect()
+  const box = target.getBoundingClientRect()
   if (box.top >= 0 && box.bottom <= bottom) return
   window.scrollTo({
     top: window.scrollY + box.top - (bottom - box.height) / 2,

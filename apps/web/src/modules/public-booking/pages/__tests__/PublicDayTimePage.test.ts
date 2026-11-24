@@ -432,6 +432,31 @@ describe('PublicDayTimePage', () => {
       }
     })
 
+    it('brings the «no longer free» notice into view, since the old position leads nowhere', async () => {
+      const scrollTo = vi.fn()
+      vi.stubGlobal('scrollTo', scrollTo)
+      const realRect = HTMLElement.prototype.getBoundingClientRect
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.matches('.bk-daytime__lost'))
+          return { top: -420, bottom: -400, height: 20 } as DOMRect
+        return realRect.call(this)
+      }
+      try {
+        rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        respond(
+          [ANA, BETO],
+          slots.filter((s) => s.startsAt !== '2030-01-14T14:00:00-05:00'),
+        )
+        mountPage()
+        await flushPromises()
+        expect(scrollTo).toHaveBeenCalledTimes(1)
+        expect(scrollTo.mock.calls[0]![0]).toMatchObject({ behavior: 'instant' })
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = realRect
+        vi.unstubAllGlobals()
+      }
+    })
+
     it('does not bring back an hour of another service', async () => {
       rememberChosenStart('barberia', 'otro', '2030-01-14T09:00:00-05:00')
       respond()
