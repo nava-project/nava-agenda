@@ -458,7 +458,8 @@ describe('GoogleCalendarPage', () => {
   describe('en la familia (#838)', () => {
     const filled = (wrapper: VueWrapper) =>
       wrapper
-        .findAll('.gcal-hero__actions button')
+        .findAll('.gcal-page button')
+        .filter((b) => !b.element.closest('.base-dialog'))
         .filter((b) =>
           b.classes().some((c) => c === 'base-button--primary' || c === 'base-button--danger'),
         )
@@ -470,10 +471,13 @@ describe('GoogleCalendarPage', () => {
       ['sincronizando', { ...connected, pendingSyncJobs: 2 }, []],
       ['error de sincronización', { ...connected, failedSyncJobs: 1 }, ['Sincronizar ahora']],
       ['reconexión', { ...base, status: 'reauth_required' }, ['Volver a conectar']],
-    ])('lleva como mucho una acción llena en «%s»', async (_name, connection, expected) => {
-      const wrapper = await mountWith(connection)
-      expect(filled(wrapper)).toEqual(expected)
-    })
+    ])(
+      'lleva como mucho una acción llena en toda la página en «%s»',
+      async (_name, connection, expected) => {
+        const wrapper = await mountWith(connection)
+        expect(filled(wrapper)).toEqual(expected)
+      },
+    )
 
     it('deja «Desconectar» en secundario; el rojo lleno queda en el diálogo', async () => {
       const wrapper = await mountWith(connected)

@@ -645,7 +645,9 @@ const HOW_IT_WORKS = [
             </Transition>
 
             <div class="gcal-panel__actions gcal-panel__actions--inline">
-              <BaseButton type="submit" variant="primary" :disabled="busy !== null">
+              <!-- Secundario: guardar un ajuste no es la acción del estado; así la página
+                 nunca lleva más de una acción llena (#838). -->
+              <BaseButton type="submit" variant="secondary" :disabled="busy !== null">
                 {{ busy === 'reminder' ? 'Guardando…' : 'Guardar recordatorio' }}
               </BaseButton>
             </div>
