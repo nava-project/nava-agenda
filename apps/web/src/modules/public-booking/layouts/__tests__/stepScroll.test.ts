@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { restoreWhenStepReady } from '../stepScroll'
+import { cancelStepScrollRestore, restoreWhenStepReady } from '../stepScroll'
 
 // H7 (#824): la posición que restaura el router se vuelve a aplicar cuando el
 // paso de la reserva se destapa, salvo que la persona ya haya desplazado.
@@ -67,7 +67,7 @@ describe('restoreWhenStepReady', () => {
     expect(scrollTo).not.toHaveBeenCalled()
   })
 
-  it.each(['wheel', 'touchmove', 'keydown'])(
+  it.each(['wheel', 'touchmove', 'pointerdown', 'keydown'])(
     'leaves the view alone once the person scrolls (%s)',
     async (type) => {
       mountStep(true)
@@ -78,6 +78,15 @@ describe('restoreWhenStepReady', () => {
       expect(scrollTo).not.toHaveBeenCalled()
     },
   )
+
+  it('another navigation cancels the pending restore, so the next screen never inherits it', async () => {
+    mountStep(true)
+    restoreWhenStepReady({ left: 0, top: 977 }, root)
+    cancelStepScrollRestore()
+    mountStep(false)
+    await flush()
+    expect(scrollTo).not.toHaveBeenCalled()
+  })
 
   it('a newer navigation replaces the pending restore', async () => {
     mountStep(true)

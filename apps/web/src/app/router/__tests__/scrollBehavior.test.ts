@@ -6,8 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RouteLocationNormalized } from 'vue-router'
 
 const restoreWhenStepReady = vi.hoisted(() => vi.fn())
+const cancelStepScrollRestore = vi.hoisted(() => vi.fn())
 vi.mock('@/modules/public-booking', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/modules/public-booking')>()),
+  cancelStepScrollRestore,
   restoreWhenStepReady,
 }))
 
@@ -42,5 +44,11 @@ describe('scrollBehavior', () => {
     const from = at('/reservar/negocio-ejemplo')
     expect(scrollBehavior(to, from, null)).toEqual({ top: 0 })
     expect(restoreWhenStepReady).not.toHaveBeenCalled()
+  })
+
+  it('cancels a pending booking restore on every navigation', async () => {
+    cancelStepScrollRestore.mockClear()
+    await router.push('/acceso')
+    expect(cancelStepScrollRestore).toHaveBeenCalled()
   })
 })

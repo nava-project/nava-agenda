@@ -8,7 +8,11 @@ import {
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
 import { customerAccessRoutes } from '@/modules/customer-access'
-import { publicBookingRoutes, restoreWhenStepReady } from '@/modules/public-booking'
+import {
+  cancelStepScrollRestore,
+  publicBookingRoutes,
+  restoreWhenStepReady,
+} from '@/modules/public-booking'
 import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/schedules'
 import { settingsNavItems, settingsPrivateShellChildRoutes } from '@/modules/settings'
 import { staffNavItems, staffPrivateShellChildRoutes } from '@/modules/staff'
@@ -115,6 +119,13 @@ export const router = createRouter({
     }
     return to.path === from.path ? false : { top: 0 }
   },
+})
+
+// Una restauración de la reserva aún pendiente no sobrevive a otra navegación:
+// sin esto, al salir de «Día y hora» antes de que se destapara, la pantalla
+// siguiente heredaría su posición (#824).
+router.beforeEach(() => {
+  cancelStepScrollRestore()
 })
 
 // Perfil de profesional individual (DEC-115): las rutas que ese perfil retira se desvían a
