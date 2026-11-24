@@ -6,6 +6,8 @@
  * appointmentsApi se sustituye por un doble de prueba; el recorrido real
  * contra el API vive en el E2E de HU-062.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -36,6 +38,8 @@ vi.mock('../../api/appointmentsApi', () => ({
 }))
 
 const { default: DailyAgendaPage } = await import('../DailyAgendaPage.vue')
+const { default: DayRuler } = await import('@/shared/ui/DayRuler.vue')
+const pageSource = readFileSync(join(__dirname, '../DailyAgendaPage.vue'), 'utf8')
 
 const twoProfessionals = [
   { id: 'b-1', fullName: 'Carlos Ramírez' },
@@ -709,6 +713,71 @@ describe('DailyAgendaPage', () => {
       const { wrapper } = await mountWithFixedDate()
       // 14:30–15:00 en Bogotá.
       expect(wrapper.get('.daily-agenda-page__item-time').text()).toBe('2:30 – 3:00 p. m.')
+    })
+
+    it('writes the time in the notebook margin: start in serif, end below, same link text (G3, #802)', async () => {
+      // 11:30 a. m. – 12:15 p. m. en Bogotá: el inicio no comparte periodo.
+      const entry = [
+        { ...oneEntry[0]!, startsAt: '2026-08-28T16:30:00Z', endsAt: '2026-08-28T17:15:00Z' },
+      ]
+      const { wrapper } = await mountWithFixedDate(entry)
+      const time = wrapper.get('.daily-agenda-page__item-time')
+      expect(time.text()).toBe('11:30 a. m. – 12:15 p. m.')
+      expect(time.get('.daily-agenda-page__item-start').text()).toBe('11:30 a. m.')
+      expect(time.get('.daily-agenda-page__item-start small').text()).toBe('a. m.')
+      expect(time.get('.daily-agenda-page__item-end').text()).toBe('– 12:15 p. m.')
+      // El periodo del fin baja entero en el margen estrecho del teléfono.
+      expect(time.get('.daily-agenda-page__item-period').text()).toBe('p. m.')
+    })
+
+    it('draws the day ruler over the lane: shifts ±30 min in whole hours, one rhombus each (G3, #802)', async () => {
+      // 2:30–3:00 p. m. confirmado (en fecha pasada: «Por registrar», el rombo
+      // medio) y 4:15–5:00 p. m. sin asistencia, en Bogotá.
+      const entries = [
+        oneEntry[0]!,
+        {
+          ...oneEntry[0]!,
+          id: 'a-3',
+          startsAt: '2026-08-28T21:15:00Z',
+          endsAt: '2026-08-28T22:00:00Z',
+          status: 'no_show',
+        },
+      ]
+      const { wrapper } = await mountWithFixedDate(entries)
+      const ruler = wrapper.getComponent(DayRuler)
+      expect(ruler.classes()).toContain('daily-agenda-page__ruler')
+      expect(ruler.props('size')).toBe('compact')
+      // 2:00 p. m. a 6:00 p. m.: 14:30 − 30 min y 17:00 + 30 min, en horas enteras.
+      expect(ruler.props('from')).toBe(14 * 60)
+      expect(ruler.props('to')).toBe(18 * 60)
+      expect(ruler.props('marks')).toEqual([
+        { at: 14 * 60 + 30, kind: 'to-record' },
+        { at: 16 * 60 + 15, kind: 'no-show' },
+      ])
+      // Fecha pasada: sin Sol.
+      expect(ruler.props('now')).toBeNull()
+      const img = wrapper.get('.daily-agenda-page__ruler')
+      expect(img.attributes('role')).toBe('img')
+      expect(img.attributes('aria-label')).toBe(
+        'Regla del día: 2 turnos, de 2:30 p. m. a 5:00 p. m.',
+      )
+      // Va en la fila del zoom, antes del carril, que sigue siendo el mismo.
+      expect(
+        wrapper.find('.daily-agenda-page__timeline-head .daily-agenda-page__ruler').exists(),
+      ).toBe(true)
+    })
+
+    it('an empty day has no ruler', async () => {
+      const { wrapper } = await mountWithFixedDate([])
+      expect(wrapper.findComponent(DayRuler).exists()).toBe(false)
+      expect(wrapper.find('.daily-agenda-page__timeline-head').exists()).toBe(false)
+    })
+
+    it('on desktop drops the 31 px gap under the last shift and keeps the dock reserve (G3, #802)', () => {
+      // El cascarón reserva el alto del dock; el panel ya no suma relleno debajo.
+      expect(pageSource).toMatch(
+        /@media \(min-width: 1024px\) \{\s*\.daily-agenda-page \{\s*padding-bottom: 0;\s*\}\s*\}/,
+      )
     })
 
     it('a 45-minute slip shows time range, person and service at the default zoom', async () => {
