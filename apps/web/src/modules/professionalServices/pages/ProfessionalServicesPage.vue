@@ -14,7 +14,13 @@
 // puede retirar a cualquier profesional, también al último de un servicio (DEC-114). Cada asignación o retiro
 // confirmado añade un aviso emergente (DEC-095); el error sigue en línea.
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
-import { LOADER_APPEAR_MS, useLoaderGrace, useToast, useVocabulary } from '@/shared/composables'
+import {
+  LOADER_APPEAR_MS,
+  LOADER_MIN_VISIBLE_MS,
+  useLoaderGrace,
+  useToast,
+  useVocabulary,
+} from '@/shared/composables'
 import { capitalize, isEmployeeProfile, worksOwnProfessional } from '@/shared/model'
 import {
   BaseAlert,
@@ -100,18 +106,35 @@ const fitPending = ref(true)
 // Vue cancelaba la entrada y la salida partía de opacidad 1, un destello de
 // ~130 ms (#841, medido en Chromium y Firefox). Antes de la primera revelación
 // ya está a la vista el cargador de entrada.
+//
+// Si asoma, se queda: entra con su cargador (sin el retardo propio de
+// DiamondLoader, que lo dejaba asomar 300 ms más tarde, a ~0,28 de opacidad y
+// justo al soltarse la gracia, #842 r1 C1) y no se va hasta pasados
+// VEIL_ENTER_MS + LOADER_MIN_VISIBLE_MS desde que se montó, aunque los datos
+// lleguen antes: debajo, la lista ya está inerte.
+const VEIL_ENTER_MS = 180
 const veilShown = ref(false)
 let veilTimer: ReturnType<typeof setTimeout> | undefined
+let veilShownAt = 0
 watch(
   () => catalogBusy.value && firstReady.value,
   (busy) => {
     clearTimeout(veilTimer)
     veilTimer = undefined
-    if (!busy) {
+    if (busy) {
+      if (veilShown.value) return
+      veilTimer = setTimeout(() => {
+        veilShownAt = Date.now()
+        veilShown.value = true
+      }, LOADER_APPEAR_MS)
+      return
+    }
+    const hold = veilShownAt + VEIL_ENTER_MS + LOADER_MIN_VISIBLE_MS - Date.now()
+    if (!veilShown.value || hold <= 0) {
       veilShown.value = false
       return
     }
-    veilTimer = setTimeout(() => (veilShown.value = true), LOADER_APPEAR_MS)
+    veilTimer = setTimeout(() => (veilShown.value = false), hold)
   },
 )
 
@@ -581,7 +604,7 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
               'professional-services-page__fieldset--hidden': !hasShownAssignments,
               'professional-services-page__fieldset--dimmed': hasShownAssignments && veilShown,
             }"
-            :inert="catalogBusy || undefined"
+            :inert="catalogBusy || veilShown || undefined"
           >
             <legend class="professional-services-page__legend">
               Servicios que presta {{ selectedProfessional?.fullName }}
@@ -989,7 +1012,14 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
    antes, nunca se pinta; si asomó, la gracia lo deja a la vista lo bastante
    para leerse (#841, CA-9). */
 .professional-services-veil-enter-active {
+  /* VEIL_ENTER_MS */
   transition: opacity 180ms var(--motion-easing-standard);
+}
+
+/* El cargador entra con el velo: su retardo propio (300 ms) se sumaba al del
+   velo y asomaba al final, un instante (#842 r1 C1). */
+.professional-services-page__veil :deep(.diamond-loader) {
+  animation: none;
 }
 
 .professional-services-veil-leave-active {

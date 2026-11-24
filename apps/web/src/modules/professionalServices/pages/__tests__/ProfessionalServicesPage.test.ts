@@ -270,7 +270,7 @@ describe('ProfessionalServicesPage', () => {
 
     async function switchPending() {
       const wrapper = await mountReady(fourProfessionals, twoServices, ['s-1'])
-      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
       let resolveAssignments: (value: unknown) => void = () => {}
       fetchAssignmentsMock.mockReturnValueOnce(
         new Promise((resolve) => (resolveAssignments = resolve)),
@@ -302,12 +302,34 @@ describe('ProfessionalServicesPage', () => {
 
       resolve({ kind: 'success', page: { items: [], nextCursor: null } })
       await flushPromises()
+      // El velo que asomó se queda su mínimo (entrada + 300 ms) y después se va.
+      await vi.advanceTimersByTimeAsync(500)
 
       expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
       expect(
         wrapper.find('.professional-services-page__panel').attributes('aria-busy'),
       ).toBeUndefined()
       expect(checkbox(wrapper, 's-1').checked).toBe(false)
+    })
+
+    it('once shown, keeps the veil and its loader at least its entry plus 300 ms, even if the answer arrives first (#842 C1)', async () => {
+      const { wrapper, resolve } = await switchPending()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(true)
+      // El cargador del velo no espera su propio retardo: es el mismo nodo, ya montado.
+      expect(wrapper.find('.professional-services-page__veil .diamond-loader').exists()).toBe(true)
+
+      await vi.advanceTimersByTimeAsync(50)
+      resolve({ kind: 'success', page: { items: [], nextCursor: null } })
+      await flushPromises()
+      // 180 ms de entrada + 300 ms a la vista desde que se montó: a los 470 ms sigue.
+      await vi.advanceTimersByTimeAsync(420)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(true)
+      expect(wrapper.find('fieldset').attributes('inert')).toBeDefined()
+
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.find('.professional-services-page__veil').exists()).toBe(false)
+      expect(wrapper.find('fieldset').attributes('inert')).toBeUndefined()
     })
 
     it('never mounts the veil nor dims the catalog when the answer arrives before 300 ms', async () => {
