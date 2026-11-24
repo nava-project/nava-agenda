@@ -27,8 +27,15 @@ vi.mock('../../api/appointmentsApi', () => ({
   fetchManualAvailability: fetchManualAvailabilityMock,
 }))
 
+// El negocio de la sesión encabeza la tarjeta del borrador (#833).
+vi.mock('@/modules/auth', async () => {
+  const { computed } = await import('vue')
+  return { sessionBusinessName: computed(() => 'Barbería Demo') }
+})
+
 const { default: NewAppointmentPage } = await import('../NewAppointmentPage.vue')
-const { formatCivilDateFull, getCivilDateInTimezone } = await import('@/shared/time/civilDate')
+const { getCivilDateInTimezone } = await import('@/shared/time/civilDate')
+const { civilTicketMoment } = await import('@/shared/time/ticketMoment')
 
 // Hoy en la zona del negocio: la hora se elige en la rejilla de inicios libres
 // (#717). 19:30 UTC son las 2:30 p. m. en Bogotá.
@@ -54,22 +61,26 @@ async function chooseFreeStart(wrapper: {
 }
 
 const oneProfessional = [{ id: 'b-1', fullName: 'Carlos Ramírez' }]
+// Precio y duración del catálogo: los que el servidor aplica al registrar (#833).
 const twoServices = [
-  { id: 's-1', name: 'Corte clásico' },
-  { id: 's-2', name: 'Barba' },
+  { id: 's-1', name: 'Corte clásico', durationMinutes: 45, price: '35000.00', currency: 'COP' },
+  { id: 's-2', name: 'Barba', durationMinutes: 20, price: '15000.00', currency: 'COP' },
 ]
 
-function mountPage() {
-  return mount(NewAppointmentPage)
+function mountPage(options: { attachTo?: HTMLElement } = {}) {
+  return mount(NewAppointmentPage, options)
 }
 
-async function mountReady(professionals = oneProfessional) {
+async function mountReady(
+  professionals = oneProfessional,
+  options: { attachTo?: HTMLElement } = {},
+) {
   fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: professionals })
   fetchBusinessTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
   })
-  const wrapper = mountPage()
+  const wrapper = mountPage(options)
   await flushPromises()
   return wrapper
 }
@@ -187,26 +198,6 @@ describe('NewAppointmentPage', () => {
     expect(byLabel('Persona atendida').attributes('placeholder')).toBeUndefined()
   })
 
-  it('shows the summary ticket with every pending item named on an untouched form', async () => {
-    const wrapper = await mountReady()
-    const resumen = wrapper.get('.new-appointment-page__resumen')
-    expect(resumen.text()).toContain('0/3 pasos')
-    expect(resumen.text()).toContain('Fecha por definir')
-    expect(resumen.text()).toContain('Por elegir')
-    expect(resumen.text()).toContain('Por escribir')
-  })
-
-  it('fills the summary ticket live, keeping what is still pending as such', async () => {
-    const wrapper = await mountReady()
-    fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
-    await chooseProfessional(wrapper)
-
-    const resumen = wrapper.get('.new-appointment-page__resumen')
-    expect(resumen.text()).toContain('Carlos Ramírez')
-    expect(resumen.text()).toContain('Por elegir')
-    expect(resumen.text()).toContain('0/3 pasos')
-  })
-
   it('marks each step as done once its required fields are filled', async () => {
     const wrapper = await mountReady()
     await fillValidForm(wrapper)
@@ -219,21 +210,7 @@ describe('NewAppointmentPage', () => {
       false,
     ])
     expect(sections[0]!.get('h2').text()).toContain('(listo)')
-    expect(wrapper.get('.new-appointment-page__resumen').text()).toContain('3/3 pasos')
-  })
-
-  it('reflects every filled field in "Resumen", including the readable date', async () => {
-    const wrapper = await mountReady()
-    await fillValidForm(wrapper)
-
-    const resumen = wrapper.get('.new-appointment-page__resumen')
-    expect(resumen.text()).toContain('Carlos Ramírez')
-    expect(resumen.text()).toContain('Corte clásico')
-    expect(resumen.text()).toContain('Juan Pérez')
-    // La hora del boleto, en 12 h como el resto del panel.
-    expect(resumen.get('.new-appointment-page__resumen-time').text()).toBe('2:30\u00a0p. m.')
-    expect(resumen.text()).not.toContain('14:30')
-    expect(resumen.text()).toContain(formatCivilDateFull(today))
+    expect(wrapper.get('.new-appointment-page__progress').text()).toBe('3/3 pasos')
   })
 
   it('submits successfully and shows an honest summary, no link to a non-existent agenda screen', async () => {
@@ -274,6 +251,43 @@ describe('NewAppointmentPage', () => {
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
     expect(wrapper.text()).toContain('el profesional tiene un bloqueo vigente en ese intervalo')
+  })
+
+  it.each([
+    ['conflicto', { kind: 'conflict', detail: 'ocupado' }],
+    ['red', { kind: 'network-error' }],
+    ['validación', { kind: 'validation-error', detail: 'revisa' }],
+  ])(
+    'pone la alerta de «%s» justo encima de «Registrar turno», junto al botón (#837 r1)',
+    async (_name, outcome) => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      createManualAppointmentMock.mockResolvedValueOnce(outcome)
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+      const respond = wrapper.get('.new-appointment-page__respond')
+      const children = Array.from(respond.element.children)
+      expect(children[0]!.getAttribute('role')).toBe('alert')
+      expect(children.at(-1)!.classList).toContain('new-appointment-page__actions')
+      // Fuera del bloque, nada más del riel lleva una alerta.
+      const rail = wrapper.get('.new-appointment-page__rail').element
+      expect(
+        Array.from(rail.querySelectorAll('[role="alert"]')).every((a) =>
+          respond.element.contains(a),
+        ),
+      ).toBe(true)
+    },
+  )
+
+  it('devuelve el foco a «Registrar turno» si se perdió mientras guardaba (#837 r1)', async () => {
+    const wrapper = await mountReady(oneProfessional, { attachTo: document.body })
+    await fillValidForm(wrapper)
+    createManualAppointmentMock.mockResolvedValueOnce({ kind: 'network-error' })
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('.new-appointment-page__submit').element)
+    wrapper.unmount()
   })
 
   it('shows a recoverable message on a network error and keeps the form data', async () => {
@@ -544,6 +558,227 @@ describe('NewAppointmentPage', () => {
       await flushPromises()
 
       expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
+    })
+  })
+
+  // ── La tarjeta del borrador (#833) ───────────────────────────────────────
+  describe('la tarjeta del borrador (#833)', () => {
+    const created = {
+      id: 'appt-1',
+      professionalId: 'b-1',
+      serviceId: 's-1',
+      attendeeName: 'Juan Pérez',
+      startsAt: '2026-09-03T14:30:00-05:00',
+      endsAt: '2026-09-03T15:00:00-05:00',
+      serviceName: 'Corte clásico',
+      durationMinutes: 30,
+      priceAmount: '35000.00',
+      currency: 'COP',
+    }
+    const card = (w: Awaited<ReturnType<typeof mountReady>>) => w.get('.appointment-ticket')
+    const announcer = (w: Awaited<ReturnType<typeof mountReady>>) =>
+      w.get('[data-testid="draft-announcer"]')
+    const byLabel = (w: Awaited<ReturnType<typeof mountReady>>, text: string) =>
+      w.findAll('input').find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
+
+    it('starts empty: a draft «Por registrar» with a silhouette in every gap, no seal and nothing invented', async () => {
+      const wrapper = await mountReady()
+      const ticket = card(wrapper)
+      expect(ticket.classes()).toContain('appointment-ticket--draft')
+      expect(ticket.classes()).toContain('appointment-ticket--filling')
+      expect(ticket.text()).toContain('Barbería Demo')
+      expect(ticket.text()).toContain('Por registrar')
+      expect(ticket.find('.appointment-ticket__seal').exists()).toBe(false)
+      // Servicio, dato, día, día de la semana, hora, nota, retrato y nombre.
+      expect(ticket.findAll('.appointment-ticket__blank')).toHaveLength(8)
+      // La regla guarda su sitio, sin rombo.
+      expect(ticket.find('.appointment-ticket__ruler-wrap--blank').exists()).toBe(true)
+      expect(ticket.find('.day-ruler__mark').exists()).toBe(false)
+      expect(ticket.text()).not.toMatch(/undefined|NaN|\$ 0|Invalid Date|--/)
+      expect(wrapper.get('.new-appointment-page__progress').text()).toBe('0/3 pasos')
+      // Sin caja «Resumen» alrededor ni región viva dentro.
+      expect(wrapper.find('.new-appointment-page__resumen').exists()).toBe(false)
+      expect(ticket.find('[role="status"], [aria-live]').exists()).toBe(false)
+    })
+
+    it('fills in place: the professional in the foot, the service with «duration · price» from the catalog', async () => {
+      fetchManualAvailabilityMock.mockReset()
+      fetchManualAvailabilityMock.mockReturnValue(new Promise(() => {}))
+      const wrapper = await mountReady()
+      fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
+      await chooseProfessional(wrapper)
+      expect(card(wrapper).get('.appointment-ticket__foot').text()).toContain('Carlos Ramírez')
+      await wrapper.get('#new-appointment-service').setValue('s-1')
+      await flushPromises()
+      // Sin la lectura de inicios libres todavía: la duración del catálogo.
+      expect(card(wrapper).get('.appointment-ticket__service').text()).toBe('Corte clásico')
+      expect(card(wrapper).get('.appointment-ticket__meta').text()).toBe('45 min · $\u00a035.000')
+    })
+
+    it('takes the duration of the free-starts reading once it arrives, as the server will', async () => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      const ticket = card(wrapper)
+      expect(ticket.get('.appointment-ticket__meta').text()).toBe('30 min · $\u00a035.000')
+      expect(ticket.get('.appointment-ticket__time').text()).toBe('2:30 p. m.')
+      expect(ticket.get('.appointment-ticket__note').text()).toMatch(/^hasta 3:00 p\. m\. · /)
+      const m = civilTicketMoment(today, '14:30', 30)!
+      expect(ticket.get('.appointment-ticket__leaf-day').text()).toBe(m.day)
+      expect(ticket.get('.appointment-ticket__leaf-month').text()).toBe(m.month)
+      expect(ticket.get('.appointment-ticket__weekday').text()).toBe(m.weekday)
+      // La regla con el rombo hueco del borrador, sin Sol.
+      expect(ticket.find('.day-ruler__mark--draft').exists()).toBe(true)
+      expect(ticket.find('.day-ruler__mark--mine').exists()).toBe(false)
+      expect(ticket.findAll('.appointment-ticket__blank')).toHaveLength(0)
+    })
+
+    it('shows no price at all when the catalog price is unreadable', async () => {
+      fetchManualAvailabilityMock.mockReset()
+      fetchManualAvailabilityMock.mockReturnValue(new Promise(() => {}))
+      const wrapper = await mountReady()
+      fetchAssignedServicesMock.mockResolvedValueOnce({
+        kind: 'success',
+        items: [{ ...twoServices[0]!, price: 'gratis' }],
+      })
+      await chooseProfessional(wrapper)
+      await wrapper.get('#new-appointment-service').setValue('s-1')
+      await flushPromises()
+      expect(card(wrapper).get('.appointment-ticket__meta').text()).toBe('45 min')
+    })
+
+    it('lists «Para» and «Cliente» under the card, and phone and email only when given', async () => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      const lines = () => wrapper.get('.new-appointment-page__lines')
+      expect(
+        lines()
+          .findAll('dt')
+          .map((d) => d.text()),
+      ).toEqual(['Para', 'Cliente'])
+      expect(lines().text()).toContain('Juan Pérez')
+      expect(card(wrapper).text()).not.toContain('Juan Pérez')
+      await byLabel(wrapper, 'Correo').setValue('cliente@ejemplo.test')
+      expect(
+        lines()
+          .findAll('dt')
+          .map((d) => d.text()),
+      ).toEqual(['Para', 'Cliente', 'Correo'])
+    })
+
+    it('drops the time from the card when the form drops it, on a change of service', async () => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      expect(card(wrapper).get('.appointment-ticket__time').text()).toBe('2:30 p. m.')
+      fetchManualAvailabilityMock.mockReturnValue(new Promise(() => {}))
+      await wrapper.get('#new-appointment-service').setValue('s-2')
+      await flushPromises()
+      const formTime = wrapper.find('.bk-min[aria-checked="true"]').exists()
+      expect(card(wrapper).find('.appointment-ticket__blank--time').exists()).toBe(!formTime)
+      expect(card(wrapper).get('.appointment-ticket__service').text()).toBe('Barba')
+    })
+
+    it('stays a draft with everything chosen on a failed registration', async () => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      createManualAppointmentMock.mockResolvedValueOnce({ kind: 'network-error' })
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+      expect(card(wrapper).classes()).toContain('appointment-ticket--draft')
+      expect(card(wrapper).get('.appointment-ticket__time').text()).toBe('2:30 p. m.')
+      expect(wrapper.get('.new-appointment-page__rail').text()).toContain(
+        'No pudimos registrar el turno',
+      )
+    })
+
+    it('registers into the same card, confirmed with the short ceremony, focus on the headline', async () => {
+      const wrapper = await mountReady()
+      document.body.appendChild(wrapper.element)
+      await fillValidForm(wrapper)
+      createManualAppointmentMock.mockResolvedValueOnce({ kind: 'success', appointment: created })
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+      const ticket = card(wrapper)
+      expect(ticket.classes()).toContain('appointment-ticket--confirmed')
+      expect(ticket.classes()).toContain('appointment-ticket--ceremony-short')
+      expect(ticket.classes()).not.toContain('appointment-ticket--ceremony')
+      expect(ticket.get('.appointment-ticket__seal').text()).toContain('Registrado')
+      expect(ticket.find('.day-ruler__mark--mine').exists()).toBe(true)
+      expect(document.activeElement?.textContent?.trim()).toBe('Turno registrado')
+      // Ningún role="status" envuelve la tarjeta; el aviso emergente anuncia.
+      expect(ticket.element.closest('[role="status"], [aria-live]')).toBeNull()
+      expect(toastState.items.map((item) => item.title)).toEqual(['Turno registrado'])
+      expect(announcer(wrapper).text()).toBe('')
+      wrapper.unmount()
+    })
+
+    it('«Registrar otro turno» keeps the professional, clears the rest of the turn and focuses «Servicio»', async () => {
+      const wrapper = await mountReady()
+      document.body.appendChild(wrapper.element)
+      await fillValidForm(wrapper)
+      createManualAppointmentMock.mockResolvedValueOnce({ kind: 'success', appointment: created })
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+      await wrapper.get('.new-appointment-page__again').trigger('click')
+      await flushPromises()
+      const ticket = card(wrapper)
+      expect(ticket.classes()).toContain('appointment-ticket--draft')
+      // El profesional se queda en el pie; servicio, día y hora vuelven a ser siluetas.
+      expect(ticket.get('.appointment-ticket__foot').text()).toContain('Carlos Ramírez')
+      expect(ticket.findAll('.appointment-ticket__blank')).toHaveLength(6)
+      expect(ticket.text()).not.toMatch(/Corte clásico|2:30/)
+      expect(wrapper.get('.new-appointment-page__lines').text()).not.toContain('Juan Pérez')
+      expect(wrapper.get<HTMLSelectElement>('#new-appointment-service').element.value).toBe('')
+      expect(announcer(wrapper).text()).toBe('')
+      expect(document.activeElement?.id).toBe('new-appointment-service')
+      wrapper.unmount()
+    })
+
+    it('registers one turn right after another, without waiting for the first ceremony', async () => {
+      const wrapper = await mountReady()
+      for (const id of ['appt-1', 'appt-2']) {
+        await fillValidForm(wrapper)
+        createManualAppointmentMock.mockResolvedValueOnce({
+          kind: 'success',
+          appointment: { ...created, id },
+        })
+        await wrapper.get('form').trigger('submit.prevent')
+        await flushPromises()
+        expect(card(wrapper).classes()).toContain('appointment-ticket--confirmed')
+        await wrapper.get('.new-appointment-page__again').trigger('click')
+        await flushPromises()
+      }
+      expect(createManualAppointmentMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('announces once when the draft is complete, never while typing, and again after breaking and completing it', async () => {
+      const wrapper = await mountReady()
+      const texts: string[] = []
+      const observer = new MutationObserver(() => {
+        const text = announcer(wrapper).text()
+        if (text) texts.push(text)
+      })
+      observer.observe(announcer(wrapper).element, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+      await fillValidForm(wrapper)
+      await flushPromises()
+      expect(texts).toEqual(['Turno listo para registrar.'])
+      // Seguir escribiendo en un campo ya lleno no anuncia nada.
+      await byLabel(wrapper, 'Persona atendida').setValue('Juan Pérez Gómez')
+      await byLabel(wrapper, 'Nombre del cliente').setValue('Juan Pérez Gómez')
+      await flushPromises()
+      expect(texts).toHaveLength(1)
+      // Se rompe (sin nombre) y se vuelve a completar: un segundo anuncio.
+      await byLabel(wrapper, 'Persona atendida').setValue('')
+      await byLabel(wrapper, 'Nombre del cliente').setValue('')
+      await flushPromises()
+      expect(announcer(wrapper).text()).toBe('')
+      await byLabel(wrapper, 'Persona atendida').setValue('Ana')
+      await flushPromises()
+      observer.disconnect()
+      expect(texts).toEqual(['Turno listo para registrar.', 'Turno listo para registrar.'])
     })
   })
 })

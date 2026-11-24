@@ -15,4 +15,9 @@
 // API internos permanecen privados.
 export { authRoutes, privateShellChildRoutes, privateShellRoute } from './routes'
 export { installSessionHandling } from './bootstrap/installSessionHandling'
-export { sessionBusinessId, sessionStatus, updateBusinessName } from './model/sessionStore'
+export {
+  sessionBusinessId,
+  sessionBusinessName,
+  sessionStatus,
+  updateBusinessName,
+} from './model/sessionStore'

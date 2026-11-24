@@ -44,6 +44,12 @@ export const sessionBusinessId = computed(() =>
   state.bootstrap.status === 'authenticated' ? state.bootstrap.businessId : null,
 )
 
+/** Nombre del negocio de la sesión, o `''`: la cabecera de la tarjeta del
+ * borrador de «Nuevo turno» (#833). */
+export const sessionBusinessName = computed(() =>
+  state.bootstrap.status === 'authenticated' ? state.bootstrap.businessName : '',
+)
+
 function setChecking(): void {
   state.bootstrap = { status: 'checking' }
 }

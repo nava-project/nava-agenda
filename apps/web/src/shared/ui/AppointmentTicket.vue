@@ -21,8 +21,18 @@
  * cierra, la hora se asienta, el sello cae, la regla se dibuja de izquierda a
  * derecha y el rombo pasa a Sol. `--ticket-ceremony-delay` corre todo el
  * guion (la página lo usa para que la tarjeta entre después del titular).
+ * `ceremony="short"` (el panel, #833): solo el sello cae y el rombo pasa a
+ * Sol, en ≤ 500 ms; quien registra muchos turnos al día no espera 1,5 s.
  * Con movimiento reducido (sistema o preferencia del panel), el primer cuadro
  * ya es el estado final.
+ *
+ * `filling` (el borrador de «Nuevo turno», #833): la tarjeta se llena a la
+ * vista. Cada zona reserva su alto desde el primer cuadro y, mientras no tiene
+ * dato, dibuja su silueta: un dato que llega no mueve nada. Sin hora, la regla
+ * va apagada y sin rombo; sin profesional, el pie es la silueta del retrato.
+ *
+ * En un contenedor angosto (≤ 380 px, el riel del panel) la tarjeta toma la
+ * misma composición que en un teléfono, aunque la ventana sea ancha.
  */
 import { computed } from 'vue'
 import DayRuler, { type DayRulerMark } from './DayRuler.vue'
@@ -65,7 +75,9 @@ interface Props {
   } | null
   /** Marcas propias de la regla (reprogramar: la hora actual y la nueva); por omisión, tu rombo. */
   marks?: DayRulerMark[] | null
-  ceremony?: boolean
+  ceremony?: boolean | 'short'
+  /** El borrador que se llena a la vista: siluetas con su alto en lo que falta. */
+  filling?: boolean
   /** Nombre accesible de la tarjeta. */
   label?: string
 }
@@ -81,6 +93,7 @@ const props = withDefaults(defineProps<Props>(), {
   ruler: null,
   marks: null,
   ceremony: false,
+  filling: false,
   label: 'Tu turno',
 })
 
@@ -102,6 +115,16 @@ const timeParts = computed(() => {
     : { clock: props.time.slice(0, i), suffix: props.time.slice(i + 1) }
 })
 
+// Sin hora en el borrador, la regla del día por omisión (7 a. m. a 7 p. m.)
+// apagada y sin rombo: guarda el sitio de la regla real.
+const BLANK_RULER = {
+  from: 7 * 60,
+  to: 19 * 60,
+  at: 0,
+  label: 'La regla del día, sin hora elegida.',
+}
+const shownRuler = computed(() => props.ruler ?? (props.filling ? BLANK_RULER : null))
+
 const rulerMarks = computed(
   () =>
     props.marks ??
@@ -119,13 +142,30 @@ const rulerMarks = computed(
 <template>
   <article
     class="appointment-ticket"
-    :class="[`appointment-ticket--${state}`, { 'appointment-ticket--ceremony': ceremony }]"
+    :class="[
+      `appointment-ticket--${state}`,
+      {
+        'appointment-ticket--ceremony': ceremony === true,
+        'appointment-ticket--ceremony-short': ceremony === 'short',
+        'appointment-ticket--filling': filling,
+      },
+    ]"
     :aria-label="label"
   >
     <header class="appointment-ticket__head">
       <p class="appointment-ticket__business">{{ businessName }}</p>
-      <p class="appointment-ticket__service">{{ serviceName }}</p>
-      <p v-if="meta" class="appointment-ticket__meta">{{ meta }}</p>
+      <p class="appointment-ticket__service">
+        <template v-if="serviceName">{{ serviceName }}</template>
+        <span
+          v-else-if="filling"
+          class="appointment-ticket__blank appointment-ticket__blank--service"
+          ><span class="appointment-ticket__sr">Servicio por elegir</span></span
+        >
+      </p>
+      <p v-if="meta || filling" class="appointment-ticket__meta">
+        <template v-if="meta">{{ meta }}</template>
+        <span v-else class="appointment-ticket__blank appointment-ticket__blank--meta" />
+      </p>
       <p v-if="state === 'draft'" class="appointment-ticket__pending">
         <span class="appointment-ticket__pending-mark" aria-hidden="true" />{{ seal }}
       </p>
@@ -138,48 +178,77 @@ const rulerMarks = computed(
 
     <div class="appointment-ticket__body">
       <p class="appointment-ticket__leaf" aria-hidden="true">
-        <span class="appointment-ticket__leaf-month">{{ month }}</span>
-        <span class="appointment-ticket__leaf-day">{{ day }}</span>
+        <span class="appointment-ticket__leaf-month">{{ month || '\u00a0' }}</span>
+        <span class="appointment-ticket__leaf-day">
+          <template v-if="day">{{ day }}</template>
+          <span v-else class="appointment-ticket__blank appointment-ticket__blank--day" />
+        </span>
       </p>
       <div class="appointment-ticket__when">
-        <p class="appointment-ticket__weekday">{{ weekday }}</p>
+        <p class="appointment-ticket__weekday">
+          <template v-if="weekday">{{ weekday }}</template>
+          <span v-else class="appointment-ticket__blank appointment-ticket__blank--weekday" />
+        </p>
         <p class="appointment-ticket__time">
-          {{ timeParts.clock }}<small v-if="timeParts.suffix">&nbsp;{{ timeParts.suffix }}</small>
+          <!-- El «a. m.» en menor ensancha el renglón: la silueta lleva uno
+               invisible, en el mismo renglón sin corte, para que la hora real
+               no lo mueva al llegar. -->
+          <span v-if="!time" class="appointment-ticket__time-blank"
+            ><span class="appointment-ticket__blank appointment-ticket__blank--time"
+              ><span class="appointment-ticket__sr">Día y hora por elegir</span></span
+            ><small aria-hidden="true">&nbsp;</small></span
+          >
+          <template v-else
+            >{{ timeParts.clock
+            }}<small v-if="timeParts.suffix">&nbsp;{{ timeParts.suffix }}</small></template
+          >
           <span v-if="relative" class="appointment-ticket__relative"
             ><span class="appointment-ticket__relative-mark" aria-hidden="true" />{{
               relative
             }}</span
           >
         </p>
-        <p v-if="timeNote" class="appointment-ticket__note">{{ timeNote }}</p>
+        <p v-if="timeNote || filling" class="appointment-ticket__note">
+          <template v-if="timeNote">{{ timeNote }}</template>
+          <span v-else class="appointment-ticket__blank appointment-ticket__blank--note" />
+        </p>
       </div>
     </div>
 
     <!-- La envoltura recorta la cortina que, en la ceremonia, descubre la
          regla de izquierda a derecha (solo transform). -->
-    <div v-if="ruler" class="appointment-ticket__ruler-wrap">
+    <div
+      v-if="shownRuler"
+      class="appointment-ticket__ruler-wrap"
+      :class="{ 'appointment-ticket__ruler-wrap--blank': !ruler }"
+    >
       <DayRuler
         class="appointment-ticket__ruler"
         size="card"
-        :from="ruler.from"
-        :to="ruler.to"
-        :marks="rulerMarks"
-        :now="ruler.now ?? null"
-        :label="ruler.label"
+        :from="shownRuler.from"
+        :to="shownRuler.to"
+        :marks="ruler ? rulerMarks : []"
+        :now="ruler?.now ?? null"
+        :label="shownRuler.label"
       />
     </div>
 
     <slot />
 
-    <footer v-if="professionalName" class="appointment-ticket__foot">
+    <footer v-if="professionalName || filling" class="appointment-ticket__foot">
       <ProfessionalAvatar
+        v-if="professionalName"
         size="row"
         :full-name="professionalName"
         :photo-url="professionalPhotoUrl ?? undefined"
       />
+      <span v-else class="appointment-ticket__blank appointment-ticket__blank--avatar" />
       <p class="appointment-ticket__who">
         <span class="appointment-ticket__who-label">{{ professionalLabel }}</span>
-        {{ professionalName }}
+        <template v-if="professionalName">{{ professionalName }}</template>
+        <span v-else class="appointment-ticket__blank appointment-ticket__blank--who"
+          ><span class="appointment-ticket__sr">Por elegir</span></span
+        >
       </p>
     </footer>
   </article>
@@ -195,6 +264,9 @@ const rulerMarks = computed(
   --ticket-ceremony-delay: 0ms;
 
   position: relative;
+  /* Contenedor con nombre: en un riel angosto la tarjeta se compone como en
+     un teléfono aunque la ventana sea ancha (#833). */
+  container: appointment-ticket / inline-size;
   color: var(--color-text-primary);
   background-color: var(--color-surface);
   border: 1px solid var(--color-brass-line);
@@ -459,6 +531,80 @@ const rulerMarks = computed(
   color: var(--color-text-secondary);
 }
 
+/* ── Borrador que se llena (#833) ─────────────────────────────────────────
+   Cada silueta vive dentro del mismo renglón tipográfico que su dato, así el
+   alto del renglón es el del texto real y un dato que llega no mueve nada. */
+.appointment-ticket__blank {
+  display: inline-block;
+  height: 0.56em;
+  vertical-align: middle;
+  background-color: var(--color-border-subtle);
+  border-radius: 2px;
+}
+
+.appointment-ticket__blank--service {
+  width: min(62%, 11em);
+  height: 0.5em;
+}
+
+.appointment-ticket__blank--meta {
+  width: 9em;
+}
+
+.appointment-ticket__blank--day {
+  width: 1.1em;
+  height: 0.5em;
+}
+
+.appointment-ticket__blank--weekday {
+  width: 6em;
+}
+
+.appointment-ticket__blank--time {
+  width: 3.6em;
+  height: 0.5em;
+}
+
+.appointment-ticket__time-blank {
+  white-space: nowrap;
+}
+
+.appointment-ticket__blank--note {
+  width: 11em;
+}
+
+.appointment-ticket__blank--who {
+  width: 8em;
+}
+
+/* La silueta del retrato: el monograma de latón cuadrado, del tamaño `row`
+   (52 px; 44 en un teléfono). Nunca un círculo (#737). */
+.appointment-ticket__blank--avatar {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 2px;
+}
+
+.appointment-ticket__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 767px) {
+  .appointment-ticket__blank--avatar {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 @media (max-width: 479px) {
   .appointment-ticket__business {
     padding-right: 0;
@@ -481,6 +627,47 @@ const rulerMarks = computed(
   .appointment-ticket__time {
     font-size: 36px;
     line-height: 40px;
+  }
+}
+
+/* La misma composición de teléfono dentro de un riel angosto (≤ 380 px), sin
+   tocar la tarjeta a 480 px o más de ventana en las demás pantallas. */
+@container appointment-ticket (max-width: 380px) {
+  .appointment-ticket__business {
+    padding-right: 0;
+  }
+
+  .appointment-ticket__head {
+    padding-bottom: 54px;
+  }
+
+  .appointment-ticket__seal,
+  .appointment-ticket__pending {
+    --ticket-seal-anchor: 1;
+
+    top: auto;
+    bottom: 16px;
+    left: 22px;
+    right: auto;
+  }
+
+  .appointment-ticket__time {
+    font-size: 36px;
+    line-height: 40px;
+  }
+}
+
+/* En el borrador muy angosto (un teléfono de 320–360 px), el nombre del
+   profesional y «hasta … · zona» se parten en dos líneas: sus renglones
+   guardan las dos desde la silueta, así el dato que llega no estira la
+   tarjeta (#833, CLS 0). */
+@container appointment-ticket (max-width: 340px) {
+  .appointment-ticket--filling .appointment-ticket__note {
+    min-height: 36px;
+  }
+
+  .appointment-ticket--filling .appointment-ticket__who {
+    min-height: 56px;
   }
 }
 
@@ -531,6 +718,21 @@ const rulerMarks = computed(
 
   :root:not([data-motion='reduced']) .appointment-ticket--ceremony :deep(.day-ruler__mark--mine) {
     animation: ticket-mark 320ms calc(var(--ticket-ceremony-delay) + 800ms)
+      cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+
+/* Ceremonia corta (#833): el sello cae (0–320 ms) y el rombo pasa a Sol
+   (180–480 ms). Ni el borde ni la regla se animan: ≤ 500 ms en total. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduced']) .appointment-ticket--ceremony-short .appointment-ticket__seal {
+    animation: ticket-stamp 320ms var(--ticket-ceremony-delay) cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  }
+
+  :root:not([data-motion='reduced'])
+    .appointment-ticket--ceremony-short
+    :deep(.day-ruler__mark--mine) {
+    animation: ticket-mark 300ms calc(var(--ticket-ceremony-delay) + 180ms)
       cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 }

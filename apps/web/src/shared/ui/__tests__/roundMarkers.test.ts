@@ -24,8 +24,6 @@ const sources: Record<string, string> = Object.fromEntries(
 const ROUND_ALLOWED: Record<string, string> = {
   '.appointment-ticket__perforation::before': 'perforación del boleto (objeto físico)',
   '.appointment-ticket__perforation::after': 'perforación del boleto (objeto físico)',
-  '.new-appointment-page__resumen-perforation::before': 'perforación del boleto (objeto físico)',
-  '.new-appointment-page__resumen-perforation::after': 'perforación del boleto (objeto físico)',
   '.location-picker__activate-hint': 'píldora de texto',
   '.offer-switch__thumb': 'perilla de interruptor (control)',
   '.schedules-page__segment-add': 'botón de añadir (control, no marcador)',

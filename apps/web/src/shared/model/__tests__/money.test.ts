@@ -3,7 +3,7 @@
  * texto y nunca se convierte a número.
  */
 import { describe, expect, it } from 'vitest'
-import { formatMoney, moneyParts } from '../money'
+import { formatMoney, moneyParts, readableMoney } from '../money'
 
 describe('moneyParts', () => {
   it('groups thousands with a dot and drops all-zero decimals for COP', () => {
@@ -38,5 +38,17 @@ describe('moneyParts', () => {
 describe('formatMoney', () => {
   it('joins symbol and amount with a non-breaking space', () => {
     expect(formatMoney('25000.00', 'COP')).toBe('$ 25.000')
+  })
+})
+
+describe('readableMoney (#833)', () => {
+  it('formats a readable decimal like formatMoney', () => {
+    expect(readableMoney('35000.00', 'COP')).toBe(formatMoney('35000.00', 'COP'))
+  })
+
+  it('returns null instead of a price that is not one', () => {
+    expect(readableMoney('gratis', 'COP')).toBeNull()
+    expect(readableMoney('', 'COP')).toBeNull()
+    expect(readableMoney('35000.00', '')).toBeNull()
   })
 })

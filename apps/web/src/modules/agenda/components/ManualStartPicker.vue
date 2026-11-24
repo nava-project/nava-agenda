@@ -74,6 +74,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 const date = defineModel<string>('date', { required: true })
 const time = defineModel<string>('time', { required: true })
+// La duración que aplicará el servidor, leída con los inicios libres: la
+// página la muestra en la tarjeta del borrador en cuanto llega (#833).
+const emit = defineEmits<{ duration: [minutes: number] }>()
 
 type Status = 'idle' | 'loading' | 'ready' | 'not-found' | 'error'
 const status = ref<Status>('idle')
@@ -137,6 +140,7 @@ async function load() {
   zone.value = availability.timezone
   grid.value = availability.slotGridMinutes
   duration.value = availability.durationMinutes
+  emit('duration', availability.durationMinutes)
   days.value = windowDays(availability.starts, availability.timezone, from)
   // Abre en el día ya elegido si está en el tramo; si no, en el primero con hueco.
   const keep = days.value.find((d) => d.civilDate === date.value)

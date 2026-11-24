@@ -3,6 +3,8 @@
  * confirmación y mi turno. El estado se lee en palabras; la ceremonia es una
  * clase que el CSS anima solo con movimiento permitido.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -80,5 +82,85 @@ describe('AppointmentTicket', () => {
       props: { ...props, state: 'confirmed' as const, ceremony: true },
     })
     expect(ceremony.classes()).toContain('appointment-ticket--ceremony')
+  })
+
+  describe('el borrador que se llena (#833)', () => {
+    const empty = {
+      businessName: 'Barbería de prueba',
+      serviceName: '',
+      weekday: '',
+      month: '',
+      day: '',
+      time: '',
+      state: 'draft' as const,
+      stateLabel: 'Por registrar',
+      filling: true,
+    }
+
+    it('reserves every gap with a silhouette, names the blanks for assistive tech and keeps the ruler without a mark', async () => {
+      const wrapper = mount(AppointmentTicket, { props: empty, attachTo: document.body })
+      expect(wrapper.findAll('.appointment-ticket__blank')).toHaveLength(8)
+      expect(wrapper.text()).toContain('Servicio por elegir')
+      expect(wrapper.text()).toContain('Día y hora por elegir')
+      expect(wrapper.get('.appointment-ticket__pending').text()).toContain('Por registrar')
+      expect(wrapper.find('.appointment-ticket__ruler-wrap--blank').exists()).toBe(true)
+      expect(wrapper.find('.day-ruler__mark').exists()).toBe(false)
+      expect(wrapper.text()).not.toMatch(/undefined|NaN|Invalid Date/)
+      expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
+      wrapper.unmount()
+    })
+
+    it('draws nothing extra outside the filling mode: the other screens keep their card', () => {
+      const wrapper = mount(AppointmentTicket, {
+        props: {
+          ...props,
+          meta: undefined,
+          timeNote: undefined,
+          professionalName: undefined,
+          ruler: undefined,
+          state: 'confirmed' as const,
+        },
+      })
+      expect(wrapper.find('.appointment-ticket__blank').exists()).toBe(false)
+      expect(wrapper.find('.appointment-ticket__meta').exists()).toBe(false)
+      expect(wrapper.find('.appointment-ticket__foot').exists()).toBe(false)
+      expect(wrapper.find('.appointment-ticket__ruler-wrap').exists()).toBe(false)
+    })
+
+    it('replaces each silhouette by its datum as it arrives', () => {
+      const wrapper = mount(AppointmentTicket, {
+        props: { ...empty, ...props, state: 'draft' as const },
+      })
+      expect(wrapper.find('.appointment-ticket__blank').exists()).toBe(false)
+      expect(wrapper.find('.day-ruler__mark--draft').exists()).toBe(true)
+    })
+  })
+
+  describe('la ceremonia corta (#833)', () => {
+    const css = readFileSync(join(__dirname, '../AppointmentTicket.vue'), 'utf8')
+
+    it('marks the card with its own class, never the full script', () => {
+      const wrapper = mount(AppointmentTicket, {
+        props: { ...props, state: 'confirmed' as const, ceremony: 'short' as const },
+      })
+      expect(wrapper.classes()).toContain('appointment-ticket--ceremony-short')
+      expect(wrapper.classes()).not.toContain('appointment-ticket--ceremony')
+    })
+
+    it('only stamps the seal and turns the diamond into the Sun, within 500 ms, and only with motion allowed', () => {
+      const block = css.slice(css.indexOf('/* Ceremonia corta (#833)'))
+      const media = block.slice(0, block.indexOf('@keyframes'))
+      expect(media).toContain('@media (prefers-reduced-motion: no-preference)')
+      expect(media).toContain(":root:not([data-motion='reduced'])")
+      const rules = [
+        ...media.matchAll(
+          /animation:\s*([\w-]+)\s+(\d+)ms(?:\s+calc\(var\(--ticket-ceremony-delay\) \+ (\d+)ms\)|\s+var\(--ticket-ceremony-delay\))/g,
+        ),
+      ]
+      expect(rules.map((r) => r[1])).toEqual(['ticket-stamp', 'ticket-mark'])
+      for (const [, , duration, delay] of rules) {
+        expect(Number(duration) + Number(delay ?? 0)).toBeLessThanOrEqual(500)
+      }
+    })
   })
 })

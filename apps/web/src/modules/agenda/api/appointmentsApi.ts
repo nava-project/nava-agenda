@@ -26,6 +26,7 @@ import type {
   FetchManualAvailabilityOutcome,
   RescheduleAppointmentOutcome,
 } from '../model/appointmentOutcome'
+import type { ServiceSummary } from '../model/appointment'
 import type { DailyAgendaEntry, HomeService } from '../model/dailyAgenda'
 
 const PICKER_LIMIT = 50
@@ -65,12 +66,13 @@ export async function fetchAssignedServices(
       },
     )
     if (response.ok && data) {
-      const servicesById = await fetchServiceNames(data.items.map((a) => a.serviceId))
+      const servicesById = await fetchActiveServices(data.items.map((a) => a.serviceId))
       return {
         kind: 'success',
-        items: data.items
-          .map((a) => ({ id: a.serviceId, name: servicesById.get(a.serviceId) ?? a.serviceId }))
-          .filter((s) => servicesById.has(s.id)),
+        items: data.items.flatMap((a) => {
+          const service = servicesById.get(a.serviceId)
+          return service ? [service] : []
+        }),
       }
     }
     switch (response.status) {
@@ -84,13 +86,13 @@ export async function fetchAssignedServices(
   }
 }
 
-// fetchServiceNames resuelve el catálogo completo una sola vez y filtra en
-// memoria a los activos: GET /private/professionals/{professionalId}/services (HU-023)
+// fetchActiveServices resuelve el catálogo completo una sola vez y filtra en
+// memoria a los activos, con su duración y su precio (#833): GET /private/professionals/{professionalId}/services (HU-023)
 // solo expone professionalId/serviceId/createdAt (CA-023-07), nunca el nombre, a
 // propósito, para que un consumidor cruce por identificador contra el
 // catálogo real.
-async function fetchServiceNames(serviceIds: string[]): Promise<Map<string, string>> {
-  const byId = new Map<string, string>()
+async function fetchActiveServices(serviceIds: string[]): Promise<Map<string, ServiceSummary>> {
+  const byId = new Map<string, ServiceSummary>()
   if (serviceIds.length === 0) return byId
   try {
     // /private/services pagina por página, no por cursor (DEC-103): mismo
@@ -100,7 +102,14 @@ async function fetchServiceNames(serviceIds: string[]): Promise<Map<string, stri
     })
     if (response.ok && data) {
       for (const s of data.items) {
-        if (s.isActive) byId.set(s.id, s.name)
+        if (s.isActive)
+          byId.set(s.id, {
+            id: s.id,
+            name: s.name,
+            durationMinutes: s.durationMinutes,
+            price: s.price,
+            currency: s.currency,
+          })
       }
     }
   } catch {
