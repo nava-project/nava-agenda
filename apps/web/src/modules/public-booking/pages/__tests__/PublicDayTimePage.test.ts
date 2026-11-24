@@ -5,7 +5,8 @@
  * real; horas por Mañana/Tarde/Noche con nombre completo para el lector; el
  * pase dice quién atiende y lleva a «Tus datos» con ese profesional.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { nextTick, ref } from 'vue'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 
@@ -35,6 +36,7 @@ vi.mock('../../components/ProfessionalReviews.vue', () => ({
 }))
 
 const { default: PublicDayTimePage } = await import('../PublicDayTimePage.vue')
+const { bookingChromeKey } = await import('../../model/bookingChrome')
 const { chosenStartFor, markReturnFromDetails, rememberChosenStart, resetChosenStarts } =
   await import('../../model/chosenStart')
 
@@ -490,6 +492,63 @@ describe('PublicDayTimePage', () => {
       await flushPromises()
       expect(checkedHour(wrapper)).toBeUndefined()
       expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
+    })
+  })
+
+  describe('the phone pase while the step slides in (H9, #827)', () => {
+    function mountInShell(desktop: boolean) {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: desktop,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+      const dock = document.createElement('div')
+      dock.className = 'bk-fixed-dock'
+      document.body.append(dock)
+      const wrapper = mount(PublicDayTimePage, {
+        props: { slug: 'barberia', serviceId: 'svc', professionalId: null },
+        attachTo: document.body,
+        global: {
+          provide: {
+            [bookingChromeKey as symbol]: { completed: ref(false), fixedDock: '.bk-fixed-dock' },
+          },
+          stubs: { RouterLink: { props: ['to'], template: '<a href="#"><slot /></a>' } },
+        },
+      })
+      return { wrapper, dock }
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      document.querySelectorAll('.bk-fixed-dock').forEach((d) => d.remove())
+    })
+
+    it('lives outside the main that slides, from the skeleton to the content', async () => {
+      respond()
+      const { wrapper, dock } = mountInShell(false)
+      await nextTick()
+      await nextTick()
+      // Ya con el esqueleto: el pase fijo no está dentro del `main` que se desliza.
+      expect(wrapper.get('main').attributes('aria-busy')).toBe('true')
+      expect(dock.querySelector('.bk-pase--skeleton')).not.toBeNull()
+      expect(wrapper.get('main').element.querySelector('.bk-pase')).toBeNull()
+
+      await flushPromises()
+      const pase = dock.querySelector('aside.bk-pase')
+      expect(pase?.getAttribute('aria-label')).toBe('Tu cita')
+      expect(wrapper.get('main').element.querySelector('.bk-pase')).toBeNull()
+      wrapper.unmount()
+      // Se va con su pantalla.
+      expect(dock.querySelector('.bk-pase')).toBeNull()
+    })
+
+    it('stays in its column on desktop, where it is sticky', async () => {
+      respond()
+      const { wrapper, dock } = mountInShell(true)
+      await flushPromises()
+      expect(wrapper.get('main').element.querySelector('aside.bk-pase')).not.toBeNull()
+      expect(dock.childElementCount).toBe(0)
     })
   })
 })

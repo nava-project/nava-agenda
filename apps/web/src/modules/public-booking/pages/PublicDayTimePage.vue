@@ -35,6 +35,7 @@ import {
   type DaylightDay,
   type DaylightSlot,
 } from '../model/daylight'
+import { bookingFixedDock } from '../model/bookingChrome'
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { rememberPublicProfessionals } from '../model/publicProfessionals'
@@ -87,6 +88,23 @@ const selected = ref<DaylightSlot | null>(null)
 // La hora elegida antes de ir a «Tus datos» ya no está libre al volver (#824).
 const lostChoice = ref(false)
 const page = ref<HTMLElement | null>(null)
+const paseBar = ref<HTMLElement | null>(null)
+
+// En el teléfono el pase es una barra fija. Vive fuera del `main` que se
+// desliza al entrar el paso, en el acople del cascarón: dentro, el `transform`
+// de la entrada lo dejaba al pie de la página ~370 ms, tapando la hora o
+// apareciendo de golpe (H9, #827). En escritorio es `sticky` en su columna y
+// se queda en la rejilla.
+const fixedDock = bookingFixedDock()
+const desktopQuery =
+  typeof window.matchMedia === 'function' ? window.matchMedia('(min-width: 1024px)') : null
+const desktop = ref(desktopQuery?.matches ?? true)
+const onDesktopChange = (event: MediaQueryListEvent) => {
+  desktop.value = event.matches
+}
+desktopQuery?.addEventListener('change', onDesktopChange)
+onBeforeUnmount(() => desktopQuery?.removeEventListener('change', onDesktopChange))
+const dockPase = computed(() => fixedDock !== null && !desktop.value)
 
 let requestToken = 0
 // «Cargando las horas libres…» o no asoma o se queda a la vista (#820).
@@ -172,9 +190,9 @@ function restoreChosen() {
 function bringIntoView(selector: string) {
   const target = page.value?.querySelector<HTMLElement>(selector)
   if (!target) return
-  const pase = page.value?.querySelector<HTMLElement>('.bk-pase')
-  // La barra fija puede estar entrando (desplazada hacia abajo): cuenta su alto
-  // de maqueta, no su posición de ese instante.
+  const pase = paseBar.value
+  // Cuenta su alto de maqueta, no su posición de ese instante: es lo que tapa
+  // de la pantalla.
   const bottom =
     pase && getComputedStyle(pase).position === 'fixed'
       ? window.innerHeight - pase.offsetHeight
@@ -375,11 +393,13 @@ const failedRequestId = computed(() =>
       </div>
       <!-- El pase mientras carga (#747): su rótulo, una silueta y el botón
            deshabilitado, como cuando ya cargó. Nunca una barra en blanco. -->
-      <div class="bk-pase bk-pase--skeleton" aria-hidden="true">
-        <p class="bk-pase__label">Tu cita</p>
-        <span class="bk-skel bk-skel--pase"></span>
-        <span class="bk-cta bk-cta--idle">Elige una hora</span>
-      </div>
+      <Teleport :to="fixedDock ?? 'body'" defer :disabled="!dockPase">
+        <div class="bk-pase bk-pase--skeleton" aria-hidden="true">
+          <p class="bk-pase__label">Tu cita</p>
+          <span class="bk-skel bk-skel--pase"></span>
+          <span class="bk-cta bk-cta--idle">Elige una hora</span>
+        </div>
+      </Teleport>
     </div>
   </main>
 
@@ -536,34 +556,36 @@ const failedRequestId = computed(() =>
 
       <!-- El pase de la cita: se arma mientras eliges. Riel fijo en escritorio,
            barra al pie en móvil. Siempre ocupa su sitio: aparecer no mueve nada. -->
-      <aside class="bk-pase" aria-label="Tu cita" aria-live="polite">
-        <p class="bk-pase__label">Tu cita</p>
-        <div class="bk-pase__body">
-          <p v-if="service" class="bk-pase__service">
-            {{ service.name }}
-            <span class="bk-pase__price">{{ formatMoney(service.price, service.currency) }}</span>
+      <Teleport :to="fixedDock ?? 'body'" defer :disabled="!dockPase">
+        <aside ref="paseBar" class="bk-pase" aria-label="Tu cita" aria-live="polite">
+          <p class="bk-pase__label">Tu cita</p>
+          <div class="bk-pase__body">
+            <p v-if="service" class="bk-pase__service">
+              {{ service.name }}
+              <span class="bk-pase__price">{{ formatMoney(service.price, service.currency) }}</span>
+            </p>
+            <p class="bk-pase__who">
+              <template v-if="attendingProfessional"
+                >Con {{ attendingProfessional.fullName }}</template
+              >
+              <template v-else>Con cualquier {{ v.professional }} libre</template>
+            </p>
+            <p v-if="pase" class="bk-pase__when">
+              <span class="bk-pase__day">{{ pase.dayLong }}</span>
+              <span class="bk-pase__time">{{ pase.range }}</span>
+            </p>
+            <p v-else class="bk-pase__hint">Elige una hora para seguir.</p>
+          </div>
+          <p v-if="pase" class="bk-pase__compact">
+            <span>{{ pase.dayShort }}</span> · <strong>{{ pase.time }}</strong>
           </p>
-          <p class="bk-pase__who">
-            <template v-if="attendingProfessional"
-              >Con {{ attendingProfessional.fullName }}</template
-            >
-            <template v-else>Con cualquier {{ v.professional }} libre</template>
-          </p>
-          <p v-if="pase" class="bk-pase__when">
-            <span class="bk-pase__day">{{ pase.dayLong }}</span>
-            <span class="bk-pase__time">{{ pase.range }}</span>
-          </p>
-          <p v-else class="bk-pase__hint">Elige una hora para seguir.</p>
-        </div>
-        <p v-if="pase" class="bk-pase__compact">
-          <span>{{ pase.dayShort }}</span> · <strong>{{ pase.time }}</strong>
-        </p>
-        <RouterLink v-if="next" :to="next" class="bk-cta">
-          <span class="bk-cta__long">Seguir con tus datos</span
-          ><span class="bk-cta__short">Seguir</span>
-        </RouterLink>
-        <span v-else class="bk-cta bk-cta--idle" aria-hidden="true">Elige una hora</span>
-      </aside>
+          <RouterLink v-if="next" :to="next" class="bk-cta">
+            <span class="bk-cta__long">Seguir con tus datos</span
+            ><span class="bk-cta__short">Seguir</span>
+          </RouterLink>
+          <span v-else class="bk-cta bk-cta--idle" aria-hidden="true">Elige una hora</span>
+        </aside>
+      </Teleport>
     </div>
   </main>
 </template>
