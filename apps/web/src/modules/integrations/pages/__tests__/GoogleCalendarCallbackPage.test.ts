@@ -108,4 +108,56 @@ describe('GoogleCalendarCallbackPage', () => {
     const failed = await mountWith({ state: 's', code: 'c' })
     expect(await axe(failed.element, axeOptions)).toHaveNoViolations()
   })
+
+  describe('en la familia (#838)', () => {
+    it.each([
+      [
+        'rechazo',
+        { kind: 'success', result: 'denied' },
+        'No diste el permiso.',
+        'Sin el permiso de calendario Nava Agenda no puede publicar tu agenda. Puedes intentarlo de nuevo cuando quieras.',
+      ],
+      [
+        'fallo de Google',
+        { kind: 'success', result: 'failed' },
+        'No pudimos conectar.',
+        'Google no completó la conexión. Inténtalo de nuevo; tus turnos no se tocaron.',
+      ],
+      [
+        'autorización vencida',
+        { kind: 'invalid' },
+        'La autorización venció.',
+        'El enlace de Google ya se usó o venció. Inicia la conexión de nuevo desde Nava Agenda.',
+      ],
+      [
+        'sin red',
+        { kind: 'network-error' },
+        'No pudimos conectar.',
+        'Hubo un problema al hablar con Nava Agenda. Revisa tu conexión e inténtalo de nuevo.',
+      ],
+    ])(
+      'el desenlace «%s» lleva el sol-rombo quieto, el foco en el h1 y el texto de siempre',
+      async (_name, result, headline, body) => {
+        completeMock.mockResolvedValue(result)
+        routeMock.query = { state: 'estado-1', code: 'codigo-1' }
+        const wrapper = mount(GoogleCalendarCallbackPage, {
+          attachTo: document.body,
+          global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+        })
+        await flushPromises()
+        const box = wrapper.get('.gcal-return__box')
+        expect(box.attributes('role')).toBe('alert')
+        expect(box.get('.gcal-return__mark').attributes('aria-hidden')).toBe('true')
+        expect(box.find('.sun-diamond').exists()).toBe(true)
+        expect(box.get('h2').text()).toBe(headline)
+        expect(box.get('p').text()).toBe(body)
+        // «Volver» es un enlace, no un botón dentro de un enlace.
+        const back = box.get('.gcal-return__back')
+        expect(back.element.tagName).toBe('A')
+        expect(back.find('button').exists()).toBe(false)
+        expect(document.activeElement).toBe(wrapper.get('h1').element)
+        wrapper.unmount()
+      },
+    )
+  })
 })

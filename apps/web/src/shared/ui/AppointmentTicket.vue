@@ -35,6 +35,7 @@
  * misma composición que en un teléfono, aunque la ventana sea ancha.
  */
 import { computed } from 'vue'
+import CalendarLeaf from './CalendarLeaf.vue'
 import DayRuler, { type DayRulerMark } from './DayRuler.vue'
 import ProfessionalAvatar from './ProfessionalAvatar.vue'
 
@@ -177,13 +178,12 @@ const rulerMarks = computed(
     <div class="appointment-ticket__perforation" aria-hidden="true" />
 
     <div class="appointment-ticket__body">
-      <p class="appointment-ticket__leaf" aria-hidden="true">
-        <span class="appointment-ticket__leaf-month">{{ month || '\u00a0' }}</span>
-        <span class="appointment-ticket__leaf-day">
-          <template v-if="day">{{ day }}</template>
-          <span v-else class="appointment-ticket__blank appointment-ticket__blank--day" />
-        </span>
-      </p>
+      <!-- La misma hoja que el emblema de Google Calendar (CalendarLeaf, #838). -->
+      <CalendarLeaf class="appointment-ticket__leaf" :month="month" :day="day">
+        <template v-if="!day" #day>
+          <span class="appointment-ticket__blank appointment-ticket__blank--day" />
+        </template>
+      </CalendarLeaf>
       <div class="appointment-ticket__when">
         <p class="appointment-ticket__weekday">
           <template v-if="weekday">{{ weekday }}</template>
@@ -453,31 +453,6 @@ const rulerMarks = computed(
 
 .appointment-ticket__body p {
   margin: 0;
-}
-
-.appointment-ticket__leaf {
-  overflow: hidden;
-  text-align: center;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-brass-line);
-  border-radius: 3px;
-}
-
-.appointment-ticket__leaf-month {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 22px;
-  color: #101b2b;
-  letter-spacing: 0.14em;
-  background-color: var(--color-brass-body);
-}
-
-.appointment-ticket__leaf-day {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 38px;
-  line-height: 50px;
 }
 
 .appointment-ticket__weekday {

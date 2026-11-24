@@ -623,8 +623,8 @@ describe('NewAppointmentPage', () => {
       expect(ticket.get('.appointment-ticket__time').text()).toBe('2:30 p. m.')
       expect(ticket.get('.appointment-ticket__note').text()).toMatch(/^hasta 3:00 p\. m\. · /)
       const m = civilTicketMoment(today, '14:30', 30)!
-      expect(ticket.get('.appointment-ticket__leaf-day').text()).toBe(m.day)
-      expect(ticket.get('.appointment-ticket__leaf-month').text()).toBe(m.month)
+      expect(ticket.get('.calendar-leaf__day').text()).toBe(m.day)
+      expect(ticket.get('.calendar-leaf__month').text()).toBe(m.month)
       expect(ticket.get('.appointment-ticket__weekday').text()).toBe(m.weekday)
       // La regla con el rombo hueco del borrador, sin Sol.
       expect(ticket.find('.day-ruler__mark--draft').exists()).toBe(true)

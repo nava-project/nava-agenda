@@ -1,126 +1,106 @@
 <script setup lang="ts">
-// Emblema de la pantalla «Google Calendar» (issue #331): una hoja de calendario con
-// un día marcado y una insignia de estado. Es solo ilustración (aria-hidden): el estado
-// real lo comunican el badge y el texto de la pantalla. v2 (DEC-188): la hoja va en
-// tinta y solo la insignia toma el tono del estado; queda dibujada y quieta (sin
-// trazo al entrar, sin órbita ni anillo que respira, sin rombo).
+// Emblema de la pantalla «Google Calendar» (#331; en la familia, #838 · DEC-189):
+// la hoja de calendario de latón de la tarjeta de turno (CalendarLeaf, el mismo
+// componente) con una insignia de estado en rombo en la esquina. Es de Nava: no
+// imita el ícono de Google Calendar (nada azul, ningún «31» en una cuadrícula).
+//
+// Decorativo (aria-hidden): el estado lo dicen la etiqueta y el titular. La
+// insignia tampoco es la única pista visual: hueca sin conexión, llena con ella,
+// y con su propio trazo (marca, giro, «!» o raya). Quieta: nada se anima.
 import { computed } from 'vue'
+import { CalendarLeaf } from '@/shared/ui'
 import type { GoogleCalendarView } from '../model/googleCalendar'
 
 const props = defineProps<{ view: GoogleCalendarView }>()
 
-const isLive = computed(() => props.view === 'connected' || props.view === 'syncing')
+// La hoja muestra el día de hoy: es «tu agenda», no una fecha concreta.
+const parts = new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'short' }).formatToParts(
+  new Date(),
+)
+const month = (parts.find((p) => p.type === 'month')?.value ?? '')
+  .replace('.', '')
+  .toLocaleUpperCase('es-CO')
+const day = parts.find((p) => p.type === 'day')?.value ?? ''
+
+/** Sin conexión viva la insignia es solo contorno: «todavía no hay nada encendido». */
+const hollow = computed(
+  () =>
+    props.view === 'not-connected' ||
+    props.view === 'needs-professional' ||
+    props.view === 'unavailable',
+)
 const isAlert = computed(() => props.view === 'reauth' || props.view === 'sync-error')
 </script>
 
 <template>
-  <svg
-    class="gcal-emblem"
-    :class="[`gcal-emblem--${view}`]"
-    viewBox="0 0 112 112"
-    width="112"
-    height="112"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <g class="gcal-emblem__sheet">
-      <rect class="gcal-emblem__body" x="22" y="28" width="68" height="64" rx="4" fill="none" />
-      <path class="gcal-emblem__band" d="M22 46h68" fill="none" />
-      <path class="gcal-emblem__ring" d="M40 21v14M72 21v14" fill="none" />
-      <!-- Rejilla de días. -->
-      <g class="gcal-emblem__days">
-        <rect
-          v-for="(d, i) in [0, 1, 2, 3, 4, 5]"
-          :key="d"
-          class="gcal-emblem__day"
-          :x="32 + (i % 3) * 18"
-          :y="56 + Math.floor(i / 3) * 14"
-          width="10"
-          height="8"
-          rx="1.5"
-        />
-      </g>
-      <!-- Día marcado: hueco hasta que la agenda se publica. -->
-      <path
-        class="gcal-emblem__mark"
-        :class="{ 'gcal-emblem__mark--filled': isLive }"
-        d="M56 69.5 L62.5 76 L56 82.5 L49.5 76 Z"
-      />
-    </g>
-
-    <!-- Insignia de estado: un rombo, como todo marcador de la familia (#737). -->
-    <g :key="view" class="gcal-emblem__badge">
-      <path d="M88 70 L106 88 L88 106 L70 88 Z" class="gcal-emblem__badge-disc" />
-      <path
-        v-if="view === 'connected'"
-        class="gcal-emblem__glyph"
-        d="M81 88.5l5 5 9-10"
-        fill="none"
-      />
+  <span class="gcal-emblem" :class="`gcal-emblem--${view}`" aria-hidden="true">
+    <CalendarLeaf class="gcal-emblem__leaf" :month="month" :day="day" />
+    <svg
+      class="gcal-emblem__badge"
+      :class="{ 'gcal-emblem__badge--hollow': hollow }"
+      viewBox="0 0 36 36"
+      width="36"
+      height="36"
+      focusable="false"
+    >
+      <path class="gcal-emblem__badge-disc" d="M18 2 L34 18 L18 34 L2 18 Z" />
+      <path v-if="view === 'connected'" class="gcal-emblem__glyph" d="M11.5 18.5l4.5 4.5 8.5-9" />
       <path
         v-else-if="view === 'syncing'"
         class="gcal-emblem__glyph"
-        d="M81 88a7 7 0 0 1 12-5M95 88a7 7 0 0 1-12 5"
-        fill="none"
+        d="M11.5 18a6.5 6.5 0 0 1 11-4.5M24.5 18a6.5 6.5 0 0 1-11 4.5"
       />
-      <path v-else-if="isAlert" class="gcal-emblem__glyph" d="M88 80v9M88 94.5v.5" fill="none" />
-      <path
-        v-else-if="view === 'unavailable'"
-        class="gcal-emblem__glyph"
-        d="M81 88h14"
-        fill="none"
-      />
-      <path v-else class="gcal-emblem__glyph" d="M88 80v16M80 88h16" fill="none" />
-    </g>
-  </svg>
+      <path v-else-if="isAlert" class="gcal-emblem__glyph" d="M18 10.5v9M18 24.5v.5" />
+      <path v-else-if="view === 'unavailable'" class="gcal-emblem__glyph" d="M12 18h12" />
+    </svg>
+  </span>
 </template>
 
 <style scoped>
 .gcal-emblem {
-  --emblem-tone: var(--gcal-tone, var(--color-text-secondary));
+  --emblem-tone: var(--gcal-tone, var(--color-brass-text));
 
+  position: relative;
   display: block;
   flex: 0 0 auto;
+  width: 74px;
+  padding: 0 14px 14px 0;
+  box-sizing: content-box;
+}
+
+.gcal-emblem__badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
   overflow: visible;
 }
 
-.gcal-emblem__body,
-.gcal-emblem__band,
-.gcal-emblem__ring {
-  stroke: var(--color-text-primary);
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-.gcal-emblem__ring {
-  stroke-width: 3;
-}
-
-.gcal-emblem__day {
-  fill: color-mix(in srgb, var(--color-text-primary) 18%, transparent);
-}
-
-.gcal-emblem__mark {
-  fill: var(--color-surface);
-  stroke: var(--color-text-primary);
-  stroke-width: 1.6;
-}
-
-.gcal-emblem__mark--filled {
-  fill: var(--color-text-primary);
-}
-
+/* Llena con la conexión viva: el rombo en el tono del estado y el trazo en la
+   superficie, como un sello. */
 .gcal-emblem__badge-disc {
-  fill: var(--color-surface);
-  stroke: var(--emblem-tone);
-  stroke-width: 2;
+  fill: var(--emblem-tone);
+  stroke: var(--color-surface);
+  stroke-width: 2.5;
   stroke-linejoin: round;
 }
 
 .gcal-emblem__glyph {
-  stroke: var(--emblem-tone);
+  fill: none;
+  stroke: var(--color-surface);
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Sin conexión: solo el contorno, en latón de texto (≥ 3:1 en Día y Noche). */
+.gcal-emblem__badge--hollow .gcal-emblem__badge-disc {
+  fill: var(--color-surface);
+  stroke: var(--emblem-tone);
+  stroke-width: 2;
+}
+
+.gcal-emblem__badge--hollow .gcal-emblem__glyph {
+  stroke: var(--emblem-tone);
 }
 </style>

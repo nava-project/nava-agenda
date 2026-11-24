@@ -14,7 +14,15 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isSoloProfile } from '@/shared/model'
-import { BaseAlert, BaseButton, BaseDialog, BaseInput, DiamondLoader } from '@/shared/ui'
+import { useLoaderGrace } from '@/shared/composables/useLoaderGrace'
+import {
+  BaseAlert,
+  BaseButton,
+  BaseDialog,
+  BaseInput,
+  ContentReveal,
+  DiamondLoader,
+} from '@/shared/ui'
 import GoogleCalendarEmblem from '../components/GoogleCalendarEmblem.vue'
 import GoogleCalendarSteps from '../components/GoogleCalendarSteps.vue'
 import {
@@ -51,6 +59,9 @@ const busy = ref<Busy>(null)
 const actionError = ref<string | null>(null)
 const redirecting = ref(false)
 const isDisconnectOpen = ref(false)
+// La carga nunca destella: si el cargador alcanzó a verse, se queda lo bastante
+// para leerse (#820); si la respuesta es rápida, el contenido entra sin él (#838).
+const loaderGrace = useLoaderGrace()
 
 // Formulario del recordatorio.
 const useDefaultReminder = ref(true)
@@ -63,9 +74,36 @@ const view = computed<GoogleCalendarView | null>(() =>
 const isConnectedLike = computed(
   () => view.value === 'connected' || view.value === 'syncing' || view.value === 'sync-error',
 )
-const canConnect = computed(
-  () => view.value === 'not-connected' || view.value === 'reauth' || view.value === 'sync-error',
+
+// La sincronización pedida desde esta página (#840 r2): desde «Sincronizar ahora»
+// hasta que el sondeo devuelve un estado que ya no es «sincronizando», la fila de
+// acciones se queda con los botones del estado de origen, en espera. Si de error
+// se pasara a sincronizando, «Volver a conectar» se iría y la fila perdería un
+// renglón en el teléfono, y luego volvería; así el cambio es uno solo, al final.
+// La espera usa `aria-disabled` y no `disabled`: un botón deshabilitado suelta el
+// foco (Firefox lo manda al body) y el foco debe quedarse en «Sincronizar ahora».
+const syncOrigin = ref<GoogleCalendarView | null>(null)
+const syncWaiting = computed(() => syncOrigin.value !== null)
+const actionsView = computed(() => syncOrigin.value ?? view.value)
+const actionsConnectedLike = computed(
+  () =>
+    actionsView.value === 'connected' ||
+    actionsView.value === 'syncing' ||
+    actionsView.value === 'sync-error',
 )
+const canConnect = computed(
+  () =>
+    actionsView.value === 'not-connected' ||
+    actionsView.value === 'reauth' ||
+    actionsView.value === 'sync-error',
+)
+// Como mucho una acción llena por estado (#838): «Conectar» sin conexión o al
+// reconectar; «Sincronizar ahora» solo cuando hay un error que reintentar. El
+// estado sano (conectado o publicando) no lleva ningún acento lleno.
+const connectVariant = computed(() =>
+  actionsView.value === 'sync-error' ? 'secondary' : 'primary',
+)
+const syncVariant = computed(() => (actionsView.value === 'sync-error' ? 'primary' : 'secondary'))
 
 let pollTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
@@ -90,6 +128,7 @@ function schedulePoll() {
 
 async function load() {
   loadStatus.value = 'loading'
+  loaderGrace.start()
   let outcome = await fetchConnection()
   if (disposed) return
   // Independiente (DEC-155): solo existe su ficha, así que no hay nada que elegir.
@@ -107,6 +146,8 @@ async function load() {
       if (disposed) return
     }
   }
+  await loaderGrace.settled()
+  if (disposed) return
   if (outcome.kind === 'success') {
     applyConnection(outcome.connection)
     loadStatus.value = 'ready'
@@ -120,6 +161,7 @@ async function refresh() {
   const outcome = await fetchConnection()
   if (disposed) return
   if (outcome.kind === 'success') applyConnection(outcome.connection)
+  settleSync()
 }
 
 onMounted(() => void load())
@@ -135,7 +177,7 @@ function failureMessage(kind: 'network-error' | 'unexpected-error', what: string
 }
 
 async function onConnect() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
   busy.value = 'connect'
   actionError.value = null
   const outcome = await startConnect()
@@ -155,7 +197,8 @@ async function onConnect() {
 }
 
 async function onSync() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
+  syncOrigin.value = view.value
   busy.value = 'sync'
   actionError.value = null
   const outcome = await syncNow()
@@ -171,10 +214,16 @@ async function onSync() {
     actionError.value = failureMessage(outcome.kind, 'sincronizar')
   }
   busy.value = null
+  settleSync()
+}
+
+/** La espera termina cuando ya no se está publicando (o si el envío falló). */
+function settleSync() {
+  if (busy.value !== 'sync' && view.value !== 'syncing') syncOrigin.value = null
 }
 
 function openDisconnect() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
   actionError.value = null
   isDisconnectOpen.value = true
 }
@@ -279,8 +328,10 @@ const pendingLabel = computed(() => {
 })
 
 // Texto del encabezado de estado: dice qué pasa y qué sigue, sin jerga técnica.
-const headline = computed(() => {
-  switch (view.value) {
+const headline = computed(() => headlineFor(view.value))
+
+function headlineFor(state: GoogleCalendarView | null): string {
+  switch (state) {
     case 'unavailable':
       return 'Todavía no está disponible'
     case 'needs-professional':
@@ -296,10 +347,12 @@ const headline = computed(() => {
     default:
       return 'Lleva tu agenda a Google Calendar'
   }
-})
+}
 
-const lead = computed(() => {
-  switch (view.value) {
+const lead = computed(() => leadFor(view.value, pendingLabel.value))
+
+function leadFor(state: GoogleCalendarView | null, pending: string): string {
+  switch (state) {
     case 'unavailable':
       return 'La conexión con Google Calendar no está disponible en este entorno. El resto de Nava Agenda funciona igual.'
     case 'needs-professional':
@@ -309,12 +362,29 @@ const lead = computed(() => {
     case 'sync-error':
       return 'Tus turnos están a salvo en Nava Agenda. Pulsa «Sincronizar ahora» para reintentar el envío.'
     case 'syncing':
-      return `Estamos enviando ${pendingLabel.value} a Google. Tarda unos segundos.`
+      return `Estamos enviando ${pending} a Google. Tarda unos segundos.`
     case 'connected':
       return 'Cada turno nuevo, cambio o cancelación se publica solo, y tus clientes reciben su invitación.'
     default:
       return 'Tus turnos y bloqueos aparecerán solos en tu calendario, y tus clientes recibirán la invitación por correo.'
   }
+}
+
+// Conectado, sincronizando y error se alternan solos al pulsar «Sincronizar
+// ahora» y al terminar el sondeo (#840 r1, C1). Sus titulares y textos miden
+// distinto, así que los tres se apilan en la misma celda: el actual se ve y los
+// otros, invisibles y fuera del árbol accesible, solo reservan el alto. Así los
+// datos, las acciones y el Recordatorio no suben ni bajan. El recuento de
+// «sincronizando» se reserva con dos cifras.
+const SYNC_FAMILY: readonly GoogleCalendarView[] = ['connected', 'syncing', 'sync-error']
+const copyReserve = computed(() => {
+  const current = view.value
+  if (current === null || !SYNC_FAMILY.includes(current)) return []
+  return SYNC_FAMILY.filter((state) => state !== current).map((state) => ({
+    state,
+    headline: headlineFor(state),
+    lead: leadFor(state, '10 cambios'),
+  }))
 })
 
 // Recorrido hacia la conexión: solo mientras todavía no hay una conexión viva.
@@ -386,239 +456,285 @@ const HOW_IT_WORKS = [
       </p>
     </header>
 
-    <div v-if="loadStatus === 'loading'" class="gcal-page__state" role="status" aria-live="polite">
-      <DiamondLoader label="Cargando Google Calendar…" layout="overlay" />
-    </div>
-
-    <BaseAlert
-      v-else-if="loadStatus === 'load-error'"
-      class="gcal-page__wide"
-      variant="warning"
-      role="alert"
-    >
-      <strong>No pudimos cargar tu Google Calendar.</strong> Revisa tu conexión e inténtalo de
-      nuevo.
-      <template #action>
-        <BaseButton variant="secondary" type="button" @click="load">Reintentar</BaseButton>
+    <!-- Carga → contenido sin parpadeo (#817, #838): el esqueleto, con la forma del
+         encabezado de estado, se desvanece por encima del contenido ya montado. -->
+    <ContentReveal class="gcal-page__stage" :loading="loadStatus === 'loading'">
+      <template #loading>
+        <div class="gcal-page__state" role="status" aria-live="polite">
+          <DiamondLoader label="Cargando Google Calendar…" layout="overlay" />
+          <div class="gcal-hero gcal-hero--skeleton" aria-hidden="true">
+            <span class="gcal-skeleton gcal-skeleton--leaf" />
+            <span class="gcal-skeleton-copy">
+              <span class="gcal-skeleton gcal-skeleton--status" />
+              <span class="gcal-skeleton gcal-skeleton--title" />
+              <span class="gcal-skeleton gcal-skeleton--line" />
+              <span class="gcal-skeleton gcal-skeleton--line gcal-skeleton--short" />
+            </span>
+            <span class="gcal-skeleton-actions">
+              <span class="gcal-skeleton gcal-skeleton--action" />
+            </span>
+          </div>
+        </div>
       </template>
-    </BaseAlert>
 
-    <div v-else-if="connection && view" class="gcal-page__layout gcal-ink">
-      <!-- Sin `title`: BaseAlert lo dibuja como h4 y saltaría niveles bajo el h1/h2. -->
-      <BaseAlert v-if="actionError" class="gcal-page__wide" variant="danger" role="alert">
-        <strong>No se pudo completar.</strong> {{ actionError }}
+      <BaseAlert
+        v-if="loadStatus === 'load-error'"
+        class="gcal-page__wide"
+        variant="warning"
+        role="alert"
+      >
+        <strong>No pudimos cargar tu Google Calendar.</strong> Revisa tu conexión e inténtalo de
+        nuevo.
+        <template #action>
+          <BaseButton variant="secondary" type="button" @click="load">Reintentar</BaseButton>
+        </template>
       </BaseAlert>
 
-      <!-- Estado y acciones -->
-      <section class="gcal-hero" :class="`gcal-hero--${view}`" aria-labelledby="gcal-state-title">
-        <GoogleCalendarEmblem class="gcal-hero__emblem" :view="view" />
+      <div v-else-if="connection && view" class="gcal-page__layout gcal-ink">
+        <!-- Sin `title`: BaseAlert lo dibuja como h4 y saltaría niveles bajo el h1/h2. -->
+        <BaseAlert v-if="actionError" class="gcal-page__wide" variant="danger" role="alert">
+          <strong>No se pudo completar.</strong> {{ actionError }}
+        </BaseAlert>
 
-        <div class="gcal-hero__main">
-          <span class="gcal-status" role="status">
-            <span class="gcal-status__dot" aria-hidden="true" />
-            {{ statusLabel }}
-          </span>
-          <div class="gcal-hero__copy">
-            <h2 id="gcal-state-title" class="gcal-hero__title">{{ headline }}</h2>
-            <p class="gcal-copy" aria-live="polite">{{ lead }}</p>
-          </div>
+        <!-- Estado y acciones -->
+        <section class="gcal-hero" :class="`gcal-hero--${view}`" aria-labelledby="gcal-state-title">
+          <GoogleCalendarEmblem class="gcal-hero__emblem" :view="view" />
 
-          <RouterLink
-            v-if="view === 'needs-professional'"
-            :to="{ name: 'staff-profesionales' }"
-            class="gcal-link"
-          >
-            <span class="gcal-link__copy">
-              <span class="gcal-link__title">Ir a {{ v.Professionals }}</span>
-              <span class="gcal-link__detail">Elige tu ficha y vincúlala con tu usuario.</span>
+          <div class="gcal-hero__main">
+            <!-- Rombo y palabra, sin píldora (#838): el rombo hueco o lleno y la palabra
+               dicen el estado sin depender del color. -->
+            <span class="gcal-status" role="status">
+              <span class="gcal-status__mark" aria-hidden="true" />
+              {{ statusLabel }}
             </span>
-            <span class="gcal-link__arrow" aria-hidden="true">→</span>
-          </RouterLink>
-
-          <dl v-if="isConnectedLike" class="gcal-facts">
-            <div>
-              <dt>Cuenta de Google</dt>
-              <dd>{{ connection.accountEmail ?? 'Cuenta conectada' }}</dd>
+            <div class="gcal-hero__copy">
+              <h2 id="gcal-state-title" class="gcal-hero__title">{{ headline }}</h2>
+              <p class="gcal-copy" aria-live="polite">{{ lead }}</p>
+              <template v-for="r in copyReserve" :key="r.state">
+                <p class="gcal-hero__title gcal-hero__copy-reserve" aria-hidden="true">
+                  {{ r.headline }}
+                </p>
+                <p class="gcal-copy gcal-hero__copy-reserve" aria-hidden="true">{{ r.lead }}</p>
+              </template>
             </div>
-            <div>
-              <dt>Calendario</dt>
-              <dd>Principal</dd>
-            </div>
-            <div>
-              <dt>Última sincronización</dt>
-              <dd v-if="connection.lastSyncedAt">
-                {{ formatMoment(connection.lastSyncedAt) }}
-                <small>{{ formatRelative(connection.lastSyncedAt) }}</small>
-              </dd>
-              <dd v-else>Aún no hay eventos sincronizados.</dd>
-            </div>
-          </dl>
-        </div>
 
-        <footer
-          v-if="view !== 'unavailable' && view !== 'needs-professional'"
-          class="gcal-hero__actions"
-        >
-          <BaseButton
-            v-if="canConnect"
-            type="button"
-            size="lg"
-            :variant="view === 'sync-error' ? 'secondary' : 'primary'"
-            :disabled="busy !== null || redirecting"
-            @click="onConnect"
-          >
-            <span class="gcal-action">
-              <svg
-                class="gcal-action__icon gcal-action__icon--plug"
-                viewBox="0 0 20 20"
-                width="16"
-                height="16"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path
-                  d="M8 12l4-4M7.5 9.5l-2 2a2.8 2.8 0 0 0 4 4l2-2M12.5 10.5l2-2a2.8 2.8 0 0 0-4-4l-2 2"
-                />
-              </svg>
-              {{
-                redirecting
-                  ? 'Abriendo Google…'
-                  : view === 'reauth' || view === 'sync-error'
-                    ? 'Volver a conectar'
-                    : 'Conectar Google Calendar'
-              }}
-            </span>
-          </BaseButton>
-          <BaseButton
-            v-if="isConnectedLike"
-            type="button"
-            size="lg"
-            variant="primary"
-            :disabled="busy !== null"
-            @click="onSync"
-          >
-            <span class="gcal-action">
-              <svg
-                class="gcal-action__icon"
-                :class="{ 'gcal-action__icon--spin': busy === 'sync' || view === 'syncing' }"
-                viewBox="0 0 20 20"
-                width="16"
-                height="16"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d="M16 10a6 6 0 0 1-10.5 4M4 10a6 6 0 0 1 10.5-4M14.5 3v3h-3M5.5 17v-3h3" />
-              </svg>
-              {{ busy === 'sync' ? 'Sincronizando…' : 'Sincronizar ahora' }}
-            </span>
-          </BaseButton>
-          <BaseButton
-            v-if="isConnectedLike || view === 'reauth'"
-            class="gcal-hero__disconnect"
-            type="button"
-            size="lg"
-            variant="danger"
-            :disabled="busy !== null"
-            @click="openDisconnect"
-          >
-            Desconectar
-          </BaseButton>
-        </footer>
-      </section>
-
-      <!-- Recorrido hacia la conexión -->
-      <GoogleCalendarSteps
-        v-if="showSteps"
-        :steps="steps"
-        :current="currentStep"
-        label="Pasos para conectar Google Calendar"
-      />
-
-      <!-- Recordatorio (solo con una conexión viva) -->
-      <section v-if="isConnectedLike" class="gcal-panel" aria-labelledby="gcal-reminder-title">
-        <header class="gcal-panel__header">
-          <h2 id="gcal-reminder-title" class="gcal-panel__title">Recordatorio</h2>
-        </header>
-        <form class="gcal-panel__body" novalidate @submit.prevent="onSaveReminder">
-          <p class="gcal-copy">
-            Google te avisa antes de cada turno en tu calendario. Nava Agenda no envía un aviso
-            propio.
-          </p>
-
-          <fieldset class="gcal-modes" :disabled="busy !== null">
-            <legend class="gcal-sr-only">Cuándo quieres que te avise Google</legend>
-            <label class="gcal-mode" :class="{ 'gcal-mode--on': reminderMode === 'default' }">
-              <input v-model="reminderMode" type="radio" name="reminderMode" value="default" />
-              <span class="gcal-mode__dot" aria-hidden="true" />
-              <span class="gcal-mode__copy">
-                <span class="gcal-mode__title">Avisos de Google</span>
-                <span class="gcal-mode__detail"
-                  >Usa los recordatorios que ya tienes en tu calendario.</span
-                >
-              </span>
-            </label>
-            <label class="gcal-mode" :class="{ 'gcal-mode--on': reminderMode === 'custom' }">
-              <input v-model="reminderMode" type="radio" name="reminderMode" value="custom" />
-              <span class="gcal-mode__dot" aria-hidden="true" />
-              <span class="gcal-mode__copy">
-                <span class="gcal-mode__title">Avisarme antes de cada turno</span>
-                <span class="gcal-mode__detail">Tú eliges cuántos minutos de anticipación.</span>
-              </span>
-            </label>
-          </fieldset>
-
-          <Transition name="gcal-expand">
-            <div v-if="!useDefaultReminder" class="gcal-custom">
-              <div class="gcal-chips" role="group" aria-label="Atajos de anticipación">
-                <button
-                  v-for="preset in REMINDER_PRESETS"
-                  :key="preset.minutes"
-                  type="button"
-                  class="gcal-chip"
-                  :class="{ 'gcal-chip--on': reminderText === String(preset.minutes) }"
-                  :aria-pressed="reminderText === String(preset.minutes)"
-                  :disabled="busy !== null"
-                  @click="pickPreset(preset.minutes)"
-                >
-                  {{ preset.label }}
-                </button>
-              </div>
-              <BaseInput
-                :model-value="reminderText"
-                name="reminderMinutes"
-                type="number"
-                label="Minutos de anticipación"
-                :hint="`De ${MIN_REMINDER_MINUTES} a ${MAX_REMINDER_MINUTES}, por ejemplo 30`"
-                :error="reminderError"
-                :disabled="busy !== null"
-                @update:model-value="onReminderInput"
-              />
-            </div>
-          </Transition>
-
-          <div class="gcal-panel__actions gcal-panel__actions--inline">
-            <BaseButton type="submit" variant="primary" :disabled="busy !== null">
-              {{ busy === 'reminder' ? 'Guardando…' : 'Guardar recordatorio' }}
-            </BaseButton>
-          </div>
-        </form>
-      </section>
-
-      <!-- Cómo funciona: visible salvo cuando la integración no está disponible (no hay nada
-           que explicar y, sin ningún control enfocable, la región desplazable fallaría axe). -->
-      <section v-if="view !== 'unavailable'" class="gcal-how" aria-labelledby="gcal-how-title">
-        <h2 id="gcal-how-title" class="gcal-how__title">Cómo funciona</h2>
-        <ul class="gcal-how__grid">
-          <li v-for="(item, index) in HOW_IT_WORKS" :key="item.title" class="gcal-how__item">
-            <span class="gcal-how__num" aria-hidden="true"
-              ><span>{{ index + 1 }}</span></span
+            <RouterLink
+              v-if="view === 'needs-professional'"
+              :to="{ name: 'staff-profesionales' }"
+              class="gcal-link"
             >
-            <strong class="gcal-how__name">{{ item.title }}</strong>
-            <span class="gcal-how__text">{{ item.text }}</span>
-          </li>
-        </ul>
-      </section>
-    </div>
+              <span class="gcal-link__copy">
+                <span class="gcal-link__title">Ir a {{ v.Professionals }}</span>
+                <span class="gcal-link__detail">Elige tu ficha y vincúlala con tu usuario.</span>
+              </span>
+              <span class="gcal-link__arrow" aria-hidden="true">→</span>
+            </RouterLink>
+
+            <dl v-if="isConnectedLike" class="gcal-facts">
+              <div>
+                <dt>Cuenta de Google</dt>
+                <dd>{{ connection.accountEmail ?? 'Cuenta conectada' }}</dd>
+              </div>
+              <div>
+                <dt>Calendario</dt>
+                <dd>Principal</dd>
+              </div>
+              <div>
+                <dt>Última sincronización</dt>
+                <!-- Dos renglones siempre: la hora relativa reserva el suyo, así la
+                   línea no mueve nada al actualizarse (#838). -->
+                <dd v-if="connection.lastSyncedAt">
+                  {{ formatMoment(connection.lastSyncedAt) }}
+                  <small>{{ formatRelative(connection.lastSyncedAt) }}</small>
+                </dd>
+                <dd v-else>
+                  Aún no hay eventos sincronizados.
+                  <small aria-hidden="true">&nbsp;</small>
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <footer
+            v-if="actionsView !== 'unavailable' && actionsView !== 'needs-professional'"
+            class="gcal-hero__actions"
+          >
+            <BaseButton
+              v-if="canConnect"
+              type="button"
+              size="lg"
+              :variant="connectVariant"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
+              :disabled="(busy !== null && busy !== 'sync') || redirecting"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
+              @click="onConnect"
+            >
+              <span class="gcal-action">
+                <svg
+                  class="gcal-action__icon gcal-action__icon--plug"
+                  viewBox="0 0 20 20"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    d="M8 12l4-4M7.5 9.5l-2 2a2.8 2.8 0 0 0 4 4l2-2M12.5 10.5l2-2a2.8 2.8 0 0 0-4-4l-2 2"
+                  />
+                </svg>
+                {{
+                  redirecting
+                    ? 'Abriendo Google…'
+                    : actionsView === 'reauth' || actionsView === 'sync-error'
+                      ? 'Volver a conectar'
+                      : 'Conectar Google Calendar'
+                }}
+              </span>
+            </BaseButton>
+            <BaseButton
+              v-if="actionsConnectedLike"
+              type="button"
+              size="lg"
+              :variant="syncVariant"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
+              :disabled="busy !== null && busy !== 'sync'"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
+              @click="onSync"
+            >
+              <span class="gcal-action">
+                <svg
+                  class="gcal-action__icon"
+                  :class="{ 'gcal-action__icon--spin': syncWaiting || view === 'syncing' }"
+                  viewBox="0 0 20 20"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M16 10a6 6 0 0 1-10.5 4M4 10a6 6 0 0 1 10.5-4M14.5 3v3h-3M5.5 17v-3h3" />
+                </svg>
+                <!-- Las dos palabras ocupan la misma celda: el botón mide lo de la
+                   más larga y no cambia de ancho al sincronizar (#838). -->
+                <span class="gcal-action__swap">
+                  <span :class="{ 'gcal-action__off': syncWaiting }">Sincronizar ahora</span>
+                  <span :class="{ 'gcal-action__off': !syncWaiting }">Sincronizando…</span>
+                </span>
+              </span>
+            </BaseButton>
+            <BaseButton
+              v-if="actionsConnectedLike || actionsView === 'reauth'"
+              class="gcal-hero__disconnect"
+              :class="{ 'gcal-wait base-button--loading': syncWaiting }"
+              type="button"
+              size="lg"
+              variant="secondary"
+              :disabled="busy !== null && busy !== 'sync'"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
+              @click="openDisconnect"
+            >
+              Desconectar
+            </BaseButton>
+          </footer>
+        </section>
+
+        <!-- Recorrido hacia la conexión -->
+        <GoogleCalendarSteps
+          v-if="showSteps"
+          :steps="steps"
+          :current="currentStep"
+          label="Pasos para conectar Google Calendar"
+        />
+
+        <!-- Recordatorio (solo con una conexión viva) -->
+        <section v-if="isConnectedLike" class="gcal-panel" aria-labelledby="gcal-reminder-title">
+          <header class="gcal-panel__header">
+            <h2 id="gcal-reminder-title" class="gcal-panel__title">Recordatorio</h2>
+          </header>
+          <form class="gcal-panel__body" novalidate @submit.prevent="onSaveReminder">
+            <p class="gcal-copy">
+              Google te avisa antes de cada turno en tu calendario. Nava Agenda no envía un aviso
+              propio.
+            </p>
+
+            <fieldset class="gcal-modes" :disabled="busy !== null">
+              <legend class="gcal-sr-only">Cuándo quieres que te avise Google</legend>
+              <label class="gcal-mode" :class="{ 'gcal-mode--on': reminderMode === 'default' }">
+                <input v-model="reminderMode" type="radio" name="reminderMode" value="default" />
+                <span class="gcal-mode__dot" aria-hidden="true" />
+                <span class="gcal-mode__copy">
+                  <span class="gcal-mode__title">Avisos de Google</span>
+                  <span class="gcal-mode__detail"
+                    >Usa los recordatorios que ya tienes en tu calendario.</span
+                  >
+                </span>
+              </label>
+              <label class="gcal-mode" :class="{ 'gcal-mode--on': reminderMode === 'custom' }">
+                <input v-model="reminderMode" type="radio" name="reminderMode" value="custom" />
+                <span class="gcal-mode__dot" aria-hidden="true" />
+                <span class="gcal-mode__copy">
+                  <span class="gcal-mode__title">Avisarme antes de cada turno</span>
+                  <span class="gcal-mode__detail">Tú eliges cuántos minutos de anticipación.</span>
+                </span>
+              </label>
+            </fieldset>
+
+            <Transition name="gcal-expand">
+              <div v-if="!useDefaultReminder" class="gcal-custom">
+                <div class="gcal-chips" role="group" aria-label="Atajos de anticipación">
+                  <button
+                    v-for="preset in REMINDER_PRESETS"
+                    :key="preset.minutes"
+                    type="button"
+                    class="gcal-chip"
+                    :class="{ 'gcal-chip--on': reminderText === String(preset.minutes) }"
+                    :aria-pressed="reminderText === String(preset.minutes)"
+                    :disabled="busy !== null"
+                    @click="pickPreset(preset.minutes)"
+                  >
+                    {{ preset.label }}
+                  </button>
+                </div>
+                <BaseInput
+                  :model-value="reminderText"
+                  name="reminderMinutes"
+                  type="number"
+                  label="Minutos de anticipación"
+                  :hint="`De ${MIN_REMINDER_MINUTES} a ${MAX_REMINDER_MINUTES}, por ejemplo 30`"
+                  :error="reminderError"
+                  :disabled="busy !== null"
+                  @update:model-value="onReminderInput"
+                />
+              </div>
+            </Transition>
+
+            <div class="gcal-panel__actions gcal-panel__actions--inline">
+              <!-- Secundario: guardar un ajuste no es la acción del estado; así la página
+                 nunca lleva más de una acción llena (#838). -->
+              <BaseButton type="submit" variant="secondary" :disabled="busy !== null">
+                {{ busy === 'reminder' ? 'Guardando…' : 'Guardar recordatorio' }}
+              </BaseButton>
+            </div>
+          </form>
+        </section>
+
+        <!-- Cómo funciona: visible salvo cuando la integración no está disponible (no hay nada
+           que explicar y, sin ningún control enfocable, la región desplazable fallaría axe). -->
+        <section v-if="view !== 'unavailable'" class="gcal-how" aria-labelledby="gcal-how-title">
+          <h2 id="gcal-how-title" class="gcal-how__title">Cómo funciona</h2>
+          <!-- Una lista ordenada real en renglones (#838): el número en rombo de latón
+             es solo visual; el lector ya dice la posición en la lista. -->
+          <ol class="gcal-how__list">
+            <li v-for="(item, index) in HOW_IT_WORKS" :key="item.title" class="gcal-how__item">
+              <span class="gcal-how__num" aria-hidden="true"
+                ><span>{{ index + 1 }}</span></span
+              >
+              <strong class="gcal-how__name">{{ item.title }}</strong>
+              <span class="gcal-how__text">{{ item.text }}</span>
+            </li>
+          </ol>
+        </section>
+      </div>
+    </ContentReveal>
 
     <BaseDialog
       v-model="isDisconnectOpen"
@@ -658,12 +774,15 @@ const HOW_IT_WORKS = [
 
 <style scoped>
 /*
- * Google Calendar, v2 «La luz del día» (DEC-188): el lienzo y las superficies
- * son los del modo (Día o Noche); tarjetas con borde sutil; rótulos en tipo
- * oración. El acento lleno queda para la acción principal (Conectar /
- * Sincronizar ahora / Guardar recordatorio, `BaseButton` primary). El estado
- * de la conexión usa los colores semánticos (rojo, verde, azul, ámbar) solo en
- * su etiqueta y en la insignia del emblema. Nada se anima al cargar.
+ * Google Calendar, v2 «La luz del día» (DEC-188), en la familia (#838, DEC-189):
+ * el lienzo y las superficies son los del modo (Día o Noche); rótulos en tipo
+ * oración. Como mucho una acción llena por estado (ver `connectVariant` y
+ * `syncVariant`); «Desconectar» es secundario con texto de peligro y el rojo
+ * lleno queda en su diálogo. El estado es un rombo y una palabra: hueco en
+ * latón sin conexión (nunca rojo), lleno en verde, azul o ámbar con ella, y
+ * rojo solo para el error de sincronización. Los datos y «Cómo funciona» van
+ * en renglones de libreta, no en cajas. La marca de Google no aparece: ni su
+ * logo, ni sus colores, ni su botón. Nada se anima al cargar.
  */
 .gcal-page {
   --gcal-width: 760px;
@@ -679,9 +798,9 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-page__header,
+.gcal-page__stage,
 .gcal-page__state,
-.gcal-page__layout,
-.gcal-page > :deep(.base-alert) {
+.gcal-page__layout {
   width: min(100%, var(--gcal-width));
   margin-inline: auto;
 }
@@ -787,18 +906,19 @@ const HOW_IT_WORKS = [
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: 28px;
   row-gap: 20px;
-  align-items: center;
+  align-items: start;
   padding: 26px 28px 24px;
   background: var(--color-surface);
   border: var(--border-width-normal) solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
 }
 
-/* Sin conexión: rojo; conectado: verde. Son los dos extremos que el profesional debe distinguir
-   de un vistazo (el error de sincronización comparte el rojo, pero lleva su propio texto y «!»). */
+/* Sin conexión: latón, un neutro de la familia y nunca el rojo de error (#838); se
+   distingue de conectado por el rombo hueco frente al lleno y por la palabra. El
+   latón de texto da ≥ 3:1 contra la superficie en Día y en Noche (WCAG 1.4.11). */
 .gcal-hero--not-connected,
 .gcal-hero--needs-professional {
-  --gcal-tone: var(--color-danger-on-strong);
+  --gcal-tone: var(--color-brass-text);
 }
 
 .gcal-hero--connected {
@@ -821,46 +941,38 @@ const HOW_IT_WORKS = [
   --gcal-tone: var(--color-text-secondary);
 }
 
-.gcal-hero__emblem {
-  width: 112px;
-  height: 112px;
-}
-
-/* Etiqueta de estado propia: el punto y el borde toman el tono del estado; la
-   palabra va en tinta para que el color nunca diga el estado solo. */
+/* El estado: un rombo y la palabra, sin píldora ni caja, como «Por registrar» de
+   la tarjeta de turno (#838). La palabra va en tinta: el color nunca dice el
+   estado solo. */
 .gcal-status {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  padding: 0 12px 0 10px;
-  font-size: 13px;
+  gap: 9px;
+  min-height: 24px;
+  font-size: 14px;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 20px;
   color: var(--color-text-primary);
   white-space: nowrap;
-  background: color-mix(in srgb, var(--gcal-tone) 10%, transparent);
-  border: var(--border-width-normal) solid color-mix(in srgb, var(--gcal-tone) 55%, transparent);
-  border-radius: var(--radius-pill);
 }
 
-/* Rombo quieto (sin latido; pulido #737, ningún marcador redondo): lleno con
-   la conexión viva; sin conexión es solo contorno, «todavía no hay nada
-   encendido». */
-.gcal-status__dot {
+/* Rombo quieto (#737, ningún marcador redondo): lleno con la conexión viva; sin
+   conexión, solo contorno de 2 px: «todavía no hay nada encendido». */
+.gcal-status__mark {
   flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+  margin: 0 2px;
   background: var(--gcal-tone);
   border-radius: 1px;
   rotate: 45deg;
 }
 
-.gcal-hero--not-connected .gcal-status__dot,
-.gcal-hero--needs-professional .gcal-status__dot,
-.gcal-hero--unavailable .gcal-status__dot {
+.gcal-hero--not-connected .gcal-status__mark,
+.gcal-hero--needs-professional .gcal-status__mark,
+.gcal-hero--unavailable .gcal-status__mark {
   background: transparent;
-  box-shadow: inset 0 0 0 1.5px var(--gcal-tone);
+  box-shadow: inset 0 0 0 2px var(--gcal-tone);
 }
 
 .gcal-hero__main {
@@ -872,10 +984,28 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-hero__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-rows: auto auto;
+  row-gap: 6px;
   min-width: 0;
+  /* Las filas no cambian de alto, pero lo de dentro sí se recoloca: si el
+     navegador anclara el desplazamiento a ese texto, correría la página. */
+  overflow-anchor: none;
+}
+
+/* Los titulares apilados en la primera fila y los textos en la segunda: cada
+   fila mide lo del más alto, así que el texto empieza siempre a la misma altura
+   aunque el titular pase de dos renglones a uno. */
+.gcal-hero__copy > .gcal-hero__title {
+  grid-area: 1 / 1;
+}
+
+.gcal-hero__copy > .gcal-copy {
+  grid-area: 2 / 1;
+}
+
+.gcal-hero__copy-reserve {
+  visibility: hidden;
 }
 
 .gcal-hero__title {
@@ -922,53 +1052,82 @@ const HOW_IT_WORKS = [
   animation: gcal-spin 1s linear infinite;
 }
 
-/* «Desconectar» queda al final de la fila, apartado de la acción principal. */
-.gcal-hero__disconnect {
-  margin-left: auto;
+/* Las dos palabras de «Sincronizar ahora» en la misma celda: el ancho es el de
+   la más larga y la que no toca queda oculta también para el lector. */
+.gcal-action__swap {
+  display: inline-grid;
 }
 
+.gcal-action__swap > span {
+  grid-area: 1 / 1;
+}
+
+.gcal-action__off {
+  visibility: hidden;
+}
+
+/* «Desconectar» queda al final de la fila, apartado de la acción principal, y es
+   secundario con el texto en el rojo de peligro (≥ 4,5:1 en Día y Noche): el rojo
+   lleno queda para la confirmación del diálogo (#838). */
+.gcal-hero__actions .gcal-wait {
+  /* La espera de la sincronización (#840): el aspecto de deshabilitado de
+     BaseButton, sin el atributo nativo para que el foco no se pierda. Sin
+     pointer-events: none (r3, N1): anulaba el cursor de espera y el clic caía
+     en el pie y soltaba el foco al body. Los manejadores ignoran el clic y el
+     Enter; `base-button--loading` (puesto junto a esta clase) es la marca con
+     la que BaseButton ya excluye el realce de hover y de pulsación. */
+  opacity: 0.48;
+  cursor: progress;
+}
+
+.gcal-hero__actions .gcal-hero__disconnect {
+  margin-left: auto;
+  color: var(--color-danger-text);
+}
+
+/* Los datos de la conexión en renglones de libreta (#838): la etiqueta en latón a
+   la izquierda, el dato a la derecha y un filete fino entre renglones. */
 .gcal-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
   width: 100%;
   margin: 4px 0 0;
-}
-
-/* El correo es lo más largo: ocupa su propia fila para no partirse en dos líneas. */
-.gcal-facts > div:first-child {
-  grid-column: 1 / -1;
+  border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
 }
 
 .gcal-facts > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: 12px 14px;
-  background-color: var(--color-surface-muted);
-  border-radius: var(--radius-md);
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
+}
+
+/* El último renglón no lleva filete: debajo ya está el de las acciones. */
+.gcal-facts > div:last-child {
+  border-bottom: 0;
 }
 
 .gcal-facts dt {
-  color: var(--color-text-secondary);
+  color: var(--color-brass-text);
   font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .gcal-facts dd {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
   font-size: var(--font-size-body);
-  line-height: 1.3;
+  line-height: 22px;
 }
 
 .gcal-facts dd small {
   font-size: 13px;
+  line-height: 18px;
   color: var(--color-text-secondary);
 }
 
@@ -1212,28 +1371,26 @@ const HOW_IT_WORKS = [
   line-height: 28px;
 }
 
-.gcal-how__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+/* «Cómo funciona» en renglones de libreta (#838), no en tarjetas: un filete de
+   latón entre renglones y el número en un rombo de latón. */
+.gcal-how__list {
   padding: 0;
   margin: 0;
   list-style: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
 }
 
 .gcal-how__item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 12px;
+  column-gap: 14px;
   row-gap: 4px;
   align-content: start;
-  padding: 16px;
-  background: var(--color-surface);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-brass-line) 55%, transparent);
 }
 
-/* Número de orden en texto secundario, sin acento. */
+/* Número de orden en latón, dentro de un rombo de contorno latón. */
 .gcal-how__num {
   grid-row: span 2;
   display: grid;
@@ -1242,10 +1399,10 @@ const HOW_IT_WORKS = [
   height: 22px;
   margin: 3px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-secondary);
-  border: var(--border-width-normal) solid var(--color-border-subtle);
+  color: var(--color-brass-text);
+  border: var(--border-width-normal) solid var(--color-brass-text);
   border-radius: 3px;
   rotate: 45deg;
 }
@@ -1278,6 +1435,62 @@ const HOW_IT_WORKS = [
   gap: var(--space-3);
 }
 
+/* Esqueleto con la forma del encabezado de estado: la hoja, la etiqueta, el
+   titular, dos renglones y la acción. */
+.gcal-hero--skeleton {
+  pointer-events: none;
+}
+
+.gcal-skeleton {
+  display: block;
+  background: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.gcal-skeleton--leaf {
+  width: 74px;
+  height: 74px;
+  margin: 0 14px 14px 0;
+}
+
+.gcal-skeleton-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gcal-skeleton--status {
+  width: 120px;
+  height: 20px;
+}
+
+.gcal-skeleton--title {
+  width: min(100%, 340px);
+  height: 26px;
+}
+
+.gcal-skeleton--line {
+  width: min(100%, 460px);
+  height: 16px;
+}
+
+.gcal-skeleton--short {
+  width: min(70%, 300px);
+}
+
+.gcal-skeleton-actions {
+  grid-column: 1 / -1;
+  padding-top: 18px;
+  border-top: var(--border-width-normal) solid var(--color-border-subtle);
+}
+
+.gcal-skeleton--action {
+  width: 220px;
+  max-width: 100%;
+  height: 48px;
+}
+
 @keyframes gcal-spin {
   to {
     transform: rotate(360deg);
@@ -1306,16 +1519,11 @@ const HOW_IT_WORKS = [
     padding: 20px 16px;
   }
 
-  .gcal-hero__emblem {
-    width: 84px;
-    height: 84px;
-  }
-
   .gcal-hero__actions {
     width: 100%;
   }
 
-  .gcal-hero__disconnect {
+  .gcal-hero__actions .gcal-hero__disconnect {
     margin-left: 0;
   }
 
@@ -1325,8 +1533,7 @@ const HOW_IT_WORKS = [
   }
 
   .gcal-modes,
-  .gcal-how__grid,
-  .gcal-facts {
+  .gcal-facts > div {
     grid-template-columns: 1fr;
   }
 }
