@@ -391,6 +391,34 @@ describe('SchedulesPage', () => {
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo agregado'])
   })
 
+  it('al reintentar el horario, el foco pasa al selector y no cae al body (#843, CA-13)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchWorkingHoursMock.mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = mount(SchedulesPage, {
+      attachTo: document.body,
+      global: { stubs: { teleport: true } },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('No pudimos cargar el horario')
+
+    const retry = wrapper.findAll('button').find((b) => b.text() === 'Reintentar')!
+    ;(retry.element as HTMLElement).focus()
+    fetchWorkingHoursMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: { items: [mondayMorning], nextCursor: null },
+    })
+    await retry.trigger('click')
+
+    expect(document.activeElement?.id).toBe('schedules-professional-select')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('No pudimos cargar el horario')
+    expect(document.activeElement?.id).toBe('schedules-professional-select')
+    wrapper.unmount()
+  })
+
   it('an overlapping tramo (CA-040-04) shows a recoverable message without closing the dialog', async () => {
     const wrapper = await mountReady(oneProfessional, [])
     await openCreateDialog(wrapper)

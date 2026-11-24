@@ -367,22 +367,37 @@ function openDetailDialog(professional: Professional) {
 // --- Vínculo con mi usuario (DEC-100) ---------------------------------------
 
 // Cuál profesional es el usuario autenticado, o null si ninguno (el vínculo es
-// opcional). Se lee una vez al montar; si falla, la ficha simplemente no ofrece
-// la acción en vez de bloquear la pantalla: el equipo se consulta igual.
+// opcional). Se lee una vez al montar; si falla, la ficha no ofrece la acción
+// (dice que no pudo comprobarlo, con «Reintentar») en vez de bloquear la
+// pantalla: el equipo se consulta igual.
 const myProfessionalId = ref<string | null>(null)
 const myProfessionalKnown = ref(false)
 // Mientras se consulta, el renglón «Tu usuario» guarda su sitio sin verse: si la
 // ficha se abre antes de la respuesta, al llegar no empuja nada (#843, CA-20).
 const myProfessionalPending = ref(true)
+// Si la lectura falla, el renglón lo dice con «Reintentar» en su mismo sitio y
+// con su mismo alto, en vez de desaparecer (#843, CA-13).
+const myProfessionalError = ref(false)
+const detailRef = ref<HTMLElement | null>(null)
 const linkStatus = ref<'idle' | 'saving'>('idle')
 const linkError = ref<string | null>(null)
 
 async function loadMyProfessional() {
+  myProfessionalPending.value = true
+  myProfessionalError.value = false
   const outcome = await fetchMyProfessional()
   if (outcome.kind === 'linked') myProfessionalId.value = outcome.professional.id
   else if (outcome.kind === 'none') myProfessionalId.value = null
   myProfessionalKnown.value = outcome.kind === 'linked' || outcome.kind === 'none'
+  myProfessionalError.value = !myProfessionalKnown.value
   myProfessionalPending.value = false
+}
+
+// «Reintentar» queda inerte mientras vuelve a consultar: el foco pasa antes al
+// cuerpo de la ficha, que sigue ahí, para que no caiga al body.
+function retryMyProfessional() {
+  detailRef.value?.focus()
+  void loadMyProfessional()
 }
 
 const detailIsMine = computed(
@@ -952,7 +967,12 @@ async function onSubmitRename() {
       <!-- Ficha de la familia (#762, DEC-189): el retrato con filete y rombo de
            latón, el oficio como rótulo de latón y los datos en renglones con
            puntos guía. Mismos datos que antes. -->
-      <div v-if="detailTarget" class="staff-page__ink staff-page__detail">
+      <div
+        v-if="detailTarget"
+        ref="detailRef"
+        class="staff-page__ink staff-page__detail"
+        tabindex="-1"
+      >
         <article class="staff-page__ficha" aria-label="Ficha del profesional">
           <div class="staff-page__detail-hero">
             <span class="staff-page__detail-frame">
@@ -993,29 +1013,44 @@ async function onSubmitRename() {
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
         <div
-          v-if="(myProfessionalKnown || myProfessionalPending) && !isEmployeeProfile"
+          v-if="
+            (myProfessionalKnown || myProfessionalPending || myProfessionalError) &&
+            !isEmployeeProfile
+          "
           class="staff-page__link"
-          :class="{ 'staff-page__link--pending': !myProfessionalKnown }"
-          :aria-hidden="!myProfessionalKnown ? 'true' : undefined"
-          :inert="!myProfessionalKnown || undefined"
+          :class="{ 'staff-page__link--pending': myProfessionalPending }"
+          :aria-hidden="myProfessionalPending ? 'true' : undefined"
+          :inert="myProfessionalPending || undefined"
         >
-          <div class="staff-page__link-text">
-            <span class="staff-page__link-label">Tu usuario</span>
-            <span class="staff-page__link-state">{{
-              detailIsMine ? 'Eres tú' : 'Sin vincular'
-            }}</span>
-            <span v-if="!detailIsMine" class="staff-page__link-hint"
-              >Vincúlate para publicar tu agenda en Google Calendar.</span
+          <template v-if="myProfessionalError && !myProfessionalPending">
+            <div class="staff-page__link-text" role="status">
+              <span class="staff-page__link-label">Tu usuario</span>
+              <span class="staff-page__link-state">No pudimos comprobarlo</span>
+              <span class="staff-page__link-hint">Revisa tu conexión e inténtalo de nuevo.</span>
+            </div>
+            <BaseButton type="button" variant="secondary" @click="retryMyProfessional">
+              Reintentar
+            </BaseButton>
+          </template>
+          <template v-else>
+            <div class="staff-page__link-text">
+              <span class="staff-page__link-label">Tu usuario</span>
+              <span class="staff-page__link-state">{{
+                detailIsMine ? 'Eres tú' : 'Sin vincular'
+              }}</span>
+              <span v-if="!detailIsMine" class="staff-page__link-hint"
+                >Vincúlate para publicar tu agenda en Google Calendar.</span
+              >
+            </div>
+            <BaseButton
+              type="button"
+              variant="secondary"
+              :disabled="linkStatus === 'saving'"
+              @click="onToggleMine"
             >
-          </div>
-          <BaseButton
-            type="button"
-            variant="secondary"
-            :disabled="linkStatus === 'saving'"
-            @click="onToggleMine"
-          >
-            {{ detailIsMine ? 'Ya no soy yo' : 'Este soy yo' }}
-          </BaseButton>
+              {{ detailIsMine ? 'Ya no soy yo' : 'Este soy yo' }}
+            </BaseButton>
+          </template>
         </div>
         <BaseAlert v-if="linkError" variant="danger" role="alert">{{ linkError }}</BaseAlert>
         <!-- Siguiente paso natural tras vincularse: ir a conectar Google Calendar. -->
@@ -1895,6 +1930,15 @@ async function onSubmitRename() {
 
 /* «Tu usuario» deja de ser otra caja: un renglón de la ficha bajo un filete
    punteado de latón, con el estado en serif y la acción a la derecha. */
+.staff-page__detail:focus {
+  outline: none;
+}
+
+.staff-page__detail:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
 .staff-page__link {
   display: flex;
   flex-flow: row wrap;

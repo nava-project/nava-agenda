@@ -241,7 +241,17 @@ function onProfessionalChange(professionalId: string) {
   void selectProfessional(professionalId)
 }
 
+// El aviso con «Reintentar» desaparece en cuanto vuelve a cargar: el foco pasa
+// antes al selector de profesional, que sigue ahí (o al área del horario, en el
+// perfil individual sin selector), para que no caiga al body (#843, CA-13).
+const whoRef = ref<HTMLElement | null>(null)
+const workspaceMainRef = ref<HTMLElement | null>(null)
+
 function onRetryWorkingHours() {
+  const target =
+    whoRef.value?.querySelector<HTMLElement>('#schedules-professional-select') ??
+    workspaceMainRef.value
+  target?.focus()
   if (selectedProfessionalId.value) void selectProfessional(selectedProfessionalId.value)
 }
 
@@ -1126,7 +1136,7 @@ const editPreview = computed(() =>
             <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--field" />
           </span>
         </div>
-        <div v-else class="schedules-page__who">
+        <div v-else ref="whoRef" class="schedules-page__who">
           <!-- El retrato de la familia (#782, como la ficha de #762): filete de
                latón y su rombo asomando bajo el borde, como un sello. -->
           <span class="schedules-page__frame">
@@ -1248,7 +1258,7 @@ const editPreview = computed(() =>
         </EmptyScene>
 
         <div v-else class="schedules-page__workspace">
-          <div class="schedules-page__main">
+          <div ref="workspaceMainRef" class="schedules-page__main" tabindex="-1">
             <div
               v-if="workingHoursStatus === 'loading' && !hasShownWorkingHours"
               class="schedules-page__state"
@@ -2558,6 +2568,15 @@ const editPreview = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.schedules-page__main:focus {
+  outline: none;
+}
+
+.schedules-page__main:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
 }
 
 .schedules-page__main {

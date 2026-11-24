@@ -668,14 +668,42 @@ describe('StaffPage', () => {
     expect(dialogButton(wrapper, 'Este soy yo').disabled).toBe(false)
   })
 
-  it('does not offer the link when the current link could not be read', async () => {
+  it('does not offer the link when the current link could not be read: it says so instead (#843)', async () => {
     fetchMyProfessionalMock.mockResolvedValue({ kind: 'network-error' })
     const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
     await openDetail(wrapper)
 
     const dialog = openDialogElement(wrapper)
-    expect(dialog.textContent).not.toContain('Tu usuario')
     expect(dialog.textContent).not.toContain('Este soy yo')
+    expect(dialog.textContent).not.toContain('Ya no soy yo')
+    expect(dialog.textContent).toContain('No pudimos comprobarlo')
+  })
+
+  it('when the link cannot be read, the «Tu usuario» line offers Reintentar in place and keeps focus (#843, CA-13)', async () => {
+    fetchMyProfessionalMock.mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
+    document.body.appendChild(wrapper.element)
+    await openDetail(wrapper)
+
+    const line = openDialogElement(wrapper).querySelector('.staff-page__link')!
+    expect(line.textContent).toContain('No pudimos comprobarlo')
+    expect(line.hasAttribute('inert')).toBe(false)
+    const retry = dialogButton(wrapper, 'Reintentar')
+    retry.focus()
+
+    let resolve: (value: unknown) => void = () => {}
+    fetchMyProfessionalMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+    retry.click()
+    await flushPromises()
+    const detail = openDialogElement(wrapper).querySelector('.staff-page__detail')
+    expect(document.activeElement).toBe(detail)
+    expect(openDialogElement(wrapper).querySelector('.staff-page__link--pending')).toBeTruthy()
+
+    resolve({ kind: 'none' })
+    await flushPromises()
+    expect(dialogButton(wrapper, 'Este soy yo')).toBeTruthy()
+    expect(document.activeElement).toBe(detail)
+    wrapper.unmount()
   })
 
   it('keeps the «Tu usuario» line in place, hidden and inert, while the link is still being read (#843)', async () => {
