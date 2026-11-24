@@ -81,6 +81,7 @@ const activeDate = ref<string | null>(null)
 const selected = ref<DaylightSlot | null>(null)
 // La hora elegida antes de ir a «Tus datos» ya no está libre al volver (#824).
 const lostChoice = ref(false)
+const page = ref<HTMLElement | null>(null)
 
 let requestToken = 0
 // «Cargando las horas libres…» o no asoma o se queda a la vista (#820).
@@ -148,6 +149,29 @@ function restoreChosen() {
   }
   activeDate.value = day.civilDate
   selected.value = slot
+  void nextTick(revealChosen)
+}
+
+// La hora recuperada queda a la vista. Con «atrás» del navegador ya lo está: la
+// posición restaurada la deja ahí (restoreWhenStepReady). Con el enlace «Día y
+// hora» la pantalla empieza arriba y la hora puede quedar bajo el pliegue, o
+// bajo la barra fija del pase en el teléfono.
+function revealChosen() {
+  const hour = page.value?.querySelector<HTMLElement>('.bk-min[aria-checked="true"]')
+  if (!hour) return
+  const pase = page.value?.querySelector<HTMLElement>('.bk-pase')
+  // La barra fija puede estar entrando (desplazada hacia abajo): cuenta su alto
+  // de maqueta, no su posición de ese instante.
+  const bottom =
+    pase && getComputedStyle(pase).position === 'fixed'
+      ? window.innerHeight - pase.offsetHeight
+      : window.innerHeight
+  const box = hour.getBoundingClientRect()
+  if (box.top >= 0 && box.bottom <= bottom) return
+  window.scrollTo({
+    top: window.scrollY + box.top - (bottom - box.height) / 2,
+    behavior: 'instant',
+  })
 }
 
 watch(() => [props.slug, props.serviceId], load, { immediate: true })
@@ -347,7 +371,7 @@ const failedRequestId = computed(() =>
     @retry="retry"
   />
 
-  <main v-else class="bk-page bk-daytime">
+  <main v-else ref="page" class="bk-page bk-daytime">
     <div class="bk-daytime__grid">
       <div class="bk-daytime__main">
         <p class="bk-kicker">

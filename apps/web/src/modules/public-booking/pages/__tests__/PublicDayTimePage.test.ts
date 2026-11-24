@@ -402,6 +402,36 @@ describe('PublicDayTimePage', () => {
       expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
     })
 
+    it('brings the recovered hour into view when the screen starts at the top, and leaves a visible one alone', async () => {
+      const scrollTo = vi.fn()
+      vi.stubGlobal('scrollTo', scrollTo)
+      const realRect = HTMLElement.prototype.getBoundingClientRect
+      let hourTop = 900
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.matches('.bk-min[aria-checked="true"]'))
+          return { top: hourTop, bottom: hourTop + 44, height: 44 } as DOMRect
+        return realRect.call(this)
+      }
+      try {
+        rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        respond()
+        const first = mountPage()
+        await flushPromises()
+        expect(scrollTo).toHaveBeenCalledTimes(1)
+        expect(scrollTo.mock.calls[0]![0]).toMatchObject({ behavior: 'instant' })
+        first.unmount()
+
+        scrollTo.mockClear()
+        hourTop = 200
+        mountPage()
+        await flushPromises()
+        expect(scrollTo).not.toHaveBeenCalled()
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = realRect
+        vi.unstubAllGlobals()
+      }
+    })
+
     it('does not bring back an hour of another service', async () => {
       rememberChosenStart('barberia', 'otro', '2030-01-14T09:00:00-05:00')
       respond()
