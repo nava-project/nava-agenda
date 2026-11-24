@@ -4,7 +4,7 @@
  * "Reintentar" cuando un retiro falla, porque no hay formulario donde
  * mostrarlo. Los datos de la API se sustituyen por dobles controlables.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { BaseInput, BaseDatePicker, BaseTimePicker, BaseSelect } from '@/shared/ui'
 import WeekdayMultiPicker from '../WeekdayMultiPicker.vue'
@@ -26,6 +26,11 @@ const fetchAffectedAppointmentsMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue({ kind: 'success', items: [], truncated: false }),
 )
 
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
 vi.mock('../../api/schedulesApi', () => ({
   fetchBusinessTimezone: fetchBusinessTimezoneMock,
 }))
@@ -1202,5 +1207,138 @@ describe('ProfessionalBlocksPanel · series por fechas, edición y excepciones (
 
     expect(addSeriesExceptionMock).toHaveBeenCalledWith('b-1', 'ser-1', '2099-01-12', null)
     expect(seriesRecords(wrapper)[0]!.text()).toContain('1 excepción')
+  })
+})
+
+describe('ProfessionalBlocksPanel · la espera sin destellos (#843)', () => {
+  type Outcome = Record<string, unknown>
+  function deferred() {
+    let resolve!: (value: Outcome) => void
+    const promise = new Promise<Outcome>((r) => (resolve = r))
+    return { promise, resolve }
+  }
+  const okBlocks = { kind: 'success', page: { items: [block], nextCursor: null } }
+  const okSeries = { kind: 'success', page: { items: [weeklySeries], nextCursor: null } }
+
+  beforeEach(() => {
+    for (const mock of [fetchBusinessTimezoneMock, fetchTimeBlocksMock, fetchTimeBlockSeriesMock]) {
+      mock.mockReset()
+    }
+    fetchBusinessTimezoneMock.mockResolvedValue({ kind: 'success', timezone: 'America/Bogota' })
+    fetchAffectedAppointmentsMock.mockReset()
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // Monta con las dos listas pendientes: cada prueba decide cuándo llegan.
+  function mountPending() {
+    const blocks = deferred()
+    const series = deferred()
+    fetchTimeBlocksMock.mockReturnValueOnce(blocks.promise)
+    fetchTimeBlockSeriesMock.mockReturnValueOnce(series.promise)
+    const wrapper = mount(ProfessionalBlocksPanel, {
+      props: { professionalId: 'b-1', professionalName: 'Barbero de prueba' },
+      global: { stubs: { teleport: true, RouterLink: true } },
+      attachTo: document.body,
+    })
+    return { wrapper, blocks, series }
+  }
+
+  it('shows the lists at once when they arrive before the skeleton could appear', async () => {
+    const { wrapper, blocks, series } = mountPending()
+    await flushPromises()
+    expect(wrapper.find('.blocks-panel__ledger--loading').exists()).toBe(true)
+    await vi.advanceTimersByTimeAsync(120)
+    blocks.resolve(okBlocks)
+    series.resolve(okSeries)
+    await flushPromises()
+    expect(wrapper.find('.blocks-panel__skeleton').exists()).toBe(false)
+    expect(wrapper.find('.blocks-panel__ledger--loading').exists()).toBe(false)
+    expect(wrapper.findAll('.blocks-panel__record')).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('keeps a skeleton that could be seen on screen long enough to read', async () => {
+    const { wrapper, blocks, series } = mountPending()
+    await vi.advanceTimersByTimeAsync(350)
+    blocks.resolve(okBlocks)
+    series.resolve(okSeries)
+    await flushPromises()
+    // Asomó a los 300 ms: se queda su fundido (200) más 300 ms pleno, hasta los 800.
+    expect(wrapper.findAll('.blocks-panel__skeleton')).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(440)
+    expect(wrapper.findAll('.blocks-panel__skeleton')).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(20)
+    expect(wrapper.find('.blocks-panel__skeleton').exists()).toBe(false)
+    expect(wrapper.findAll('.blocks-panel__record')).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('moves the focus to the list region before «Reintentar» disappears', async () => {
+    const { wrapper, blocks, series } = mountPending()
+    blocks.resolve({ kind: 'network-error' })
+    series.resolve(okSeries)
+    await flushPromises()
+    const retry = wrapper.findAll('button').find((b) => b.text() === 'Reintentar bloqueos')!
+    fetchTimeBlocksMock.mockReturnValueOnce(new Promise(() => {}))
+    fetchTimeBlockSeriesMock.mockReturnValueOnce(new Promise(() => {}))
+    ;(retry.element as HTMLButtonElement).focus()
+    await retry.trigger('click')
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Lista de bloqueos puntuales')
+    wrapper.unmount()
+  })
+
+  it('«Ver turnos» waits without losing the focus, shows the sun only after 300 ms and ignores a second click', async () => {
+    const { wrapper, blocks, series } = mountPending()
+    blocks.resolve(okBlocks)
+    series.resolve(okSeries)
+    await flushPromises()
+    const affected = deferred()
+    fetchAffectedAppointmentsMock.mockReturnValueOnce(affected.promise)
+    const view = wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]')
+    ;(view.element as HTMLButtonElement).focus()
+    await view.trigger('click')
+    expect(view.attributes('aria-disabled')).toBe('true')
+    expect(view.attributes('aria-busy')).toBe('true')
+    expect(view.attributes('disabled')).toBeUndefined()
+    expect(document.activeElement).toBe(view.element)
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(false)
+    await view.trigger('click')
+    expect(fetchAffectedAppointmentsMock).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(300)
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(true)
+    // El texto sigue en el botón (invisible): guarda su ancho.
+    expect(view.find('.blocks-panel__view-text--hidden').text()).toBe('Ver turnos')
+
+    await vi.advanceTimersByTimeAsync(50)
+    affected.resolve({ kind: 'success', items: [], truncated: false })
+    await flushPromises()
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(true)
+    await vi.advanceTimersByTimeAsync(260)
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(false)
+    expect(view.attributes('aria-disabled')).toBeUndefined()
+    expect(wrapper.text()).toContain('Ningún turno confirmado cae dentro de este bloqueo')
+    wrapper.unmount()
+  })
+
+  it('a quick «Ver turnos» never shows the sun', async () => {
+    const { wrapper, blocks, series } = mountPending()
+    blocks.resolve(okBlocks)
+    series.resolve(okSeries)
+    await flushPromises()
+    const affected = deferred()
+    fetchAffectedAppointmentsMock.mockReturnValueOnce(affected.promise)
+    const view = wrapper.get('button[aria-label^="Ver turnos del bloqueo Almuerzo"]')
+    await view.trigger('click')
+    await vi.advanceTimersByTimeAsync(150)
+    affected.resolve({ kind: 'success', items: [], truncated: false })
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(400)
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(false)
+    expect(view.attributes('aria-disabled')).toBeUndefined()
+    wrapper.unmount()
   })
 })

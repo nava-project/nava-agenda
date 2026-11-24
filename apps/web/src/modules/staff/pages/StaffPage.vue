@@ -371,6 +371,9 @@ function openDetailDialog(professional: Professional) {
 // la acción en vez de bloquear la pantalla: el equipo se consulta igual.
 const myProfessionalId = ref<string | null>(null)
 const myProfessionalKnown = ref(false)
+// Mientras se consulta, el renglón «Tu usuario» guarda su sitio sin verse: si la
+// ficha se abre antes de la respuesta, al llegar no empuja nada (#843, CA-20).
+const myProfessionalPending = ref(true)
 const linkStatus = ref<'idle' | 'saving'>('idle')
 const linkError = ref<string | null>(null)
 
@@ -379,6 +382,7 @@ async function loadMyProfessional() {
   if (outcome.kind === 'linked') myProfessionalId.value = outcome.professional.id
   else if (outcome.kind === 'none') myProfessionalId.value = null
   myProfessionalKnown.value = outcome.kind === 'linked' || outcome.kind === 'none'
+  myProfessionalPending.value = false
 }
 
 const detailIsMine = computed(
@@ -988,7 +992,13 @@ async function onSubmitRename() {
              scroll, junto al dato que cambia. Así la ficha no pierde altura en el
              pie y, si en una pantalla baja se vuelve desplazable, la región ya
              contiene un control enfocable (axe: scrollable-region-focusable). -->
-        <div v-if="myProfessionalKnown && !isEmployeeProfile" class="staff-page__link">
+        <div
+          v-if="(myProfessionalKnown || myProfessionalPending) && !isEmployeeProfile"
+          class="staff-page__link"
+          :class="{ 'staff-page__link--pending': !myProfessionalKnown }"
+          :aria-hidden="!myProfessionalKnown ? 'true' : undefined"
+          :inert="!myProfessionalKnown || undefined"
+        >
           <div class="staff-page__link-text">
             <span class="staff-page__link-label">Tu usuario</span>
             <span class="staff-page__link-state">{{
@@ -1896,6 +1906,33 @@ async function onSubmitRename() {
   border-top: 1px dashed var(--color-brass-line);
 }
 
+.staff-page__link--pending {
+  position: relative;
+  visibility: hidden;
+}
+
+/* Mientras no se sabe, el renglón guarda su sitio y muestra un esqueleto de una
+   línea que asoma a los 300 ms (LOADER_APPEAR_MS), su único retardo: con una
+   respuesta rápida no se ve (#843, CA-3). Sin pulso. */
+.staff-page__link--pending::before {
+  position: absolute;
+  top: calc(var(--space-4) + 4px);
+  left: 2px;
+  width: min(220px, 60%);
+  height: 14px;
+  visibility: visible;
+  content: '';
+  background-color: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  border-radius: 2px;
+  animation: staff-link-wait-in 200ms ease-out 300ms backwards;
+}
+
+@keyframes staff-link-wait-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .staff-page__link-text {
   display: flex;
   flex-direction: column;
@@ -1934,6 +1971,11 @@ async function onSubmitRename() {
 
   :root:not([data-motion='reduced']) .staff-page__link {
     animation-delay: 220ms;
+  }
+
+  /* El renglón en espera no suma su llegada al retardo de su esqueleto. */
+  :root:not([data-motion='reduced']) .staff-page__link.staff-page__link--pending {
+    animation: none;
   }
 
   :root:not([data-motion='reduced']) .staff-page__detail-frame :deep(.brass-monogram::after) {
@@ -2153,6 +2195,18 @@ async function onSubmitRename() {
    exclusivo de esta pantalla). El !important es necesario porque la regla
    propia de BaseDialog tiene la misma especificidad y el orden de inserción de
    los <style> no está garantizado. Contenido a esta única pantalla. */
+/* La ficha va anclada arriba, no centrada, como «Bloqueos de …» (#791): al abrir
+   «Ver reseñas» llegan las reseñas y crece; centrada, se recentraba y el título y
+   la X saltaban. Así crece solo hacia abajo (#843, CA-12 y CA-20). */
+.base-dialog__overlay:has(> .staff-page__detail-dialog) {
+  align-items: flex-start;
+}
+@media (min-width: 768px) and (min-height: 800px) {
+  .base-dialog__overlay:has(> .staff-page__detail-dialog) {
+    padding-top: clamp(16px, 8vh, 72px);
+  }
+}
+
 .staff-page__dialog.base-dialog {
   background-color: var(--color-surface) !important;
   border: var(--border-width-normal) solid var(--color-border-subtle) !important;

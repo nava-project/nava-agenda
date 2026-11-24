@@ -13,7 +13,13 @@
 // La semana se dibuja como un tablero (WeeklyBoard): barras en tinta suave sobre una
 // regla horaria común, con la lista real de tramos debajo de cada día.
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useCountUp, useToast, useVocabulary } from '@/shared/composables'
+import {
+  LOADER_APPEAR_MS,
+  LOADER_MIN_VISIBLE_MS,
+  useCountUp,
+  useToast,
+  useVocabulary,
+} from '@/shared/composables'
 import { isSoloProfile, worksOwnProfessional } from '@/shared/model'
 import { formatCivilDateLong, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { timezoneName } from '@/shared/time/timezoneName'
@@ -168,6 +174,33 @@ const hasShownWorkingHours = ref(false)
 const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
+
+// El velo y la atenuación esperan LOADER_APPEAR_MS antes de verse (un temporizador:
+// un transition-delay que se cancela a medias destella al salir) y, si asomaron,
+// se quedan su entrada más LOADER_MIN_VISIBLE_MS. El cargador de dentro no suma
+// su propio retardo: es uno solo (#843, CA-22; el patrón del velo de #841).
+const VEIL_ENTER_MS = 180
+const veilShown = ref(false)
+let veilTimer: ReturnType<typeof setTimeout> | undefined
+let veilShownAt = 0
+watch(boardBusy, (busy) => {
+  clearTimeout(veilTimer)
+  veilTimer = undefined
+  if (busy) {
+    if (veilShown.value) return
+    veilTimer = setTimeout(() => {
+      veilShownAt = Date.now()
+      veilShown.value = true
+    }, LOADER_APPEAR_MS)
+    return
+  }
+  const hold = veilShownAt + VEIL_ENTER_MS + LOADER_MIN_VISIBLE_MS - Date.now()
+  if (!veilShown.value || hold <= 0) {
+    veilShown.value = false
+    return
+  }
+  veilTimer = setTimeout(() => (veilShown.value = false), hold)
+})
 // El esqueleto de la página tapa también la primera vista completa (#817): la
 // semana, el calendario de festivos, las excepciones y los festivos de
 // referencia. Sin esto se destapaba un segundo esqueleto (el del tablero), la
@@ -989,6 +1022,7 @@ onMounted(() => {
   clockTimer = setInterval(refreshClock, 30_000)
 })
 onUnmounted(() => {
+  clearTimeout(veilTimer)
   if (clockTimer !== undefined) clearInterval(clockTimer)
 })
 
@@ -1121,7 +1155,7 @@ const editPreview = computed(() =>
         <dl
           v-if="workingHoursStatus !== 'error'"
           class="schedules-page__stats"
-          :class="{ 'schedules-page__stats--busy': boardBusy }"
+          :class="{ 'schedules-page__stats--busy': veilShown }"
           :aria-busy="statsPending || undefined"
         >
           <div>
@@ -1259,14 +1293,14 @@ const editPreview = computed(() =>
 
               <div
                 class="schedules-page__board-wrap"
-                :class="{ 'schedules-page__board-wrap--busy': boardBusy }"
+                :class="{ 'schedules-page__board-wrap--busy': veilShown }"
                 :aria-busy="boardBusy ? 'true' : undefined"
               >
                 <!-- inert con undefined: Vue escribiría inert="false", que el
                      navegador trata como activo. -->
                 <WeeklyBoard
                   class="schedules-page__board"
-                  :inert="boardBusy || undefined"
+                  :inert="boardBusy || veilShown || undefined"
                   :days="groupedByWeekday"
                   :scale="boardScale"
                   :today-iso-weekday="todayIsoWeekday"
@@ -1279,7 +1313,7 @@ const editPreview = computed(() =>
                 />
                 <Transition name="schedules-veil">
                   <div
-                    v-if="boardBusy"
+                    v-if="veilShown"
                     class="schedules-page__veil"
                     role="status"
                     aria-live="polite"
@@ -3232,7 +3266,6 @@ const editPreview = computed(() =>
 
 .schedules-page__board-wrap--busy .schedules-page__board {
   opacity: 0.22;
-  transition-delay: 120ms;
 }
 
 .schedules-page__veil {
@@ -3247,7 +3280,11 @@ const editPreview = computed(() =>
 }
 
 .schedules-veil-enter-active {
-  transition: opacity 220ms var(--motion-easing-standard) 120ms;
+  transition: opacity 180ms var(--motion-easing-standard);
+}
+
+.schedules-page__veil :deep(.diamond-loader) {
+  animation: none;
 }
 
 .schedules-veil-leave-active {
@@ -3265,7 +3302,6 @@ const editPreview = computed(() =>
 
 .schedules-page__stats--busy {
   opacity: 0.4;
-  transition-delay: 120ms;
 }
 
 @media (prefers-reduced-motion: reduce) {

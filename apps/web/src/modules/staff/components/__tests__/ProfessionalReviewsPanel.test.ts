@@ -2,12 +2,17 @@
  * Moderación de reseñas en el panel (HU-100, DEC-128, CA-100-05): lista con las
  * ocultas y su fecha, ocultar/mostrar reversible y promedio recalculado por el servidor.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 
 const getMock = vi.hoisted(() => vi.fn())
 const patchMock = vi.hoisted(() => vi.fn())
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
 vi.mock('@/shared/api/httpClient', () => ({ httpClient: { GET: getMock, PATCH: patchMock } }))
 
 const { default: ProfessionalReviewsPanel } = await import('../ProfessionalReviewsPanel.vue')
@@ -171,6 +176,68 @@ describe('ProfessionalReviewsPanel', () => {
     await flushPromises()
 
     expect(wrapper.findAll('li')).toHaveLength(2)
+  })
+
+  describe('la espera sin destellos (#843)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('keeps a loader that could be seen long enough to read, and skips it on a quick answer', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      let resolve: (value: unknown) => void = () => {}
+      getMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const wrapper = mountIt()
+      await wrapper.get('button').trigger('click')
+      await vi.advanceTimersByTimeAsync(350)
+      resolve(ok(both))
+      await flushPromises()
+      expect(wrapper.find('.professional-reviews__loader').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(440)
+      expect(wrapper.find('.professional-reviews__loader').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.find('.professional-reviews__loader').exists()).toBe(false)
+      expect(wrapper.findAll('li')).toHaveLength(2)
+      wrapper.unmount()
+
+      getMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const quick = mountIt()
+      await quick.get('button').trigger('click')
+      await vi.advanceTimersByTimeAsync(120)
+      resolve(ok(both))
+      await flushPromises()
+      expect(quick.find('.professional-reviews__loader').exists()).toBe(false)
+      expect(quick.findAll('li')).toHaveLength(2)
+      quick.unmount()
+    })
+
+    it('keeps the list on screen while it reloads after hiding a review', async () => {
+      let resolve: (value: unknown) => void = () => {}
+      getMock.mockResolvedValueOnce(ok(both)).mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      patchMock.mockResolvedValueOnce(ok({ ...both.items[0], hiddenAt: '2027-03-17T08:00:00Z' }))
+      const wrapper = mountIt()
+      await openList(wrapper)
+      await wrapper.findAll('li')[0]!.get('button').trigger('click')
+      await flushPromises()
+      // Sin cambiar la lista por el cargador y de vuelta (un destello).
+      expect(wrapper.find('.professional-reviews__loader').exists()).toBe(false)
+      expect(wrapper.findAll('li')).toHaveLength(2)
+      resolve(ok(both))
+      await flushPromises()
+      expect(wrapper.findAll('li')).toHaveLength(2)
+      wrapper.unmount()
+    })
+
+    it('moves the focus to the reviews button before «Reintentar» disappears', async () => {
+      getMock.mockResolvedValueOnce(fail(500)).mockReturnValueOnce(new Promise(() => {}))
+      const wrapper = mountIt()
+      await openList(wrapper)
+      const retry = wrapper.get('[role="alert"] button')
+      ;(retry.element as HTMLButtonElement).focus()
+      await retry.trigger('click')
+      expect(document.activeElement).toBe(wrapper.get('button').element)
+      wrapper.unmount()
+    })
   })
 
   // Issue #487: en el perfil individual la lista vive en un cuadro a la derecha de la

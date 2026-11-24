@@ -7,17 +7,19 @@ import { defineComponent, h } from 'vue'
 import { mount } from '@vue/test-utils'
 import {
   LOADER_APPEAR_MS,
+  LOADER_FADE_MS,
   LOADER_MIN_VISIBLE_MS,
   useLoaderGrace,
   type LoaderGrace,
+  type LoaderGraceOptions,
 } from '../useLoaderGrace'
 
-function mountWithGrace() {
+function mountWithGrace(options?: LoaderGraceOptions) {
   let grace!: LoaderGrace
   const wrapper = mount(
     defineComponent({
       setup() {
-        grace = useLoaderGrace()
+        grace = useLoaderGrace(options)
         return () => h('div')
       },
     }),
@@ -90,5 +92,38 @@ describe('useLoaderGrace', () => {
     await settledAfter(grace, 350)
     wrapper.unmount()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('matches the fade of DiamondLoader', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const loader = readFileSync(resolve(__dirname, '../../ui/DiamondLoader.vue'), 'utf8')
+    expect(loader).toContain(`animation: diamond-loader-in ${LOADER_FADE_MS}ms ease-out`)
+  })
+
+  it('can keep the loader at full opacity for the minimum, after its fade (#843)', async () => {
+    const { grace } = mountWithGrace({ minVisibleMs: LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS })
+    const done = await settledAfter(grace, 350)
+    await vi.advanceTimersByTimeAsync(
+      LOADER_APPEAR_MS + LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS - 350 - 1,
+    )
+    expect(done).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    expect(done).toHaveBeenCalledOnce()
+  })
+
+  it('counts from when a loader mounted while hidden actually appears (#843)', async () => {
+    const { grace } = mountWithGrace()
+    grace.start()
+    // Montado dentro de un diálogo cerrado: el tiempo oculto no cuenta.
+    vi.advanceTimersByTime(5000)
+    grace.markAppeared()
+    vi.advanceTimersByTime(50)
+    const done = vi.fn()
+    void grace.settled().then(done)
+    await Promise.resolve()
+    expect(done).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(LOADER_MIN_VISIBLE_MS - 50)
+    expect(done).toHaveBeenCalledOnce()
   })
 })

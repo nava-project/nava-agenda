@@ -3,12 +3,17 @@
  * sobre la rejilla, día sin hueco, «Otra hora», error, relectura tras un 409,
  * teclado y accesibilidad. appointmentsApi se sustituye por un doble.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import { ref } from 'vue'
 
 const fetchManualAvailabilityMock = vi.hoisted(() => vi.fn())
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
 vi.mock('../../api/appointmentsApi', () => ({
   fetchManualAvailability: fetchManualAvailabilityMock,
 }))
@@ -179,6 +184,71 @@ describe('ManualStartPicker', () => {
       .trigger('click')
     await flushPromises()
     expect(wrapper.find('.bk-min').exists()).toBe(true)
+  })
+
+  describe('la espera sin destellos (#843)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('keeps a skeleton that could be seen long enough to read, and skips it on a quick answer', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      let resolve: (v: unknown) => void = () => {}
+      fetchManualAvailabilityMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const { wrapper } = mountPicker()
+      await vi.advanceTimersByTimeAsync(350)
+      resolve(availability([at(today, '15:00')]))
+      await flushPromises()
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(440)
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(false)
+      expect(wrapper.find('.bk-min').exists()).toBe(true)
+      wrapper.unmount()
+
+      fetchManualAvailabilityMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const quick = mountPicker().wrapper
+      await vi.advanceTimersByTimeAsync(120)
+      resolve(availability([at(today, '15:00')]))
+      await flushPromises()
+      expect(quick.find('.manual-start__skeleton').exists()).toBe(false)
+      expect(quick.find('.bk-min').exists()).toBe(true)
+      quick.unmount()
+    })
+
+    it('counts the wait from when the skeleton appears, not from a mount inside a closed dialog', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      let resolve: (v: unknown) => void = () => {}
+      fetchManualAvailabilityMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const { wrapper } = mountPicker()
+      // Reprogramar lo monta con la página; el diálogo se abre mucho después.
+      await vi.advanceTimersByTimeAsync(5000)
+      const appear = new Event('animationstart')
+      Object.defineProperty(appear, 'animationName', { value: 'manual-start-skeleton-in-1a2b' })
+      wrapper.get('.manual-start__skeleton').element.dispatchEvent(appear)
+      await vi.advanceTimersByTimeAsync(50)
+      resolve(availability([at(today, '15:00')]))
+      await flushPromises()
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(440)
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(true)
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.find('.manual-start__skeleton').exists()).toBe(false)
+      wrapper.unmount()
+    })
+
+    it('moves the focus to the picker before «Reintentar» disappears', async () => {
+      fetchManualAvailabilityMock.mockResolvedValueOnce({ kind: 'network-error' })
+      const { wrapper } = mountPicker()
+      await flushPromises()
+      fetchManualAvailabilityMock.mockReturnValueOnce(new Promise(() => {}))
+      const retry = wrapper.findAll('button').find((b) => b.text() === 'Reintentar')!
+      ;(retry.element as HTMLButtonElement).focus()
+      await retry.trigger('click')
+      expect(document.activeElement).toBe(wrapper.get('.manual-start').element)
+      wrapper.unmount()
+    })
   })
 
   it('without professional or service it only explains what to choose first', async () => {

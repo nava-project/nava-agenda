@@ -23,6 +23,11 @@ const fetchMyProfessionalMock = vi.hoisted(() => vi.fn())
 const linkMyProfessionalMock = vi.hoisted(() => vi.fn())
 const unlinkMyProfessionalMock = vi.hoisted(() => vi.fn())
 
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
 vi.mock('../../api/staffApi', () => ({
   fetchProfessionalPage: async (page: number, pageSize: number) => {
     const outcome = await fetchMock(page, pageSize)
@@ -671,6 +676,26 @@ describe('StaffPage', () => {
     const dialog = openDialogElement(wrapper)
     expect(dialog.textContent).not.toContain('Tu usuario')
     expect(dialog.textContent).not.toContain('Este soy yo')
+  })
+
+  it('keeps the «Tu usuario» line in place, hidden and inert, while the link is still being read (#843)', async () => {
+    let resolve: (value: unknown) => void = () => {}
+    fetchMyProfessionalMock.mockReturnValue(new Promise((r) => (resolve = r)))
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
+    await openDetail(wrapper)
+
+    const pending = openDialogElement(wrapper).querySelector('.staff-page__link')!
+    expect(pending.classList.contains('staff-page__link--pending')).toBe(true)
+    expect(pending.getAttribute('aria-hidden')).toBe('true')
+    expect(pending.hasAttribute('inert')).toBe(true)
+
+    resolve({ kind: 'none' })
+    await flushPromises()
+    const ready = openDialogElement(wrapper).querySelector('.staff-page__link')!
+    expect(ready.classList.contains('staff-page__link--pending')).toBe(false)
+    expect(ready.getAttribute('aria-hidden')).toBeNull()
+    expect(ready.hasAttribute('inert')).toBe(false)
+    expect(dialogButton(wrapper, 'Este soy yo')).toBeTruthy()
   })
 
   // --- Alta -----------------------------------------------------------
