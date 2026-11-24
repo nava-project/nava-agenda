@@ -23,6 +23,7 @@ import {
   DialogSeal,
   DiamondLoader,
   EmptyScene,
+  ContentReveal,
 } from '@/shared/ui'
 import {
   createService,
@@ -305,6 +306,10 @@ let requestToken = 0
 // (loadStatus) siempre es 1, pero un fallo de pageStatus debe reintentar la
 // MISMA página que falló, no volver a la primera.
 let lastRequestedPage = 1
+// Cuando el primer ajuste tiene que volver a pedir la página con otro tamaño,
+// el esqueleto sigue encima hasta que esa segunda carga se revela, no solo
+// hasta que se pide (#817): si no, se destaparía la lista a medio cambiar.
+let revealEndsFit = false
 
 async function load(page: number) {
   const token = ++requestToken
@@ -328,6 +333,10 @@ async function load(page: number) {
   if (token !== requestToken) return
 
   const apply = () => {
+    if (revealEndsFit) {
+      revealEndsFit = false
+      fitPending.value = false
+    }
     if (outcome.kind === 'success') {
       services.value = outcome.page.items
       currentPage.value = outcome.page.page
@@ -391,9 +400,10 @@ function onWindowResize() {
 //      un setTimeout PROPIO que `load()` nunca espera: `await load(1)`
 //      podía resolver mientras el DOM seguía mostrando el esqueleto.
 //   2. Incluso reaccionando a loadStatus con flush: 'post', el <Transition
-//      mode="out-in"> de la plantilla reproduce primero la salida de la
-//      rama anterior antes de montar la nueva: loadStatus ya vale 'ready'
-//      un instante antes de que el <ul> real llegue a existir en el DOM.
+//      mode="out-in"> que había entonces reproducía primero la salida de la
+//      rama anterior antes de montar la nueva. ContentReveal (#817) ya monta
+//      la tabla al instante, pero `<ul>` puede no existir aún (catálogo
+//      vacío): el ref sigue siendo la señal exacta.
 // Reaccionar directamente a tableListRef (el propio ref de plantilla) es lo
 // único que refleja el momento real en que Vue insertó ese nodo: por eso
 // se dispara ahí, no antes. hasPerformedInitialFit evita repetir el ajuste
@@ -411,11 +421,18 @@ let hasPerformedInitialFit = false
 // creciendo, esqueletos de la misma altura y por fin el encogimiento.
 const fitPending = ref(true)
 
+// El esqueleto tapa la lista hasta que la carga terminó Y el primer ajuste de
+// filas la midió (#817): destaparla antes dejaría ver cómo encoge.
+const coverLoading = computed(
+  () => loadStatus.value === 'loading' || (loadStatus.value === 'ready' && fitPending.value),
+)
+
 // fitInitialPage resuelve ese primer ajuste SIN volver al servidor cuando
 // puede: la página 1 con `fitting` filas son justo las primeras `fitting` de
 // la página 1 ya descargada, así que basta recortarlas y recalcular
 // totalPages. Solo si hacen falta más filas de las descargadas (pantalla muy
-// alta y aún hay servicios sin traer) se cae al ajuste normal con re-pedido.
+// alta y aún hay servicios sin traer) se cae al ajuste normal con re-pedido;
+// entonces el ajuste lo termina la revelación de esa carga (`revealEndsFit`).
 async function fitInitialPage() {
   const fitting = computeFittingPageSize()
   if (fitting === null || fitting === effectivePageSize.value) return
@@ -426,14 +443,18 @@ async function fitInitialPage() {
     totalPages.value = Math.max(1, Math.ceil(totalItems.value / fitting))
     return
   }
+  const before = requestToken
+  revealEndsFit = true
   await adjustPageSizeToFit()
+  // Sin carga nueva no hay revelación que espere.
+  if (requestToken === before) revealEndsFit = false
 }
 
 watch(tableListRef, async (el) => {
   if (!el || hasPerformedInitialFit) return
   hasPerformedInitialFit = true
   await fitInitialPage()
-  fitPending.value = false
+  if (!revealEndsFit) fitPending.value = false
 })
 
 onMounted(() => {
@@ -1065,56 +1086,40 @@ async function reloadAfterConflict(serviceId: string) {
       </span>
     </div>
 
-    <!-- Transition envuelve carga/error/listo en un único fundido (issue
-         reportado 2026-09-28, "se ve como se genera el objeto... quiero el
-         tema de la carga para tapar ese evento"): sin esto, el cambio de
-         cargador/esqueleto a la tabla real es un corte instantáneo — con
-         useMinHoldLoading ya no "parpadea", pero seguía siendo un corte
-         seco. mode="out-in" espera a que lo anterior termine de
-         desvanecerse antes de que entre lo nuevo, así nunca se ven ambos
-         a la vez ni un salto de layout a medio fundido.
+    <!-- Carga → contenido sin parpadeo (#817, ContentReveal): el contenido se
+         monta debajo del esqueleto y, cuando está listo y medido, el esqueleto
+         se desvanece por encima. Antes un <Transition mode="out-in"> los
+         separaba con unos 200 ms casi en blanco.
 
-         Mismo tratamiento que AgendaSkeleton.vue (evento 05 del atlas
-         panel-agenda-eventos) para el estado de carga: cargador compartido
-         en miniatura + la geometría del contenido por llegar, para que la
-         lista real no "aparezca de golpe" (issue reportado 2026-09-28,
-         "revisa la Agenda... hace algo antes de mostrar el componente").
-         No se reutiliza AgendaSkeleton (documentado como local al módulo
-         `agenda`, no promovido a shared/ui) ni el grid de
-         `.catalog-page__row`: igual que el propio AgendaSkeleton, que
-         tampoco reutiliza las clases reales de DailyAgendaPage.vue, esto
-         es una aproximación de la forma con su propio layout responsive,
-         no una réplica que dependa de los ganchos de grid-column/row que
-         la fila real necesita solo en móvil. Se muestra DE INMEDIATO
-         (useMinHoldLoading solo retrasa cuándo se le permite desaparecer,
-         ver script). `<Transition>` exige exactamente un elemento hijo en
-         el código fuente: este comentario vive antes, no entre medio. -->
-    <Transition name="catalog-content" mode="out-in">
-      <div
-        v-if="loadStatus === 'loading'"
-        class="catalog-page__state catalog-page__loading"
-        role="status"
-        aria-live="polite"
-      >
-        <DiamondLoader label="Cargando el catálogo…" layout="overlay" />
-        <ul class="catalog-page__list" aria-hidden="true">
-          <li v-for="n in 3" :key="n" class="catalog-page__skeleton-row">
-            <span class="catalog-page__skeleton-icon" />
-            <span class="catalog-page__skeleton-text">
-              <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--name" />
-              <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--meta" />
-            </span>
-            <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--badge" />
-            <span class="catalog-page__skeleton-actions">
-              <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--button" />
-              <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--button" />
-            </span>
-          </li>
-        </ul>
-      </div>
+         El esqueleto imita la geometría de la lista con el cargador compartido
+         en miniatura, como AgendaSkeleton.vue (evento 05 del atlas
+         panel-agenda-eventos), con su propio layout responsive. Se muestra DE
+         INMEDIATO: useMinHoldLoading solo retrasa cuándo se le permite irse, y
+         también espera al primer ajuste de filas (fitPending), para no
+         destapar una lista que aún va a encogerse. -->
+    <ContentReveal class="catalog-page__stage" :loading="coverLoading">
+      <template #loading>
+        <div class="catalog-page__state catalog-page__loading" role="status" aria-live="polite">
+          <DiamondLoader label="Cargando el catálogo…" layout="overlay" />
+          <ul class="catalog-page__list" aria-hidden="true">
+            <li v-for="n in 3" :key="n" class="catalog-page__skeleton-row">
+              <span class="catalog-page__skeleton-icon" />
+              <span class="catalog-page__skeleton-text">
+                <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--name" />
+                <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--meta" />
+              </span>
+              <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--badge" />
+              <span class="catalog-page__skeleton-actions">
+                <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--button" />
+                <span class="catalog-page__skeleton-bar catalog-page__skeleton-bar--button" />
+              </span>
+            </li>
+          </ul>
+        </div>
+      </template>
 
       <BaseAlert
-        v-else-if="loadStatus === 'load-error'"
+        v-if="loadStatus === 'load-error'"
         variant="warning"
         title="No pudimos cargar el catálogo"
         role="alert"
@@ -1125,11 +1130,10 @@ async function reloadAfterConflict(serviceId: string) {
         </template>
       </BaseAlert>
 
-      <!-- Un solo elemento, no <template>: <Transition> exige exactamente un
-         hijo real por rama del v-if/else-if/else, y esta rama antes tenía
-         hasta 3 hermanos sueltos (vacío/tabla, "Cargar más"). -->
+      <!-- Un solo elemento: ContentReveal pone cada hijo directo en la misma
+         celda, así que vacío/tabla y paginación van envueltos juntos. -->
       <div
-        v-else
+        v-else-if="loadStatus !== 'loading'"
         class="catalog-page__ready"
         :class="{ 'catalog-page__ready--fitting': fitPending }"
       >
@@ -1310,7 +1314,7 @@ async function reloadAfterConflict(serviceId: string) {
           />
         </div>
       </div>
-    </Transition>
+    </ContentReveal>
 
     <!-- Detalle (issue 2026-09-29): la descripción completa vive aquí, no en la
          fila, porque puede ser larga. Va ANTES de los demás diálogos a
@@ -1851,27 +1855,6 @@ async function reloadAfterConflict(serviceId: string) {
 </template>
 
 <style scoped>
-/* Fundido entre carga/error/listo (ver <Transition> en la plantilla,
-   issue 2026-09-28): --motion-duration-base, el mismo token que usa el
-   resto de transiciones de estado del sistema (estandar-diseno-visual.md
-   §12), no un valor suelto. */
-.catalog-content-enter-active,
-.catalog-content-leave-active {
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.catalog-content-enter-from,
-.catalog-content-leave-to {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-content-enter-active,
-  .catalog-content-leave-active {
-    transition: none;
-  }
-}
-
 .catalog-page {
   /* Superficie tinta de punta a punta (estandar-diseno-visual.md §3, mismo
      canvas que DailyAgendaPage.vue y el cascarón AppHeader/AppNav): antes
@@ -1913,32 +1896,27 @@ async function reloadAfterConflict(serviceId: string) {
 .catalog-page__state,
 .catalog-page__empty,
 .catalog-page__pagination,
-.catalog-page > :deep(.base-alert) {
+.catalog-page > :deep(.base-alert),
+.catalog-page__stage > :deep(.base-alert) {
   width: min(100%, var(--catalog-width));
   margin-inline: auto;
 }
 
-/* Antes estos hermanos (vacío/tabla, "Cargar más") eran hijos directos del
-   flex column de .catalog-page y heredaban su gap; envueltos en un solo
-   elemento para <Transition> (ver plantilla), necesitan su propio flex
-   para no perder ese espaciado. */
+/* Vacío/tabla y paginación van envueltos en un solo elemento (ver
+   ContentReveal en la plantilla): necesitan su propio flex para conservar el
+   espaciado del flex column de .catalog-page. */
 .catalog-page__ready {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
 }
 
-/* Invisible pero con layout: el primer ajuste de filas mide la tabla real
-   (ver fitPending en el script). */
+/* Invisible pero con layout, bajo el esqueleto: el primer ajuste de filas mide
+   la tabla real (ver fitPending). Se destapa sin fundido propio: el que se
+   desvanece es el esqueleto de encima (#817); dos fundidos a la vez volverían
+   a dejar un hueco. */
 .catalog-page__ready--fitting {
   opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .catalog-page__ready {
-    transition: none;
-  }
 }
 
 .catalog-page__header {

@@ -29,6 +29,7 @@ import {
   DialogSeal,
   DiamondLoader,
   EmptyScene,
+  ContentReveal,
 } from '@/shared/ui'
 import AccordionItem from '../components/AccordionItem.vue'
 import DayTrack from '../components/DayTrack.vue'
@@ -167,12 +168,26 @@ const hasShownWorkingHours = ref(false)
 const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
+// El esqueleto de la página tapa también la primera vista completa (#817): la
+// semana, el calendario de festivos, las excepciones y los festivos de
+// referencia. Sin esto se destapaba un segundo esqueleto (el del tablero), la
+// semana llegaba después desde transparente y los acordeones del lateral
+// crecían con la pantalla ya a la vista. Un fallo también se destapa: trae su
+// aviso. Se marca una sola vez (ver el watch junto a los festivos).
+const firstViewSettled = ref(false)
+const coverLoading = computed(
+  () => pageStatus.value === 'loading' || (pageStatus.value === 'ready' && !firstViewSettled.value),
+)
 // Las cifras de la semana aún no tienen dato que mostrar (primera carga).
 const statsPending = computed(() => workingHoursStatus.value !== 'ready' && !boardBusy.value)
 
 async function selectProfessional(professionalId: string) {
   selectedProfessionalId.value = professionalId
   workingHoursStatus.value = 'loading'
+  // Las tres consultas del profesional salen a la vez (#817): antes el
+  // lateral esperaba a la semana y llegaba una ida y vuelta más tarde.
+  void loadHolidayCalendar(professionalId)
+  void loadExceptions(professionalId)
 
   const outcome = await fetchWorkingHours(professionalId)
   // El profesional seleccionado pudo cambiar mientras la solicitud estaba en
@@ -186,9 +201,6 @@ async function selectProfessional(professionalId: string) {
   } else {
     workingHoursStatus.value = 'error'
   }
-
-  void loadHolidayCalendar(professionalId)
-  void loadExceptions(professionalId)
 }
 
 function onProfessionalChange(professionalId: string) {
@@ -529,6 +541,7 @@ async function onToggleHolidayCalendar(event: Event) {
 // upcomingColombianHolidays es un dato de referencia único para toda la
 // pantalla (no depende del profesional elegido): se carga una sola vez.
 const colombianHolidays = ref<ColombianHoliday[]>([])
+const colombianHolidaysSettled = ref(false)
 
 async function loadColombianHolidays() {
   const year = new Date().getFullYear()
@@ -537,7 +550,26 @@ async function loadColombianHolidays() {
     const today = new Date().toISOString().slice(0, 10)
     colombianHolidays.value = outcome.items.filter((h) => h.date >= today)
   }
+  colombianHolidaysSettled.value = true
 }
+
+// La primera vista completa (ver coverLoading): con profesionales, la semana y
+// el lateral resueltos (bien o con su aviso); sin ellos, solo la escena vacía.
+function settled(status: 'idle' | 'loading' | 'ready' | 'error'): boolean {
+  return status === 'ready' || status === 'error'
+}
+watch(
+  () =>
+    pageStatus.value === 'ready' &&
+    colombianHolidaysSettled.value &&
+    (professionals.value.length === 0 ||
+      (settled(workingHoursStatus.value) &&
+        settled(holidayCalendarStatus.value) &&
+        settled(exceptionsStatus.value))),
+  (done) => {
+    if (done) firstViewSettled.value = true
+  },
+)
 
 // --- HU-041: excepciones de jornada (CA-041-04/05) -------------------------
 
@@ -1132,25 +1164,24 @@ const editPreview = computed(() =>
       </div>
     </header>
 
-    <!-- Un solo fundido entre carga/error/listo (mismo criterio que Profesionales). -->
-    <Transition name="schedules-content" mode="out-in">
-      <div
-        v-if="pageStatus === 'loading'"
-        class="schedules-page__state"
-        role="status"
-        aria-live="polite"
-      >
-        <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="overlay" />
-        <div class="schedules-page__skeleton" aria-hidden="true">
-          <span v-for="n in 4" :key="n" class="schedules-page__skeleton-row">
-            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--day" />
-            <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--track" />
-          </span>
+    <!-- Carga → tablero sin parpadeo (#817, ContentReveal, como Servicios y
+         Profesionales): el esqueleto se desvanece por encima del tablero ya
+         montado. Antes un mode="out-in" dejaba un instante en blanco. -->
+    <ContentReveal class="schedules-page__stage" :loading="coverLoading">
+      <template #loading>
+        <div class="schedules-page__state" role="status" aria-live="polite">
+          <DiamondLoader :label="`Cargando los horarios…`" layout="overlay" />
+          <div class="schedules-page__skeleton" aria-hidden="true">
+            <span v-for="n in 4" :key="n" class="schedules-page__skeleton-row">
+              <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--day" />
+              <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--track" />
+            </span>
+          </div>
         </div>
-      </div>
+      </template>
 
       <BaseAlert
-        v-else-if="pageStatus === 'load-error'"
+        v-if="pageStatus === 'load-error'"
         variant="warning"
         title="No pudimos cargar esta sección"
         role="alert"
@@ -1161,7 +1192,7 @@ const editPreview = computed(() =>
         </template>
       </BaseAlert>
 
-      <div v-else class="schedules-page__ready">
+      <div v-else-if="pageStatus !== 'loading'" class="schedules-page__ready">
         <EmptyScene v-if="professionals.length === 0" scene="agenda" class="schedules-page__empty">
           <template #title>{{
             isSoloProfile
@@ -1501,7 +1532,7 @@ const editPreview = computed(() =>
           </aside>
         </div>
       </div>
-    </Transition>
+    </ContentReveal>
 
     <!-- Alta de tramo -->
     <BaseDialog
@@ -2149,7 +2180,8 @@ const editPreview = computed(() =>
 .schedules-page__header,
 .schedules-page__state,
 .schedules-page__ready,
-.schedules-page > :deep(.base-alert) {
+.schedules-page > :deep(.base-alert),
+.schedules-page__stage > :deep(.base-alert) {
   width: min(100%, var(--schedules-width));
   margin-inline: auto;
 }
@@ -2202,18 +2234,6 @@ const editPreview = computed(() =>
 
 .schedules-page__heading {
   flex: 1 1 auto;
-}
-
-/* Fundido entre carga/error/listo: --motion-duration-base, el mismo token que
-   el resto de transiciones de estado (estandar-diseno-visual.md §12). */
-.schedules-content-enter-active,
-.schedules-content-leave-active {
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.schedules-content-enter-from,
-.schedules-content-leave-to {
-  opacity: 0;
 }
 
 .schedules-page__state {
@@ -2431,6 +2451,9 @@ const editPreview = computed(() =>
   margin-left: 3px;
   color: var(--color-on-strong-muted);
   font-size: 18px;
+  /* Con el interlineado heredado de la cifra (38 px) el «/7» y el «h» estiraban
+     la línea a 43 px y el tablero bajaba 5 px al llegar la semana (#817). */
+  line-height: 1;
 }
 
 /* «h» y «min» menudos y apagados, como «/7»; la cifra entera no se parte. */
@@ -2441,6 +2464,7 @@ const editPreview = computed(() =>
 .schedules-page__stat-unit {
   color: var(--color-on-strong-muted);
   font-size: 18px;
+  line-height: 1;
 }
 
 @media (max-width: 380px) {
@@ -2583,8 +2607,17 @@ const editPreview = computed(() =>
     order: 2;
   }
 
-  .schedules-page__ready {
+  /* La cadena de alturas de escritorio pasa por el escenario de ContentReveal
+     (#817): sin esto la celda tomaba el alto del contenido y el tablero, que se
+     desplaza por dentro, quedaba en 6 px. */
+  .schedules-page__stage {
     flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .schedules-page__stage > :deep(.schedules-page__ready) {
+    align-self: stretch;
     min-height: 0;
   }
 
@@ -3376,8 +3409,6 @@ const editPreview = computed(() =>
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .schedules-content-enter-active,
-  .schedules-content-leave-active,
   .schedules-stat-enter-active,
   .schedules-stat-leave-active,
   .schedules-row-enter-active,

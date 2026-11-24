@@ -12,7 +12,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { isEmployeeProfile } from '@/shared/model'
-import { BaseAlert, BaseButton, BaseInput, DiamondLoader } from '@/shared/ui'
+import { BaseAlert, BaseButton, BaseInput, ContentReveal, DiamondLoader } from '@/shared/ui'
 import { fetchBookingPolicy, saveBookingPolicy } from '../api/bookingPolicyApi'
 import ProfessionalWindowPanel from '../components/ProfessionalWindowPanel.vue'
 import BookingPolicyPreview from '../components/BookingPolicyPreview.vue'
@@ -259,22 +259,20 @@ function onReloadAfterConflict() {
       </p>
     </header>
 
-    <Transition name="booking-policy-content" mode="out-in">
-      <div
-        v-if="loadStatus === 'loading'"
-        key="loading"
-        class="booking-policy-page__state"
-        role="status"
-        aria-live="polite"
-      >
-        <DiamondLoader label="Cargando la configuración…" layout="overlay" />
-        <div class="booking-policy-page__skeletons" aria-hidden="true">
-          <span v-for="n in 2" :key="n" class="booking-policy-page__skeleton" />
+    <!-- Carga → formulario sin parpadeo (#817): el esqueleto se desvanece por
+         encima del contenido ya montado, en lugar de un mode="out-in". -->
+    <ContentReveal class="booking-policy-page__stage" :loading="loadStatus === 'loading'">
+      <template #loading>
+        <div class="booking-policy-page__state" role="status" aria-live="polite">
+          <DiamondLoader label="Cargando la configuración…" layout="overlay" />
+          <div class="booking-policy-page__skeletons" aria-hidden="true">
+            <span v-for="n in 2" :key="n" class="booking-policy-page__skeleton" />
+          </div>
         </div>
-      </div>
+      </template>
 
       <BaseAlert
-        v-else-if="loadStatus === 'load-error'"
+        v-if="loadStatus === 'load-error'"
         key="error"
         variant="warning"
         title="No pudimos cargar la configuración"
@@ -288,11 +286,15 @@ function onReloadAfterConflict() {
 
       <!-- El empleado (DEC-173) no cambia las reglas del negocio: solo la ventana
            propia de su profesional, que es lo único que el API le deja guardar aquí. -->
-      <div v-else-if="isEmployeeProfile" key="own" class="booking-policy-page__own policy-ink">
+      <div
+        v-else-if="loadStatus !== 'loading' && isEmployeeProfile"
+        key="own"
+        class="booking-policy-page__own policy-ink"
+      >
         <ProfessionalWindowPanel :shop-window="savedForm" own-only />
       </div>
 
-      <div v-else key="ready" class="booking-policy-page__layout">
+      <div v-else-if="loadStatus !== 'loading'" key="ready" class="booking-policy-page__layout">
         <form class="booking-policy-page__form policy-ink" novalidate @submit.prevent="onSubmit">
           <div v-if="saveStatus === 'saved'" class="booking-policy-page__saved" role="status">
             <span class="booking-policy-page__saved-icon" aria-hidden="true">
@@ -463,7 +465,7 @@ function onReloadAfterConflict() {
 
         <BookingPolicyPreview :policy="form" />
       </div>
-    </Transition>
+    </ContentReveal>
   </section>
 </template>
 
@@ -492,7 +494,8 @@ function onReloadAfterConflict() {
 .booking-policy-page__state,
 .booking-policy-page__layout,
 .booking-policy-page__own,
-.booking-policy-page > :deep(.base-alert) {
+.booking-policy-page > :deep(.base-alert),
+.booking-policy-page__stage > :deep(.base-alert) {
   width: min(100%, var(--policy-width));
   margin-inline: auto;
 }
@@ -679,17 +682,6 @@ function onReloadAfterConflict() {
    `.policy-ink` ya no cambia el aspecto; solo fija el alto de los campos. */
 .policy-ink :deep(.base-input) {
   height: 44px;
-}
-
-/* Fundido entre carga/error/listo. */
-.booking-policy-content-enter-active,
-.booking-policy-content-leave-active {
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.booking-policy-content-enter-from,
-.booking-policy-content-leave-to {
-  opacity: 0;
 }
 
 @keyframes policy-saved-enter {

@@ -484,6 +484,96 @@ describe('StaffPage', () => {
     }
   })
 
+  it('keeps the skeleton cover until the refit page is revealed, not just requested (#817)', async () => {
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { get: () => 600 })
+    document.body.appendChild(scroller)
+    const style = document.createElement('style')
+    style.textContent = '.staff-page { padding-bottom:48px }'
+    document.head.appendChild(style)
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height }) as DOMRect
+    const spy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        if (this === scroller) return rect(0, 600)
+        if (
+          this.classList.contains('staff-page__row') ||
+          this.classList.contains('staff-page__skeleton-row')
+        )
+          return rect(0, 84)
+        const rows = scroller.querySelectorAll('.staff-page__row,.staff-page__skeleton-row').length
+        if (this.classList.contains('staff-page__list')) return rect(200, rows * 84 + 2)
+        if (this.classList.contains('staff-page__footer')) return rect(218 + rows * 84, 34)
+        return rect(0, 0)
+      })
+    // El navegador avisa al ResizeObserver en cuanto empieza a observar: ese
+    // segundo ajuste no debe destapar la lista antes de la revelación.
+    class InstantResizeObserver {
+      private readonly callback: () => void
+      constructor(callback: () => void) {
+        this.callback = callback
+      }
+      observe() {
+        this.callback()
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', InstantResizeObserver)
+    let wrapper: VueWrapper | undefined
+    try {
+      // La primera página trae menos filas de las que caben: el ajuste vuelve
+      // a pedirla con el tamaño medido.
+      fetchMock.mockResolvedValueOnce({
+        kind: 'success',
+        page: { items: oneProfessional, page: 1, pageSize: 20, total: 17, totalPages: 1 },
+      })
+      let resolveRefit: (value: unknown) => void = () => {}
+      fetchMock.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveRefit = resolve
+        }),
+      )
+      wrapper = mount(StaffPage, {
+        attachTo: scroller,
+        global: {
+          stubs: { teleport: true, transition: true, RouterLink: { template: '<a><slot /></a>' } },
+        },
+      })
+      await flushPromises()
+      await waitOutInitialLoadHold()
+      await flushPromises()
+      expect(fetchMock).toHaveBeenLastCalledWith(1, 3)
+      await new Promise((resolve) => setTimeout(resolve, 160))
+      await flushPromises()
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+
+      resolveRefit({
+        kind: 'success',
+        page: {
+          items: fourProfessionals.slice(0, 3),
+          page: 1,
+          pageSize: 3,
+          total: 17,
+          totalPages: 6,
+        },
+      })
+      await flushPromises()
+      // Pedida y respondida, pero aún sin revelar: el esqueleto sigue encima.
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+      await waitOutMoreHold()
+      await flushPromises()
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(false)
+      expect(wrapper.findAll('.staff-page__row')).toHaveLength(3)
+    } finally {
+      wrapper?.unmount()
+      vi.unstubAllGlobals()
+      spy.mockRestore()
+      scroller.remove()
+      style.remove()
+    }
+  })
+
   // --- Detalle ------------------------------------------------------------
 
   it('opens the professional detail with the portrait, and its Editar button hands over to the edit dialog', async () => {

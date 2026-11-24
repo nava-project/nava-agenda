@@ -26,6 +26,7 @@ import {
   BaseInput,
   DialogSeal,
   DiamondLoader,
+  ContentReveal,
 } from '@/shared/ui'
 import {
   professionalPhotoUrl,
@@ -76,11 +77,21 @@ const listRef = ref<HTMLElement | null>(null)
 const footerRef = ref<HTMLElement | null>(null)
 const pageRef = ref<HTMLElement | null>(null)
 const fitPending = ref(true)
+// El esqueleto tapa la lista hasta que la carga terminó Y el ajuste de filas la
+// midió (#817): destaparla antes dejaría ver cómo encoge.
+const coverLoading = computed(
+  () => loadStatus.value === 'loading' || (loadStatus.value === 'ready' && fitPending.value),
+)
 const { start: startLoadingHold, hold: holdLoadingReveal } = useMinHoldLoading()
 const { start: startPageHold, hold: holdPageReveal } = useMinHoldLoading(PAGE_MIN_HOLD_MS)
 let requestToken = 0
 let lastRequestedPage = 1
 let pendingPaginationFocus = false
+// Cuando el primer ajuste tiene que volver a pedir la página con otro tamaño,
+// el esqueleto sigue encima hasta que esa segunda carga se revela, no solo
+// hasta que se pide (#817): si no, se destapan las filas esqueleto y las
+// reales llegan después desde transparente.
+let revealEndsFit = false
 let resizeTimer: ReturnType<typeof setTimeout> | undefined
 let observer: ResizeObserver | undefined
 
@@ -106,6 +117,10 @@ async function load(page = 1, initial = false) {
   const reveal = () => {
     if (token !== requestToken) return
     pageLoading.value = false
+    if (revealEndsFit) {
+      revealEndsFit = false
+      fitPending.value = false
+    }
     if (outcome.kind === 'success') {
       professionals.value = outcome.page.items
       currentPage.value = outcome.page.page
@@ -146,6 +161,13 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
   return null
 }
 
+// Termina el ajuste salvo que lo termine la revelación de una carga en curso:
+// el ResizeObserver vuelve a llamar a fitPage al empezar a observar y no debe
+// destapar la lista antes de tiempo.
+function endFit() {
+  if (!revealEndsFit) fitPending.value = false
+}
+
 // DEC-107: mide el visor real, las filas y el pie; no oculta overflow para
 // aparentar que caben filas. El padding cambia en móvil y también se mide.
 async function fitPage() {
@@ -154,18 +176,18 @@ async function fitPage() {
     footer = footerRef.value,
     page = pageRef.value
   if (!list || !footer || !page) {
-    fitPending.value = false
+    endFit()
     return
   }
   const parent = scrollParent(list)
   if (!parent) {
-    fitPending.value = false
+    endFit()
     return
   }
   const row = list.querySelector<HTMLElement>('.staff-page__row, .staff-page__skeleton-row')
   const height = row?.getBoundingClientRect().height
   if (!height) {
-    fitPending.value = false
+    endFit()
     return
   }
   const listRect = list.getBoundingClientRect(),
@@ -200,11 +222,12 @@ async function fitPage() {
       professionals.value = professionals.value.slice(0, fitting)
       totalPages.value = Math.max(1, Math.ceil(totalItems.value / fitting))
     } else {
+      revealEndsFit = fitPending.value
       await load(targetPage)
     }
   }
   parent.scrollTop = 0
-  fitPending.value = false
+  endFit()
 }
 
 function scheduleFit() {
@@ -687,31 +710,28 @@ async function onSubmitRename() {
       </BaseButton>
     </header>
 
-    <!-- Un solo fundido entre carga/error/listo (mismo criterio que Servicios):
-         sin esto el paso del cargador a la lista real sería un corte seco.
-         mode="out-in" espera a que lo anterior termine de desvanecerse. -->
-    <Transition name="staff-content" mode="out-in">
-      <div
-        v-if="loadStatus === 'loading'"
-        class="staff-page__state staff-page__loading"
-        role="status"
-        aria-live="polite"
-      >
-        <DiamondLoader label="Cargando el equipo…" layout="overlay" />
-        <ul class="staff-page__list" aria-hidden="true">
-          <li v-for="n in 3" :key="n" class="staff-page__skeleton-row">
-            <span class="staff-page__skeleton-portrait" />
-            <span class="staff-page__skeleton-text">
-              <span class="staff-page__skeleton-bar staff-page__skeleton-bar--name" />
-              <span class="staff-page__skeleton-bar staff-page__skeleton-bar--meta" />
-            </span>
-            <span class="staff-page__skeleton-bar staff-page__skeleton-bar--button" />
-          </li>
-        </ul>
-      </div>
+    <!-- Carga → lista sin parpadeo (#817, ContentReveal, como Servicios): la
+         lista se monta debajo del esqueleto y, ya medida, el esqueleto se
+         desvanece por encima. Antes un mode="out-in" dejaba ~200 ms en blanco. -->
+    <ContentReveal class="staff-page__stage" :loading="coverLoading">
+      <template #loading>
+        <div class="staff-page__state staff-page__loading" role="status" aria-live="polite">
+          <DiamondLoader label="Cargando el equipo…" layout="overlay" />
+          <ul class="staff-page__list" aria-hidden="true">
+            <li v-for="n in 3" :key="n" class="staff-page__skeleton-row">
+              <span class="staff-page__skeleton-portrait" />
+              <span class="staff-page__skeleton-text">
+                <span class="staff-page__skeleton-bar staff-page__skeleton-bar--name" />
+                <span class="staff-page__skeleton-bar staff-page__skeleton-bar--meta" />
+              </span>
+              <span class="staff-page__skeleton-bar staff-page__skeleton-bar--button" />
+            </li>
+          </ul>
+        </div>
+      </template>
 
       <BaseAlert
-        v-else-if="loadStatus === 'load-error'"
+        v-if="loadStatus === 'load-error'"
         variant="warning"
         title="No pudimos cargar el equipo"
         role="alert"
@@ -723,7 +743,7 @@ async function onSubmitRename() {
       </BaseAlert>
 
       <div
-        v-else
+        v-else-if="loadStatus !== 'loading'"
         class="staff-page__ready"
         :class="{ 'staff-page__ready--fitting': fitPending }"
         :aria-busy="pageLoading"
@@ -912,7 +932,7 @@ async function onSubmitRename() {
           >
         </div>
       </div>
-    </Transition>
+    </ContentReveal>
 
     <!-- Detalle: ficha del profesional con su retrato grande. Va ANTES de los demás
          diálogos a propósito: al pulsar "Editar" se cierra este y se abre el de
@@ -1212,17 +1232,6 @@ async function onSubmitRename() {
 .staff-page__ready--fitting {
   visibility: hidden;
 }
-/* Fundido entre carga/error/listo: --motion-duration-base, el mismo token que
-   el resto de transiciones de estado (estandar-diseno-visual.md §12). */
-.staff-content-enter-active,
-.staff-content-leave-active {
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.staff-content-enter-from,
-.staff-content-leave-to {
-  opacity: 0;
-}
 
 /* Fondo transparente sobre el canvas del cascarón, igual que Agenda y
    Servicios; columna de lectura centrada. */
@@ -1249,7 +1258,8 @@ async function onSubmitRename() {
 .staff-page__header,
 .staff-page__state,
 .staff-page__ready,
-.staff-page > :deep(.base-alert) {
+.staff-page > :deep(.base-alert),
+.staff-page__stage > :deep(.base-alert) {
   width: min(100%, var(--staff-width));
   margin-inline: auto;
 }
@@ -2112,8 +2122,6 @@ async function onSubmitRename() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .staff-content-enter-active,
-  .staff-content-leave-active,
   .staff-page__row,
   .staff-page__portrait,
   .staff-page__item-chevron {

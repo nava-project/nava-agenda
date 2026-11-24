@@ -174,6 +174,66 @@ describe('SchedulesPage', () => {
     expect(wrapper.text()).toContain('Carlos Ramírez')
   })
 
+  it('keeps the page skeleton over the first week until it arrives, then uncovers it (#817)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    let resolveWeek: (value: unknown) => void = () => {}
+    fetchWorkingHoursMock.mockReturnValueOnce(new Promise((resolve) => (resolveWeek = resolve)))
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Profesionales ya cargados, semana en vuelo: el esqueleto sigue encima.
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+
+    resolveWeek({ kind: 'success', page: { items: [mondayMorning], nextCursor: null } })
+    await flushPromises()
+
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(false)
+    expect(wrapper.text()).toContain('8:00 a. m.')
+  })
+
+  it('asks for the week and the side panel at once and uncovers only when all of it arrived (#817)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    let resolveWeek: (value: unknown) => void = () => {}
+    fetchWorkingHoursMock.mockReturnValueOnce(new Promise((resolve) => (resolveWeek = resolve)))
+    let resolveExceptions: (value: unknown) => void = () => {}
+    fetchScheduleExceptionsMock.mockReturnValueOnce(
+      new Promise((resolve) => (resolveExceptions = resolve)),
+    )
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // Sin esperar a la semana: el lateral ya salió.
+    expect(fetchScheduleExceptionsMock).toHaveBeenCalledWith('b-1')
+    expect(fetchHolidayCalendarMock).toHaveBeenCalledWith('b-1')
+
+    resolveWeek({ kind: 'success', page: { items: [mondayMorning], nextCursor: null } })
+    await flushPromises()
+    // La semana llegó, las excepciones no: el lateral aún crecería.
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+
+    resolveExceptions({ kind: 'success', page: { items: [], nextCursor: null } })
+    await flushPromises()
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(false)
+  })
+
+  it('uncovers the week error instead of hiding it under the skeleton (#817)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchWorkingHoursMock.mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(false)
+  })
+
   it('a professional with one tramo and one with a full team select use the same component', async () => {
     const oneWrapper = await mountReady(oneProfessional, [mondayMorning])
     expect((await openProfessionalList(oneWrapper)).length).toBe(1)
