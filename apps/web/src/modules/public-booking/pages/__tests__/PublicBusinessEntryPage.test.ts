@@ -14,6 +14,14 @@ import { resetPublicProfileCache } from '../../model/publicProfile'
 import { resetPublicServicesCache } from '../../model/publicServices'
 
 const getMock = vi.hoisted(() => vi.fn())
+// La gracia del cargador mide el tiempo real: aquí la red simulada responde al
+// instante y la gracia lo trata así; las pruebas que la miden usan fake timers (#834).
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
+
 vi.mock('@/shared/api/httpClient', () => ({
   httpClient: { GET: getMock, POST: vi.fn() },
 }))
