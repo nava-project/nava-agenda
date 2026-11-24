@@ -7,13 +7,14 @@
  * separen con el tiempo.
  *
  * Decorativa: quien la usa dice la fecha o el estado en texto; la hoja va
- * `aria-hidden`.
+ * `aria-hidden`. El slot `day` sustituye el número cuando todavía no hay fecha
+ * (la silueta de la tarjeta en borrador), sin cambiar la medida de la hoja.
  */
 interface Props {
   /** Mes abreviado en mayúsculas («NOV»). */
-  month: string
+  month?: string
   /** Día del mes. */
-  day: string | number
+  day?: string | number
 }
 
 defineProps<Props>()
@@ -21,8 +22,10 @@ defineProps<Props>()
 
 <template>
   <span class="calendar-leaf" aria-hidden="true">
-    <span class="calendar-leaf__month">{{ month }}</span>
-    <span class="calendar-leaf__day">{{ day }}</span>
+    <span class="calendar-leaf__month">{{ month || '\u00a0' }}</span>
+    <span class="calendar-leaf__day"
+      ><slot name="day">{{ day }}</slot></span
+    >
   </span>
 </template>
 
