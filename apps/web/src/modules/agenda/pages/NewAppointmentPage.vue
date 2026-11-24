@@ -402,22 +402,35 @@ async function onSubmit() {
       // Alguien tomó la hora entre la lectura y el envío: se vuelve a leer ese
       // día para que la rejilla ya no la ofrezca. El resto del formulario queda.
       void startPicker.value?.refreshDay(startsAtDate.value)
-      return
+      break
     case 'validation-error':
       saveErrorDetail.value = outcome.detail
       saveStatus.value = 'validation-error'
-      return
+      break
     case 'idempotency-conflict':
       saveStatus.value = 'idempotency-conflict'
-      return
+      break
     case 'not-found':
       saveStatus.value = 'not-found'
-      return
+      break
     case 'network-error':
       saveStatus.value = 'network-error'
-      return
+      break
     case 'unexpected-error':
       saveStatus.value = 'unexpected-error'
+  }
+  // Mientras guardaba, el botón estuvo deshabilitado y Firefox suelta el foco de
+  // un control deshabilitado (queda en <body>). Si se perdió, vuelve a «Registrar
+  // turno», junto a la alerta, para seguir desde ahí con el teclado (#837 r1).
+  await nextTick()
+  // En el teléfono la alerta empuja el botón hacia el dock: se trae el bloque de
+  // la respuesta a la vista con el desplazamiento mínimo (en escritorio ya está
+  // pegado al fondo y no se mueve nada).
+  document.querySelector('.new-appointment-page__respond')?.scrollIntoView?.({ block: 'nearest' })
+  if (!document.activeElement || document.activeElement === document.body) {
+    document
+      .querySelector<HTMLButtonElement>('.new-appointment-page__submit')
+      ?.focus({ preventScroll: true })
   }
 }
 
@@ -947,37 +960,6 @@ function onProfessionalSelect(professionalId: string) {
           class="new-appointment-page__rail"
           :style="{ '--rail-sticky-top': `${railStickyTop}px` }"
         >
-          <!-- El titular de la alerta va en el cuerpo, no en el prop `title`
-               de BaseAlert: ese prop compone un <h4> y esta pantalla ya tiene
-               un <h2> por banda, así que un titular de alerta rompería el
-               orden de encabezados (axe `heading-order`). -->
-          <BaseAlert v-if="saveStatus === 'conflict'" variant="danger" role="alert">
-            <span class="new-appointment-page__alert-title">{{ saveErrorDetail }}</span>
-          </BaseAlert>
-          <BaseAlert v-else-if="saveStatus === 'validation-error'" variant="danger" role="alert">
-            <span class="new-appointment-page__alert-title">
-              {{ saveErrorDetail ?? 'Revisa los datos del turno.' }}
-            </span>
-          </BaseAlert>
-          <BaseAlert
-            v-else-if="saveStatus === 'idempotency-conflict'"
-            variant="danger"
-            role="alert"
-          >
-            Este intento ya estaba en curso o cambió mientras se procesaba. Recarga la página e
-            inténtalo de nuevo.
-          </BaseAlert>
-          <BaseAlert v-else-if="saveStatus === 'not-found'" variant="danger" role="alert">
-            {{ v.TheProfessional }} o el servicio elegidos ya no están disponibles.
-          </BaseAlert>
-          <BaseAlert
-            v-else-if="saveStatus === 'network-error' || saveStatus === 'unexpected-error'"
-            variant="danger"
-            role="alert"
-          >
-            No pudimos registrar el turno. Tus datos se conservaron; inténtalo de nuevo.
-          </BaseAlert>
-
           <!-- La tarjeta de turno compartida, en borrador (#833): se llena a la
                vista. Cada hueco reserva su alto desde el primer cuadro, así
                un dato que llega no mueve nada. Sin región viva dentro: el
@@ -1025,26 +1007,68 @@ function onProfessionalSelect(professionalId: string) {
             </div>
           </dl>
 
-          <!-- Acciones del formulario: Registrar es la acción principal y
-               Cancelar vuelve a la agenda sin guardar. -->
-          <div class="new-appointment-page__actions">
-            <BaseButton
-              type="submit"
-              variant="primary"
-              class="new-appointment-page__submit"
-              :disabled="saveStatus === 'saving'"
+          <!-- La respuesta y las acciones, juntas al pie del riel (#837 r2): desde
+               1024 px se pegan al fondo de la vista dentro del riel, así
+               «Registrar turno» se ve entero sin desplazar en cualquier alto y la
+               alerta aparece junto al botón que la provocó. La tarjeta sigue
+               entera y se alcanza desplazando; no hay una segunda barra de
+               desplazamiento ni una parada de Tab nueva. -->
+          <div class="new-appointment-page__respond">
+            <!-- La respuesta al registrar va justo encima de «Registrar turno», junto
+                 al botón que la provocó: el riel se pega por abajo (top negativo)
+                 y una alerta arriba crecería fuera de la vista (#837 r1).
+                 El titular de la alerta va en el cuerpo, no en el prop `title`
+                 de BaseAlert: ese prop compone un <h4> y esta pantalla ya tiene
+                 un <h2> por banda, así que un titular de alerta rompería el
+                 orden de encabezados (axe `heading-order`). -->
+            <BaseAlert v-if="saveStatus === 'conflict'" variant="danger" role="alert">
+              <span class="new-appointment-page__alert-title">{{ saveErrorDetail }}</span>
+            </BaseAlert>
+            <BaseAlert v-else-if="saveStatus === 'validation-error'" variant="danger" role="alert">
+              <span class="new-appointment-page__alert-title">
+                {{ saveErrorDetail ?? 'Revisa los datos del turno.' }}
+              </span>
+            </BaseAlert>
+            <BaseAlert
+              v-else-if="saveStatus === 'idempotency-conflict'"
+              variant="danger"
+              role="alert"
             >
-              {{ saveStatus === 'saving' ? 'Guardando…' : 'Registrar turno' }}
-            </BaseButton>
-            <BaseButton
-              type="button"
-              variant="ghost"
-              class="new-appointment-page__cancel"
-              :disabled="saveStatus === 'saving'"
-              @click="onCancel"
+              Este intento ya estaba en curso o cambió mientras se procesaba. Recarga la página e
+              inténtalo de nuevo.
+            </BaseAlert>
+            <BaseAlert v-else-if="saveStatus === 'not-found'" variant="danger" role="alert">
+              {{ v.TheProfessional }} o el servicio elegidos ya no están disponibles.
+            </BaseAlert>
+            <BaseAlert
+              v-else-if="saveStatus === 'network-error' || saveStatus === 'unexpected-error'"
+              variant="danger"
+              role="alert"
             >
-              Cancelar
-            </BaseButton>
+              No pudimos registrar el turno. Tus datos se conservaron; inténtalo de nuevo.
+            </BaseAlert>
+
+            <!-- Acciones del formulario: Registrar es la acción principal y
+                 Cancelar vuelve a la agenda sin guardar. -->
+            <div class="new-appointment-page__actions">
+              <BaseButton
+                type="submit"
+                variant="primary"
+                class="new-appointment-page__submit"
+                :disabled="saveStatus === 'saving'"
+              >
+                {{ saveStatus === 'saving' ? 'Guardando…' : 'Registrar turno' }}
+              </BaseButton>
+              <BaseButton
+                type="button"
+                variant="ghost"
+                class="new-appointment-page__cancel"
+                :disabled="saveStatus === 'saving'"
+                @click="onCancel"
+              >
+                Cancelar
+              </BaseButton>
+            </div>
           </div>
         </aside>
       </form>
@@ -1119,6 +1143,13 @@ function onProfessionalSelect(professionalId: string) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* La alerta de la respuesta y las acciones, juntas (#837 r2). */
+.new-appointment-page__respond {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* ------------------------------------------- tarjeta del borrador (#833) */
@@ -2007,6 +2038,19 @@ function onProfessionalSelect(professionalId: string) {
   .new-appointment-page__rail {
     position: sticky;
     top: var(--rail-sticky-top, 16px);
+  }
+
+  /* Pegadas al fondo de la vista mientras el riel no cabe (#837 r2): al cargar
+     a 1024×768 o 1440×800 el botón queda entero sin desplazar. Tapan por
+     encima el final de la tarjeta, que aparece al bajar; el fundido de 14 px
+     sobre el mismo lienzo evita un corte seco. */
+  .new-appointment-page__respond {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: -14px;
+    padding: 14px 0 12px;
+    background: linear-gradient(to bottom, transparent, var(--color-surface-strong) 14px);
   }
 
   .new-appointment-page__sheet {

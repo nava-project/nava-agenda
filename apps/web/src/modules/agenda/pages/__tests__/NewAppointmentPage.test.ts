@@ -67,17 +67,20 @@ const twoServices = [
   { id: 's-2', name: 'Barba', durationMinutes: 20, price: '15000.00', currency: 'COP' },
 ]
 
-function mountPage() {
-  return mount(NewAppointmentPage)
+function mountPage(options: { attachTo?: HTMLElement } = {}) {
+  return mount(NewAppointmentPage, options)
 }
 
-async function mountReady(professionals = oneProfessional) {
+async function mountReady(
+  professionals = oneProfessional,
+  options: { attachTo?: HTMLElement } = {},
+) {
   fetchProfessionalSummariesMock.mockResolvedValueOnce({ kind: 'success', items: professionals })
   fetchBusinessTimezoneMock.mockResolvedValueOnce({
     kind: 'success',
     timezone: 'America/Bogota',
   })
-  const wrapper = mountPage()
+  const wrapper = mountPage(options)
   await flushPromises()
   return wrapper
 }
@@ -248,6 +251,43 @@ describe('NewAppointmentPage', () => {
     await wrapper.get('form').trigger('submit.prevent')
     await flushPromises()
     expect(wrapper.text()).toContain('el profesional tiene un bloqueo vigente en ese intervalo')
+  })
+
+  it.each([
+    ['conflicto', { kind: 'conflict', detail: 'ocupado' }],
+    ['red', { kind: 'network-error' }],
+    ['validación', { kind: 'validation-error', detail: 'revisa' }],
+  ])(
+    'pone la alerta de «%s» justo encima de «Registrar turno», junto al botón (#837 r1)',
+    async (_name, outcome) => {
+      const wrapper = await mountReady()
+      await fillValidForm(wrapper)
+      createManualAppointmentMock.mockResolvedValueOnce(outcome)
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+      const respond = wrapper.get('.new-appointment-page__respond')
+      const children = Array.from(respond.element.children)
+      expect(children[0]!.getAttribute('role')).toBe('alert')
+      expect(children.at(-1)!.classList).toContain('new-appointment-page__actions')
+      // Fuera del bloque, nada más del riel lleva una alerta.
+      const rail = wrapper.get('.new-appointment-page__rail').element
+      expect(
+        Array.from(rail.querySelectorAll('[role="alert"]')).every((a) =>
+          respond.element.contains(a),
+        ),
+      ).toBe(true)
+    },
+  )
+
+  it('devuelve el foco a «Registrar turno» si se perdió mientras guardaba (#837 r1)', async () => {
+    const wrapper = await mountReady(oneProfessional, { attachTo: document.body })
+    await fillValidForm(wrapper)
+    createManualAppointmentMock.mockResolvedValueOnce({ kind: 'network-error' })
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(document.activeElement).toBe(wrapper.get('.new-appointment-page__submit').element)
+    wrapper.unmount()
   })
 
   it('shows a recoverable message on a network error and keeps the form data', async () => {
