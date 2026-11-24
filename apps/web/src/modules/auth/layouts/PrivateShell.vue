@@ -113,6 +113,12 @@ function onRetry() {
   order: 2;
 }
 
+/* overflow-x: clip: la salida de un aviso (desliza 28 px a la derecha) cruza
+   el borde de la pantalla en el teléfono. Sin recorte, el documento desbordaba
+   de lado: aparecían las barras y la página entera se corría 10 px un instante
+   (F7, #830). Clip, y no hidden, no crea un contenedor de desplazamiento ni toca
+   el eje vertical; aquí solo están el contenido, que ya se desplaza solo, y los
+   avisos. */
 .private-shell__viewport {
   position: relative;
   z-index: 1;
@@ -121,6 +127,7 @@ function onRetry() {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  overflow-x: clip;
 }
 
 .private-shell__content {
