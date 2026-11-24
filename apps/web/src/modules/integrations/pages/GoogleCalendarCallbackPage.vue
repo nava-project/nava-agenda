@@ -147,13 +147,11 @@ onMounted(() => {
   color: var(--color-text-primary);
 }
 
+/* Recibe el foco al llegar para el lector de pantalla (tabindex -1): es un
+   destino de lectura, no un control, así que no dibuja anillo, como los
+   titulares de la reserva y de «Mi turno». El siguiente Tab sigue desde ahí. */
 .gcal-return__title:focus {
   outline: none;
-}
-
-.gcal-return__title:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 4px;
 }
 
 .gcal-return__state {
