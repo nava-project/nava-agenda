@@ -83,6 +83,44 @@ describe('PrivateShell', () => {
     expect(order).toEqual(['header', 'nav', 'main'])
   })
 
+  it('brings a keyboard-focused control fully into view inside the content (#804)', async () => {
+    mockState.bootstrap = {
+      status: 'authenticated',
+      businessId: 'shop-1',
+      businessName: 'Barbería El Corte',
+      expiresAt: new Date().toISOString(),
+    }
+    const wrapper = await mountShell()
+    const content = wrapper.find('main.private-shell__content').element as HTMLElement
+    // El contenido se desplaza (86–635) y el control asoma a medias sobre el dock.
+    content.style.overflowY = 'auto'
+    Object.defineProperty(content, 'clientHeight', { value: 549 })
+    Object.defineProperty(content, 'scrollHeight', { value: 1200 })
+    const box = (top: number, height: number) =>
+      ({
+        top,
+        bottom: top + height,
+        height,
+        left: 0,
+        right: 320,
+        width: 320,
+        x: 0,
+        y: top,
+        toJSON: () => ({}),
+      }) as DOMRect
+    vi.spyOn(content, 'getBoundingClientRect').mockReturnValue(box(86, 549))
+    const control = document.createElement('button')
+    content.append(control)
+    vi.spyOn(control, 'getBoundingClientRect').mockReturnValue(box(617, 36))
+    vi.spyOn(control, 'matches').mockImplementation((selector) => selector === ':focus-visible')
+    control.scrollIntoView = vi.fn()
+
+    control.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+
+    expect(control.scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' })
+    wrapper.unmount()
+  })
+
   it('shows a recoverable connection-lost state with Reintentar (CA-012-05)', async () => {
     mockState.bootstrap = { status: 'connection-lost' }
     const wrapper = await mountShell()
