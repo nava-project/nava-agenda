@@ -86,6 +86,14 @@ const onSubmit = async () => {
 
   emit('submit')
 }
+
+// Para que quien descarta el aviso de sesión vencida no pierda su posición
+// (el foco caería en `body`): la página lo devuelve al primer campo (#810).
+function focusEmail() {
+  formRef.value?.querySelector<HTMLInputElement>('input[name="email"]')?.focus()
+}
+
+defineExpose({ focusEmail })
 </script>
 
 <template>

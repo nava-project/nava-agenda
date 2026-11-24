@@ -6,6 +6,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { httpClient } from '@/shared/api/httpClient'
 import { resetForFreshLogin } from './sessionStore'
+import { clearSessionMarker } from './sessionMarker'
 
 export function useLogout() {
   const router = useRouter()
@@ -31,6 +32,9 @@ export function useLogout() {
       // consultar el servidor en vez de reutilizar este resultado (mismo
       // mecanismo que tras un login exitoso).
       resetForFreshLogin()
+      // Cerrar sesión a propósito no es una sesión vencida: el próximo
+      // acceso, también en otras pestañas, es el normal (#810).
+      clearSessionMarker()
       loggingOut.value = false
       await router.push({ name: 'acceso' })
     }

@@ -13,12 +13,14 @@
  * filete lateral del color de estado, sin fondo teñido, sin palabra de estado.
  * Con acción opcional (botón/link), dismissible.
  * Accesibilidad: role="alert" (assertive) o role="status" (polite),
- * aria-live, focus-visible en acción, focus trap si dismissible. La
+ * aria-live y focus-visible en acción. Dismissible: «Descartar» y Escape con el
+ * foco dentro. Nunca atrapa ni roba el foco: es una nota en la página, no un
+ * diálogo modal (WCAG 2.1.2, #810). La
  * palabra de estado en tipo oración (Error/Atención/Nota/Confirmación) es
  * la que cumple "icono, texto y estructura además del color" (WCAG 2.2 AA
  * 1.4.1): ya no hay un glifo circular genérico.
  */
-import { computed, ref, onMounted, onUnmounted, useSlots } from 'vue'
+import { computed, ref, useSlots } from 'vue'
 
 interface Props {
   /** Variante semántica de la alerta */
@@ -44,7 +46,6 @@ const emit = defineEmits<{
 
 const isVisible = ref(true)
 const alertRef = ref<HTMLDivElement | null>(null)
-const focusableElementsRef = ref<HTMLElement[]>([])
 
 const classes = computed(() => {
   const base = 'base-alert'
@@ -93,53 +94,13 @@ const handleActionClick = (event: MouseEvent) => {
   emit('action', event)
 }
 
+// Escape descarta la alerta solo con el foco dentro de ella (el `@keydown`
+// del recuadro). Antes también se escuchaba en `document`, atrapaba Tab en
+// «Descartar» y le daba el foco al montarse. En el acceso eso dejaba el
+// formulario inalcanzable con el teclado mientras se mostraba «Tu sesión
+// venció» (#810).
 const handleKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape' && props.dismissible) {
-    handleDismiss()
-    return
-  }
-  // Tab trap para alert dismissible. Se recalculan los elementos
-  // enfocables en cada Tab, no solo al montar: un slot de acción puede
-  // cambiar su contenido después del montaje inicial.
-  if (event.key === 'Tab' && props.dismissible) {
-    updateFocusableElements()
-    if (!focusableElementsRef.value.length) return
-    const first = focusableElementsRef.value[0]
-    const last = focusableElementsRef.value[focusableElementsRef.value.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
-  }
-}
-
-onMounted(() => {
-  if (props.dismissible && alertRef.value) {
-    updateFocusableElements()
-    // Focus en el botón de cerrar si no hay otra acción
-    if (!hasActionSlot.value) {
-      const dismissBtn = alertRef.value.querySelector('.base-alert__dismiss') as HTMLElement
-      dismissBtn?.focus()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-  }
-})
-
-onUnmounted(() => {
-  if (props.dismissible) {
-    document.removeEventListener('keydown', handleKeyDown)
-  }
-})
-
-const updateFocusableElements = () => {
-  if (!alertRef.value) return
-  const elements = alertRef.value.querySelectorAll<HTMLElement>(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-  )
-  focusableElementsRef.value = Array.from(elements).filter((el) => !el.hasAttribute('disabled'))
+  if (event.key === 'Escape' && props.dismissible) handleDismiss()
 }
 
 const slots = useSlots()

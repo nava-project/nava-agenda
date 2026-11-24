@@ -6,6 +6,8 @@
 import type { Router } from 'vue-router'
 import { httpClient } from '@/shared/api/httpClient'
 import { onUnauthorized, reportUnauthorized } from '../model/sessionStore'
+import { isSafeInternalRedirect } from '../model/redirectTarget'
+import { hadSessionHere } from '../model/sessionMarker'
 
 // El bootstrap de sesión (GET /private/auth/session) ya interpreta su
 // propio 401 en sessionStore.ensureBootstrapped; excluirlo aquí evita una
@@ -26,7 +28,16 @@ export function installSessionHandling(router: Router): void {
   })
 
   onUnauthorized(() => {
-    if (router.currentRoute.value.name === 'acceso') return
-    void router.push({ name: 'acceso', query: { motivo: 'sesion-expirada' } })
+    const current = router.currentRoute.value
+    if (current.name === 'acceso') return
+    // Conserva la ruta en uso para volver a ella al entrar (#810). El aviso
+    // de sesión vencida sale solo si la marca sigue: «Cerrar sesión» en otra
+    // pestaña la quita y entonces este 401 lleva al acceso normal.
+    const redirect = isSafeInternalRedirect(current.fullPath) ? current.fullPath : undefined
+    const motivo = hadSessionHere() ? 'sesion-expirada' : undefined
+    void router.push({
+      name: 'acceso',
+      query: { ...(motivo && { motivo }), ...(redirect && { redirect }) },
+    })
   })
 }
