@@ -27,6 +27,8 @@ import {
   DiamondLoader,
   EmptyScene,
   PageState,
+  DayRuler,
+  type DayRulerMark,
 } from '@/shared/ui'
 import {
   formatCivilDateFull,
@@ -384,6 +386,33 @@ function entryTimeRange(entry: DailyAgendaEntry): string {
   }
   return `${start} – ${end}`
 }
+
+// Margen de la libreta (G3, #802): el inicio en grande, con su
+// periodo en pequeño si no lo comparte con el fin, y el fin debajo. El texto
+// concatenado es el mismo de `entryTimeRange`, así el nombre accesible del
+// enlace no cambia.
+function entryTimeParts(entry: DailyAgendaEntry): {
+  start: string
+  startPeriod: string
+  end: string
+  endPeriod: string
+} {
+  const [startText = '', endText = ''] = entryTimeRange(entry).split(' – ')
+  const split = (text: string) => {
+    const match = /^([\d:]+)\s*(.*)$/.exec(text)
+    return [match?.[1] ?? text, match?.[2] ?? ''] as const
+  }
+  const [start, startPeriod] = split(startText)
+  const [end, endPeriod] = split(endText)
+  return { start, startPeriod, end, endPeriod }
+}
+
+// Una vez por turno, no tres veces por fila en cada render. Los espacios van
+// dentro de las interpolaciones: Vue condensa los de la plantilla y el nombre
+// accesible del enlace quedaría «9:30a. m.».
+const listTimes = computed(
+  () => new Map(entries.value.map((entry) => [entry.id, entryTimeParts(entry)])),
+)
 
 function entryTime(entry: DailyAgendaEntry): string {
   return formatAgendaTime(entry.startsAt)
@@ -823,7 +852,9 @@ function entryTone(entry: DailyAgendaEntry): DaylightMark['tone'] {
   return 'confirmed'
 }
 
-// Franja del día en el teléfono (revisión del 4a): el mismo DaylightStrip de la
+// Franja del día en el teléfono (revisión del 4a; se queda en G3, #802: a 320
+// la regla compacta funde los rombos de turnos a 30 min y perdería el toque que
+// lleva a la ficha y la duración de cada turno): el mismo DaylightStrip de la
 // reserva y de «Cambiar la hora», con los turnos como marcas y «Ahora» como el
 // sol. Así el dueño ve el día como lo vio su cliente al reservar. Es decorativa:
 // la lista de abajo dice lo mismo en texto y es la que se recorre con teclado.
@@ -851,6 +882,51 @@ const stripWindow = computed(() => {
   return {
     start: Math.max(0, Math.min(...points) - 30),
     end: Math.min(24 * 60, Math.max(...points) + 30),
+  }
+})
+
+// La regla del día sobre el carril (G3, #802; DEC-189, «la libreta»): la vista
+// general de la jornada encima del carril detallado, que no cambia (00–24,
+// 180 px/h y zoom, pedidos de la propietaria). Su ventana son los turnos ±30 min
+// en horas enteras; «ahora» no la ensancha, solo se dibuja si cae dentro. Es una
+// imagen con su lectura: la lista sigue siendo la fuente accesible.
+const rulerKind: Record<DaylightMark['tone'], DayRulerMark['kind']> = {
+  confirmed: 'confirmed',
+  completed: 'confirmed',
+  current: 'mine',
+  pending: 'to-record',
+  'no-show': 'no-show',
+  cancelled: 'cancelled',
+}
+
+const dayRuler = computed(() => {
+  const marks = stripMarks.value
+  if (marks.length === 0) return null
+  const first = Math.min(...marks.map((m) => m.start))
+  const last = Math.max(...marks.map((m) => m.end))
+  const from = Math.max(0, Math.floor((first - 30) / 60) * 60)
+  const to = Math.min(24 * 60, Math.ceil((last + 30) / 60) * 60)
+  // La lectura cuenta los turnos que siguen en pie y nombra aparte los
+  // cancelados, que también tienen su rombo. Va del primer inicio al fin más
+  // tardío: un turno largo puede terminar después de que empiece el último.
+  const items = entries.value
+  const cancelled = items.filter(isEntryCancelled).length
+  const active = items.length - cancelled
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  const count = [
+    active > 0 || cancelled === 0 ? plural(active, 'turno', 'turnos') : '',
+    cancelled > 0 ? plural(cancelled, 'cancelado', 'cancelados') : '',
+  ]
+    .filter(Boolean)
+    .join(' y ')
+  const firstStart = formatAgendaTime(items[0]!.startsAt)
+  const latestEnd = items.reduce((a, b) => (Date.parse(b.endsAt) > Date.parse(a.endsAt) ? b : a))
+  const lastEnd = formatAgendaTime(latestEnd.endsAt)
+  return {
+    from,
+    to,
+    marks: marks.map((m) => ({ at: m.start, kind: rulerKind[m.tone] })),
+    label: `Regla del día: ${count}, de ${firstStart} a ${lastEnd}`,
   }
 })
 
@@ -1117,26 +1193,43 @@ const dayChangeMarkerPercent = computed(() => {
                    que una ficha corta deje de ir en modo compacto. -->
               <!-- Sin turnos no hay fichas que acercar (pedido del propietario,
                    2026-11-15): el zoom se oculta y el carril cabe en el ancho. -->
-              <div v-if="entries.length > 0" class="daily-agenda-page__timeline-zoom">
-                <button
-                  type="button"
-                  class="daily-agenda-page__timeline-zoom-btn"
-                  :disabled="!canZoomOutTimeline"
-                  aria-label="Alejar el calendario"
-                  @click="zoomTimelineOut"
-                >
-                  −
-                </button>
-                <span class="daily-agenda-page__timeline-zoom-label">{{ timelineZoomLabel }}</span>
-                <button
-                  type="button"
-                  class="daily-agenda-page__timeline-zoom-btn"
-                  :disabled="!canZoomInTimeline"
-                  aria-label="Acercar el calendario"
-                  @click="zoomTimelineIn"
-                >
-                  +
-                </button>
+              <div v-if="entries.length > 0" class="daily-agenda-page__timeline-head">
+                <!-- La regla del día ocupa la fila del zoom, que antes quedaba
+                     vacía a la izquierda: la vista general no le quita alto a
+                     la lista (G3, #802). -->
+                <DayRuler
+                  v-if="dayRuler"
+                  class="daily-agenda-page__ruler"
+                  size="compact"
+                  :from="dayRuler.from"
+                  :to="dayRuler.to"
+                  :marks="dayRuler.marks"
+                  :now="stripNowMinute"
+                  :label="dayRuler.label"
+                />
+                <div class="daily-agenda-page__timeline-zoom">
+                  <button
+                    type="button"
+                    class="daily-agenda-page__timeline-zoom-btn"
+                    :disabled="!canZoomOutTimeline"
+                    aria-label="Alejar el calendario"
+                    @click="zoomTimelineOut"
+                  >
+                    −
+                  </button>
+                  <span class="daily-agenda-page__timeline-zoom-label">{{
+                    timelineZoomLabel
+                  }}</span>
+                  <button
+                    type="button"
+                    class="daily-agenda-page__timeline-zoom-btn"
+                    :disabled="!canZoomInTimeline"
+                    aria-label="Acercar el calendario"
+                    @click="zoomTimelineIn"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div
@@ -1342,7 +1435,22 @@ const dayChangeMarkerPercent = computed(() => {
                       query: withQuery({}),
                     }"
                   >
-                    <span class="daily-agenda-page__item-time">{{ entryTimeRange(entry) }}</span>
+                    <span class="daily-agenda-page__item-time"
+                      ><span class="daily-agenda-page__item-start"
+                        >{{ listTimes.get(entry.id)?.start
+                        }}<small v-if="listTimes.get(entry.id)?.startPeriod">{{
+                          ` ${listTimes.get(entry.id)?.startPeriod}`
+                        }}</small></span
+                      ><span class="daily-agenda-page__item-end"
+                        ><span class="daily-agenda-page__item-until">{{
+                          ` – ${listTimes.get(entry.id)?.end}`
+                        }}</span
+                        >{{ ' '
+                        }}<span class="daily-agenda-page__item-period">{{
+                          listTimes.get(entry.id)?.endPeriod
+                        }}</span></span
+                      ></span
+                    >
                     <span class="daily-agenda-page__item-details">
                       <span class="daily-agenda-page__item-name">{{ entry.attendeeName }}</span>
                       <span class="daily-agenda-page__item-service"
@@ -1712,6 +1820,15 @@ const dayChangeMarkerPercent = computed(() => {
   }
 }
 
+/* Escritorio: el cascarón ya reserva el alto del dock (72 px) para que nada
+   quede debajo; el relleno inferior del panel sumaba otros 31 px de vacío bajo
+   el último turno (G3, #802). La reserva se queda; el hueco, no. */
+@media (min-width: 1024px) {
+  .daily-agenda-page {
+    padding-bottom: 0;
+  }
+}
+
 /* Pantallas muy bajas: el carril repite lo que dice la lista, así que cede su
    alto antes de obligar al panel a desplazarse. */
 @media (max-height: 640px) {
@@ -1724,6 +1841,11 @@ const dayChangeMarkerPercent = computed(() => {
    izquierda. «Confirmada» es la franja llena con filete. */
 .daily-agenda-page__item {
   --ag-color: var(--ag-confirmed);
+  /* La libreta (G3, #802): un margen fijo para la hora y la regla de latón que
+     lo separa del renglón, como el margen de un cuaderno. */
+  --ag-margin: 128px;
+  --ag-margin-gap: var(--space-5);
+  --ag-pad-left: var(--space-4);
 
   position: relative;
   display: flex;
@@ -1731,7 +1853,7 @@ const dayChangeMarkerPercent = computed(() => {
   justify-content: space-between;
   gap: var(--space-5);
   min-height: 64px;
-  padding: var(--space-3) var(--space-5) var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5) var(--space-3) var(--ag-pad-left);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-left: 4px solid var(--ag-color);
@@ -1739,6 +1861,18 @@ const dayChangeMarkerPercent = computed(() => {
   transition:
     background-color var(--motion-duration-base) var(--motion-easing-standard),
     border-color var(--motion-duration-base) var(--motion-easing-standard);
+}
+
+/* La regla del margen corre de borde a borde del renglón. Decorativa. */
+.daily-agenda-page__item::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--ag-pad-left) + var(--ag-margin) + var(--ag-margin-gap) / 2);
+  width: 1px;
+  pointer-events: none;
+  content: '';
+  background-color: color-mix(in srgb, var(--color-brass-line) 72%, transparent);
 }
 
 @media (hover: hover) {
@@ -1799,7 +1933,7 @@ const dayChangeMarkerPercent = computed(() => {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: var(--space-5);
+  gap: var(--ag-margin-gap);
   min-width: 0;
   min-height: 0;
   color: inherit;
@@ -1815,12 +1949,52 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 .daily-agenda-page__item-time {
-  flex: 0 0 196px;
-  font-size: 16px;
-  font-weight: 500;
+  display: flex;
+  flex: 0 0 var(--ag-margin);
+  flex-direction: column;
   font-variant-numeric: tabular-nums;
-  line-height: 24px;
   color: var(--color-text-primary);
+}
+
+/* La hora del margen, grande y en la sans tabular: es el dato que más importa
+   leer bien. En la serif (que no trae un 1 alternativo) «11:00» se leía
+   «ll:00» aun a 26 px; la sans distingue el 1 y alinea las cifras de renglón a
+   renglón. Su periodo, si no lo comparte con el fin, va en pequeño. */
+.daily-agenda-page__item-start {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  /* 26 + 18 = 44 px, lo mismo que nombre y servicio: el renglón mide lo que
+     medía antes de la libreta y el día corto sigue cabiendo a 1440×900. */
+  line-height: 26px;
+  letter-spacing: -0.01em;
+}
+
+.daily-agenda-page__item-start small,
+.daily-agenda-page__item-end {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.daily-agenda-page__item-start small {
+  white-space: nowrap;
+}
+
+.daily-agenda-page__item-end {
+  white-space: nowrap;
+}
+
+/* En el margen estrecho del teléfono el periodo baja entero, nunca «p.» y «m.»
+   en líneas distintas, y el guion no se queda solo: tras «–» se puede cortar
+   aunque siga un espacio duro (UAX #14), así que «– 10:45» va en un tramo. El
+   espacio entre los dos tramos queda fuera de ambos: es el único corte. */
+.daily-agenda-page__item-until,
+.daily-agenda-page__item-period {
+  white-space: nowrap;
 }
 
 .daily-agenda-page__item-details {
@@ -1970,7 +2144,12 @@ const dayChangeMarkerPercent = computed(() => {
     padding-inline: var(--space-2);
   }
 
+  /* En el teléfono el margen se estrecha y el estado baja al renglón, bajo el
+     nombre: la regla del margen sigue de borde a borde. */
   .daily-agenda-page__item {
+    --ag-margin: 60px;
+    --ag-margin-gap: var(--space-3);
+
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
@@ -1978,15 +2157,28 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   .daily-agenda-page__item-main {
-    flex-direction: column;
     align-items: flex-start;
-    gap: 0;
+    width: 100%;
   }
 
-  .daily-agenda-page__item-time {
-    flex-basis: auto;
-    font-size: 14px;
-    line-height: 20px;
+  .daily-agenda-page__item-start {
+    font-size: 20px;
+    line-height: 24px;
+  }
+
+  /* «11:30 a. m.» no cabe en el margen: el periodo baja bajo las cifras. */
+  .daily-agenda-page__item-start small {
+    display: block;
+    margin-left: 0;
+  }
+
+  .daily-agenda-page__item-end {
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  .daily-agenda-page__item :deep(.base-badge) {
+    margin-left: calc(var(--ag-margin) + var(--ag-margin-gap));
   }
 }
 
@@ -2029,12 +2221,35 @@ const dayChangeMarkerPercent = computed(() => {
     display: block;
   }
 
+  /* La regla del día y el zoom comparten fila: la regla ocupa el ancho que el
+     zoom dejaba vacío y el zoom queda al pie, junto al carril (G3, #802). */
+  .daily-agenda-page__timeline-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: var(--space-6);
+    /* Aire entre los rombos de la regla y las horas del carril: son dos escalas
+       distintas (la jornada y el tramo ampliado) y no deben leerse como una. */
+    margin-bottom: var(--space-3);
+  }
+
+  .daily-agenda-page__ruler {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Los numerales de la regla asoman unos px sobre su caja, hacia el hueco que
+     ya hay bajo los controles: así la fila no le quita a la lista el alto de un
+     renglón y el día corto (4 turnos) cabe entero sobre el dock a 1440×900. */
+  .daily-agenda-page__timeline-head .daily-agenda-page__ruler {
+    padding-top: 17px;
+  }
+
   .daily-agenda-page__timeline-zoom {
     display: flex;
+    flex: none;
     align-items: center;
-    justify-content: flex-end;
     gap: var(--space-2);
-    margin-bottom: var(--space-2);
   }
 
   .daily-agenda-page__timeline-zoom-btn {
