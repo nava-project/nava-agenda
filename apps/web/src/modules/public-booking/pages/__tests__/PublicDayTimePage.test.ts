@@ -11,6 +11,14 @@ import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 
 const replaceMock = vi.hoisted(() => vi.fn())
+// La gracia del cargador mide el tiempo real: aquí la red simulada responde al
+// instante y la gracia lo trata así; las pruebas que la miden usan fake timers (#834).
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
+
 vi.mock('vue-router', async (original) => ({
   ...(await original<typeof import('vue-router')>()),
   useRouter: () => ({ replace: replaceMock }),
@@ -148,10 +156,20 @@ describe('PublicDayTimePage', () => {
   })
 
   it('shows the hours at once when they arrive before the loader appears (#820)', async () => {
-    respond()
-    const wrapper = mountPage()
-    await flushPromises()
-    expect(wrapper.get('h1').text()).toBe('Elige día y hora')
+    vi.useFakeTimers()
+    try {
+      respond()
+      const late = availabilityMock.getMockImplementation()
+      // Las horas llegan a los 200 ms, antes de que el cargador aparezca.
+      availabilityMock.mockImplementation(
+        (...args: unknown[]) => new Promise((ok) => setTimeout(() => ok(late?.(...args)), 200)),
+      )
+      const wrapper = mountPage()
+      await vi.advanceTimersByTimeAsync(200)
+      expect(wrapper.get('h1').text()).toBe('Elige día y hora')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('reads availability once for every professional and offers «Cualquiera» by default', async () => {
