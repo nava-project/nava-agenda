@@ -121,6 +121,34 @@ describe('PublicDayTimePage', () => {
     expect(wrapper.get('h1').text()).toBe('Cargando las horas libres…')
   })
 
+  it('keeps «Cargando las horas libres…» in view once it could be seen, instead of flashing it (#820)', async () => {
+    vi.useFakeTimers()
+    try {
+      respond()
+      const late = availabilityMock.getMockImplementation()
+      // Las horas llegan a los 350 ms, justo después de que el cargador aparece.
+      availabilityMock.mockImplementation(
+        (...args: unknown[]) => new Promise((ok) => setTimeout(() => ok(late?.(...args)), 350)),
+      )
+      const wrapper = mountPage()
+      await vi.advanceTimersByTimeAsync(350)
+      expect(wrapper.get('main').attributes('aria-busy')).toBe('true')
+      await vi.advanceTimersByTimeAsync(240)
+      expect(wrapper.get('main').attributes('aria-busy')).toBe('true')
+      await vi.advanceTimersByTimeAsync(20)
+      expect(wrapper.get('h1').text()).toBe('Elige día y hora')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('shows the hours at once when they arrive before the loader appears (#820)', async () => {
+    respond()
+    const wrapper = mountPage()
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('Elige día y hora')
+  })
+
   it('reads availability once for every professional and offers «Cualquiera» by default', async () => {
     respond()
     const wrapper = mountPage()

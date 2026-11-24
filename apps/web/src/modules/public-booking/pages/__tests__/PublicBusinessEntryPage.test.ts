@@ -125,6 +125,51 @@ describe('PublicBusinessEntryPage', () => {
     expect(await axe(wrapper.element)).toHaveNoViolations()
   })
 
+  it('coming back, draws what it already read at once and re-reads the profile behind it (#820)', async () => {
+    respond(profile)
+    mountEntryPage().unmount()
+    await flushPromises()
+    getMock.mockClear()
+
+    // La relectura no llega todavía: no vuelve el esqueleto.
+    let release!: () => void
+    getMock.mockImplementation(
+      (path: string) =>
+        new Promise((ok_) => {
+          release = () =>
+            ok_(
+              path === '/public/businesses/{slug}'
+                ? {
+                    data: { ...profile, name: 'Barbería Ejemplo Centro' },
+                    error: undefined,
+                    response: ok,
+                  }
+                : { data: { items: services }, error: undefined, response: ok },
+            )
+        }),
+    )
+    const wrapper = mountEntryPage()
+    await flushPromises()
+    expect(wrapper.get('main').attributes('aria-busy')).toBeUndefined()
+    expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo')
+    expect(getMock).toHaveBeenCalledWith('/public/businesses/{slug}', expect.anything())
+
+    release()
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo Centro')
+  })
+
+  it('keeps what it shows when the re-read behind it has no network (#820)', async () => {
+    respond(profile)
+    mountEntryPage().unmount()
+    await flushPromises()
+    getMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const wrapper = mountEntryPage()
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('Barbería Ejemplo')
+    expect(wrapper.text()).toContain('Corte clásico')
+  })
+
   it('asks for the profile and the catalog of the slug from props (CA-090-03)', async () => {
     respond(profile)
     mountEntryPage('barberia-ejemplo')

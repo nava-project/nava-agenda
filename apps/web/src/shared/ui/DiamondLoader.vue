@@ -7,8 +7,12 @@
  * que se espera a la vista («Cargando la agenda de …»). Es el mismo dibujo en
  * todas las esperas de la app, del mismo tamaño y en el mismo lugar.
  *
- * - Aparece tras 300 ms: una carga rápida no destella un cargador.
- * - Con movimiento reducido (sistema o preferencia del panel), queda quieto.
+ * - Aparece tras 300 ms: una carga rápida no destella un cargador. Quien lo
+ *   retira usa `useLoaderGrace`: si alcanzó a verse, se queda a la vista.
+ * - Con movimiento reducido (sistema o preferencia del panel), queda quieto y
+ *   aparece de golpe, pero también a los 300 ms (#820): base.css deja la
+ *   animación en 0,01 ms y conserva su retardo. Antes se quitaba la animación
+ *   entera y el cargador destellaba en cada respuesta rápida.
  * - Quien lo usa suele envolverlo en su región viva (role="status"); si no la
  *   hay, `announce` le da la suya. Nunca las dos: se anunciaría dos veces.
  */
@@ -119,15 +123,5 @@ withDefaults(defineProps<Props>(), { layout: 'stacked', announce: false })
   from {
     opacity: 0;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .diamond-loader {
-    animation: none;
-  }
-}
-
-:root[data-motion='reduced'] .diamond-loader {
-  animation: none;
 }
 </style>

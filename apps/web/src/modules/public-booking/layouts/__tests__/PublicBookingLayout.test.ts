@@ -4,10 +4,14 @@
  * (Servicio, Día y hora, Tus datos), ofrece el retorno al paso anterior con
  * sus parámetros, se completa cuando la página de datos confirma el turno y
  * firma al pie como «Reservas con NAVA», con enlace a su banda en nava.wtf.
+ * Al cambiar de paso, la pantalla que sale se va en el mismo cuadro en que
+ * entra la nueva y el foco pasa al título nuevo (#820).
  * Las pantallas se sustituyen por un doble: aquí no se prueba su contenido.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, ref } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type RouteRecordRaw } from 'vue-router'
 import { axe } from 'vitest-axe'
@@ -219,5 +223,126 @@ describe('PublicBookingLayout', () => {
     expect(wrapper.findAll('main')).toHaveLength(1)
     expect(await axe(wrapper.element)).toHaveNoViolations()
     wrapper.unmount()
+  })
+})
+
+// #820 (F3): el cambio de paso no deja la reserva en blanco y el foco no cae
+// en <body>. Pantallas con título; «Día y hora» carga hasta que se le diga.
+const dayReady = ref(false)
+const EntryScreen = defineComponent({
+  setup: () => () => h('main', [h('h1', 'Servicios'), h('a', { href: '#x' }, 'Corte')]),
+})
+const DayScreen = defineComponent({
+  setup: () => () =>
+    dayReady.value
+      ? h('main', [h('h1', 'Elige día y hora')])
+      : h('main', { 'aria-busy': 'true' }, [h('h1', 'Cargando las horas libres…')]),
+})
+
+function stepRoutes(): RouteRecordRaw[] {
+  return publicBookingRoutes.map((route) => ({
+    ...route,
+    component: PublicBookingLayout,
+    children: route.children?.map((child) =>
+      child.redirect
+        ? child
+        : {
+            ...child,
+            component: child.name === 'reserva-publica-horario' ? DayScreen : EntryScreen,
+            props: false,
+          },
+    ) as RouteRecordRaw[],
+  })) as RouteRecordRaw[]
+}
+
+async function mountSteps() {
+  const router = createRouter({ history: createMemoryHistory(), routes: stepRoutes() })
+  await router.push('/reservar/b')
+  await router.isReady()
+  const wrapper = mount(
+    { template: '<RouterView />' },
+    // La transición real: lo que se prueba es cómo sale la pantalla.
+    { global: { plugins: [router], stubs: { transition: false } }, attachTo: document.body },
+  )
+  await flushPromises()
+  mounted.push(wrapper)
+  return { wrapper, router }
+}
+
+describe('PublicBookingLayout · cambio de paso (#820)', () => {
+  beforeEach(() => {
+    dayReady.value = false
+  })
+
+  it('removes the leaving step as the next one mounts: never a blank page or two <main>', async () => {
+    const { wrapper, router } = await mountSteps()
+    expect(wrapper.get('main h1').text()).toBe('Servicios')
+    await router.push(`/reservar/b/servicios/${SERVICE}/horario`)
+    await flushPromises()
+    const mains = wrapper.findAll('main')
+    expect(mains).toHaveLength(1)
+    expect(mains[0]!.text()).toBe('Cargando las horas libres…')
+    wrapper.unmount()
+  })
+
+  it('moves the focus to the new step title once it has its content, not while it loads', async () => {
+    const { wrapper, router } = await mountSteps()
+    const link = wrapper.get('main a').element as HTMLElement
+    link.focus()
+    await wrapper.trigger('keydown', { key: 'Enter' })
+    await router.push(`/reservar/b/servicios/${SERVICE}/horario`)
+    await flushPromises()
+    // El enlace se fue con su pantalla; mientras carga, el foco no salta.
+    expect(document.activeElement).toBe(document.body)
+
+    dayReady.value = true
+    await flushPromises()
+    const title = wrapper.get('main h1').element as HTMLElement
+    expect(title.textContent).toBe('Elige día y hora')
+    expect(document.activeElement).toBe(title)
+    expect(title.getAttribute('tabindex')).toBe('-1')
+    wrapper.unmount()
+  })
+
+  it('leaves the focus alone without a key or a tap (an automatic jump on opening the link)', async () => {
+    const { wrapper, router } = await mountSteps()
+    dayReady.value = true
+    await router.replace(`/reservar/b/servicios/${SERVICE}/horario`)
+    await flushPromises()
+    expect(document.activeElement).toBe(document.body)
+    wrapper.unmount()
+  })
+
+  it('never takes the focus from where the person already put it', async () => {
+    const { wrapper, router } = await mountSteps()
+    await wrapper.trigger('pointerdown')
+    await router.push(`/reservar/b/servicios/${SERVICE}/horario`)
+    await flushPromises()
+    const back = wrapper.get('.bk-back').element as HTMLElement
+    back.focus()
+    dayReady.value = true
+    await flushPromises()
+    expect(document.activeElement).toBe(back)
+    wrapper.unmount()
+  })
+
+  it('enters the next step already opaque, only sliding, and gives the leaving one no transition', () => {
+    const css = readFileSync(resolve(__dirname, '../../styles/publicBooking.css'), 'utf8')
+    const rules = css.slice(
+      css.indexOf('.pb-step-forward-enter-active'),
+      css.indexOf('/* El título que recibe'),
+    )
+    expect(rules).not.toMatch(/opacity/)
+    expect(rules).not.toMatch(/leave/)
+    expect(rules).toMatch(/transition: transform 360ms/)
+    const source = readFileSync(resolve(__dirname, '../PublicBookingLayout.vue'), 'utf8')
+    expect(source).toMatch(/<Transition :name="`pb-step-\$\{direction\}`" @leave="leaveAtOnce">/)
+  })
+
+  it('keeps the loader delay with reduced motion: the booking-wide reset spares it', () => {
+    const css = readFileSync(resolve(__dirname, '../../styles/bookingV2.css'), 'utf8')
+    expect(css).toMatch(
+      /\.bk \*:not\(\.diamond-loader\),\s*\.bk-skel \{\s*transition: none !important;\s*animation: none !important;/,
+    )
   })
 })

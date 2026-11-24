@@ -47,7 +47,8 @@ import { confirmPublicAppointment } from '../api/confirmPublicAppointmentApi'
 import { listPublicProfessionals } from '../api/listPublicProfessionalsApi'
 import { useBookingChrome } from '../model/bookingChrome'
 import { newIdempotencyKey } from '../model/idempotencyKey'
-import { loadPublicProfile } from '../model/publicProfile'
+import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
+import { publicProfessionalsFor } from '../model/publicProfessionals'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
@@ -107,7 +108,13 @@ const attendeeName = ref('')
 // abrirse directamente desde un enlace, así que se busca por id en la lista
 // pública del servicio. Es solo presentación: si no llega, el resumen sigue
 // siendo completo (el servidor valida el profesional al confirmar).
-const professional = ref<PublicProfessional | null>(null)
+// Con lo que «Día y hora» ya leyó, el resumen nace completo (#820): antes el
+// renglón «Con …» llegaba con la respuesta y empujaba la tarjeta.
+const professional = ref<PublicProfessional | null>(
+  publicProfessionalsFor(props.slug, props.serviceId)?.find(
+    (item) => item.id === props.professionalId,
+  ) ?? null,
+)
 onMounted(async () => {
   const outcome = await listPublicProfessionals(props.slug, props.serviceId)
   if (outcome.kind === 'success') {
@@ -128,7 +135,17 @@ const homePlace = ref<PlaceSelection | null>(null)
 const homeDetails = ref('')
 // Dónde abre el mapa de «a domicilio»: el negocio, si publicó su ubicación (DEC-138).
 const homeMapStart = ref<LatLng | null>(null)
-const businessProfile = ref<PublicBusinessProfile | null>(null)
+// El perfil que el cascarón ya leyó da la zona horaria desde el primer cuadro
+// (#820): sin ella no hay pase y, en escritorio, la página nacía en una
+// columna de 720 px y saltaba a dos cuando llegaba la respuesta (CLS 0,10 con
+// red lenta). La lectura fresca de abajo sigue mandando.
+const cachedProfile = publicProfileFor(props.slug)
+const businessProfile = ref<PublicBusinessProfile | null>(cachedProfile)
+if (cachedProfile) {
+  offersHomeService.value = cachedProfile.offersHomeService && isPlacesAvailable()
+  const where = cachedProfile.location
+  homeMapStart.value = where ? { latitude: where.latitude, longitude: where.longitude } : null
+}
 onMounted(async () => {
   const outcome = await loadPublicProfile(props.slug)
   if (outcome.kind === 'success') {
@@ -628,8 +645,8 @@ function chooseAlternative(startsAt: string) {
   >
     <!-- v2 (DEC-188): página de documento, sin región con desplazamiento propio:
          los campos caben enteros y el navegador desplaza. Este comentario va
-         dentro de <main>: un solo elemento raíz, que el cascarón anima con
-         <Transition mode="out-in">. -->
+         dentro de <main>: un solo elemento raíz, que el cascarón desliza al
+         cambiar de paso. -->
     <!-- El paso ya lo dice la línea de rombos de la cabecera: sin «Paso 3 de 3» (#728). -->
     <!-- Confirmado: el momento sobre la tarjeta, el rombo emblema y «Todo listo» en
          serif (DEC-189). El emblema abre la ceremonia. -->

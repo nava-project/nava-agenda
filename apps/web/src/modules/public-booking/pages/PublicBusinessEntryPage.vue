@@ -14,6 +14,7 @@
 import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { arrivalKey } from '@/shared/composables/useArrival'
+import { useLoaderGrace } from '@/shared/composables/useLoaderGrace'
 import { isMapAvailable } from '@/shared/model/mapEmbed'
 import { formatMoney } from '@/shared/model/money'
 import { civilNow, clockToMinutes, formatClock } from '@/shared/model/openingHours'
@@ -24,9 +25,9 @@ import DaylightStrip from '../components/DaylightStrip.vue'
 import GoogleReviews from '../components/GoogleReviews.vue'
 import OpeningHoursCard from '../components/OpeningHoursCard.vue'
 import type { PublicBusinessProfile } from '../model/businessProfileOutcome'
-import { loadPublicProfile } from '../model/publicProfile'
+import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import type { PublicService } from '../model/publicServiceListOutcome'
-import { loadPublicServices } from '../model/publicServices'
+import { loadPublicServices, publicServicesFor } from '../model/publicServices'
 import { usePublicVocabulary } from '../model/publicVocabulary'
 
 interface Props {
@@ -49,13 +50,31 @@ type ScreenState =
   | { status: 'unexpected-error'; requestId?: string }
 
 const screenState = ref<ScreenState>({ status: 'loading' })
+// El cargador de la entrada o no asoma o se queda a la vista (#820). Un
+// reintento reinicia la espera: la lectura anterior queda sin resolver.
+const loaderGrace = useLoaderGrace()
 
 async function load() {
-  screenState.value = { status: 'loading' }
+  // Al volver desde «Día y hora» el negocio y su carta ya se leyeron: la
+  // entrada se dibuja con ellos y el perfil se relee por detrás (#820). Antes
+  // volvía el esqueleto 20–40 ms entre la pantalla anterior y esta.
+  const known = publicProfileFor(props.slug)
+  const knownServices = publicServicesFor(props.slug)
+  const warm = known !== null && knownServices !== null && knownServices.length !== 1
+  if (warm) {
+    arrival?.begin()
+    screenState.value = { status: 'success', profile: known, services: knownServices }
+  } else {
+    screenState.value = { status: 'loading' }
+    loaderGrace.start()
+  }
   const [profile, services] = await Promise.all([
     loadPublicProfile(props.slug),
     loadPublicServices(props.slug),
   ])
+  if (!warm) await loaderGrace.settled()
+  // Una relectura por detrás sin red no borra lo que ya se ve.
+  if (warm && (profile.kind === 'network-error' || services.kind === 'network-error')) return
   // El perfil manda: si el enlace no existe, eso es lo que se dice.
   const failed =
     profile.kind !== 'success' ? profile : services.kind !== 'success' ? services : null

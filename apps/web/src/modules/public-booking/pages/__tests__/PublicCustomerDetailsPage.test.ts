@@ -14,6 +14,10 @@ import { ref } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import { bookingChromeKey } from '../../model/bookingChrome'
+import {
+  rememberPublicProfessionals,
+  resetPublicProfessionalsCache,
+} from '../../model/publicProfessionals'
 
 const confirmPublicAppointmentMock = vi.hoisted(() => vi.fn())
 vi.mock('../../api/confirmPublicAppointmentApi', () => ({
@@ -32,8 +36,10 @@ vi.mock('../../api/listPublicProfessionalsApi', () => ({
 }))
 
 const loadPublicProfileMock = vi.hoisted(() => vi.fn())
+const publicProfileForMock = vi.hoisted(() => vi.fn((): unknown => null))
 vi.mock('../../model/publicProfile', () => ({
   loadPublicProfile: loadPublicProfileMock,
+  publicProfileFor: publicProfileForMock,
   publicTermsFor: () => null,
 }))
 
@@ -98,6 +104,9 @@ beforeEach(() => {
   listPublicProfessionalsMock.mockReset()
   loadPublicProfileMock.mockReset()
   loadPublicProfileMock.mockResolvedValue(profileOutcome(false))
+  publicProfileForMock.mockReset()
+  publicProfileForMock.mockReturnValue(null)
+  resetPublicProfessionalsCache()
   loadPublicServicesMock.mockReset()
   loadPublicServicesMock.mockResolvedValue({
     kind: 'success',
@@ -289,6 +298,33 @@ describe('PublicCustomerDetailsPage', () => {
     // Sin el año: cabe en el riel.
     expect(rows[2]!.get('dd').text()).toBe('domingo, 20 de septiembre')
     expect(rows[3]!.get('dd').text()).toMatch(/^9:30\sa\.\sm\. – 10:00\sa\.\sm\.$/)
+  })
+
+  it('draws «Tu cita» complete from the first frame with what the shell and «Día y hora» already read (#820)', async () => {
+    // Las lecturas frescas no llegan (red lenta): el pase no espera por ellas.
+    loadPublicProfileMock.mockReturnValue(new Promise(() => {}))
+    listPublicProfessionalsMock.mockReturnValue(new Promise(() => {}))
+    publicProfileForMock.mockReturnValue(profileOutcome(false).profile)
+    rememberPublicProfessionals(BASE_PROPS.slug, BASE_PROPS.serviceId, [
+      {
+        id: BASE_PROPS.professionalId,
+        fullName: 'Mateo Cruz',
+        description: null,
+        photoUpdatedAt: null,
+        rating: null,
+        ratingCount: 0,
+      },
+    ])
+    const wrapper = mountPage()
+    await flushPromises()
+    const rows = wrapper.findAll('aside.bk-details__pase .bk-leaders__row')
+    expect(rows.map((r) => r.get('dt').text())).toEqual([
+      'Corte clásico',
+      'Profesional',
+      'Día',
+      'Hora',
+    ])
+    expect(rows[1]!.get('dd').text()).toBe('Mateo Cruz')
   })
 
   it('drops the rail on the summary, where the card already says it, and uses leaders (#747)', async () => {
