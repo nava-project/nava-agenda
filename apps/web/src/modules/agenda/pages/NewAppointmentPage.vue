@@ -20,23 +20,25 @@
 // composición pasa a pasos con línea de progreso y un boleto lateral que se
 // llena mientras se escribe, con las acciones —Registrar y Cancelar— pegadas
 // a él. Campos, validaciones, contrato y envío no cambian.
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
 import { useToast, useVocabulary } from '@/shared/composables'
 import { worksOwnProfessional } from '@/shared/model'
+import { sessionBusinessName } from '@/modules/auth'
 import {
+  AppointmentTicket,
   BaseAlert,
   BaseButton,
   BaseInput,
   PageState,
   PhoneField,
-  ProfessionalAvatar,
   ProfessionalSelect,
   SunDiamond,
 } from '@/shared/ui'
 import { DEFAULT_PHONE_COUNTRY, composePhone } from '@/shared/model/phoneCountries'
-import { formatCivilDateFull, isCivilDateString } from '@/shared/time/civilDate'
-import { formatClock } from '@/shared/model/openingHours'
+import { isCivilDateString } from '@/shared/time/civilDate'
+import { readableMoney } from '@/shared/model/money'
+import { civilTicketMoment, ticketMoment } from '@/shared/time/ticketMoment'
 import {
   createManualAppointment,
   fetchAssignedServices,
@@ -140,6 +142,7 @@ const hideProfessionalField = computed(
 const saveStatus = ref<SaveStatus>('idle')
 const saveErrorDetail = ref<string | undefined>(undefined)
 const created = ref<CreatedManualAppointment | null>(null)
+const successHeading = ref<HTMLElement | null>(null)
 let idempotencyKey = newIdempotencyKey()
 
 async function loadPage() {
@@ -187,25 +190,87 @@ const startsAt = computed(() => buildStartsAt(startsAtDate.value, startsAtTime.v
 // §7.3: "resumen antes del CTA" en móvil). Solo refleja selecciones ya
 // hechas, sin inventar datos que el contrato de servicios no expone
 // todavía (ServiceSummary hoy solo trae id/name, sin duración ni precio).
-const selectedProfessionalName = computed(
-  () => professionals.value.find((b) => b.id === selectedProfessionalId.value)?.fullName ?? '',
+const selectedService = computed(() => services.value.find((s) => s.id === selectedServiceId.value))
+const selectedProfessional = computed(() =>
+  professionals.value.find((b) => b.id === selectedProfessionalId.value),
 )
-const selectedServiceName = computed(
-  () => services.value.find((s) => s.id === selectedServiceId.value)?.name ?? '',
+
+// ── La tarjeta del borrador (#833) ─────────────────────────────────────────
+// Muestra lo que de verdad se aplicará: el servidor toma nombre, duración y
+// precio del servicio del catálogo. La duración de la lectura de inicios
+// libres manda en cuanto llega (la misma fuente que el selector de hora);
+// antes, la del catálogo. Un dato que el formulario ya no tiene sale de la
+// tarjeta con él.
+const pickerDuration = ref<number | null>(null)
+watch([selectedProfessionalId, selectedServiceId], () => {
+  pickerDuration.value = null
+})
+function onPickerDuration(minutes: number) {
+  pickerDuration.value = minutes
+}
+const draftDuration = computed(
+  () => pickerDuration.value ?? selectedService.value?.durationMinutes ?? null,
 )
-// La hora del boleto, en 12 h como el resto del panel (#722): la cifra en la
-// serif protagonista y «a. m.»/«p. m.» en menor, igual que la tarjeta de turno.
-const summaryClock = computed(() => {
-  const label = startsAtTime.value ? formatClock(startsAtTime.value) : ''
-  const space = label.indexOf(' ')
-  return space < 0
-    ? { clock: label, suffix: '' }
-    : { clock: label.slice(0, space), suffix: label.slice(space + 1) }
+
+function ticketMeta(durationMinutes: number | null, price: string, currency: string): string {
+  const money = readableMoney(price, currency)
+  return [durationMinutes ? `${durationMinutes} min` : '', money ?? ''].filter(Boolean).join(' · ')
+}
+
+function rulerLabel(m: { weekday: string; day: string; time: string; endTime: string }): string {
+  return `El turno en el día: ${m.weekday.toLocaleLowerCase('es-CO')} ${m.day}, de ${m.time} a ${m.endTime}.`
+}
+
+const draftTicket = computed(() => {
+  const service = selectedService.value
+  const duration = draftDuration.value
+  const zone = businessTimezone.value
+  // Con fecha y sin hora, la hoja del calendario ya se llena: la hora del
+  // cálculo es solo un relleno y no se muestra.
+  const civil = isCivilDateString(startsAtDate.value)
+    ? civilTicketMoment(startsAtDate.value, startsAtTime.value || '12:00', duration ?? 1)
+    : null
+  const full = startsAtTime.value && duration ? civil : null
+  return {
+    serviceName: service?.name ?? '',
+    meta: service ? ticketMeta(duration, service.price, service.currency) : '',
+    weekday: civil?.weekday ?? '',
+    month: civil?.month ?? '',
+    day: civil?.day ?? '',
+    time: full?.time ?? '',
+    timeNote: full
+      ? [`hasta ${full.endTime}`, zone ? timezoneLabel(zone) : ''].filter(Boolean).join(' · ')
+      : '',
+    professionalName: selectedProfessional.value?.fullName ?? '',
+    professionalPhotoUrl: selectedProfessional.value?.photoUrl ?? null,
+    ruler: full
+      ? { from: full.from, to: full.to, at: full.at, label: rulerLabel(full) }
+      : undefined,
+  }
 })
 
-const summaryDateLabel = computed(() =>
-  isCivilDateString(startsAtDate.value) ? formatCivilDateFull(startsAtDate.value) : '',
-)
+// La misma tarjeta, registrada: con lo que devolvió el servidor.
+const createdTicket = computed(() => {
+  const c = created.value
+  if (!c) return null
+  const zone = businessTimezone.value ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  const m = ticketMoment(c.startsAt, c.endsAt, zone)
+  const professional = professionals.value.find((b) => b.id === c.professionalId)
+  return {
+    serviceName: c.serviceName,
+    meta: ticketMeta(c.durationMinutes, c.priceAmount, c.currency),
+    weekday: m.weekday,
+    month: m.month,
+    day: m.day,
+    time: m.time,
+    timeNote: [`hasta ${m.endTime}`, businessTimezone.value ? timezoneLabel(zone) : '']
+      .filter(Boolean)
+      .join(' · '),
+    professionalName: professional?.fullName ?? '',
+    professionalPhotoUrl: professional?.photoUrl ?? null,
+    ruler: { from: m.from, to: m.to, at: m.at, label: rulerLabel(m) },
+  }
+})
 
 // Pasos resueltos: encienden la cifra de cada banda, tiñen el tramo de la
 // línea de progreso que la une con la siguiente y alimentan el contador del
@@ -226,6 +291,19 @@ const requiredStepsDone = computed(
 // El campo de servicio depende del profesional (DEC-072): sin profesional elegido,
 // mientras llegan sus servicios, o sin servicios activos que ofrecer, queda
 // deshabilitado y pierde el filete de latón (atlas, eventos 04 y 05).
+// Un único anuncio cortés, fuera de la tarjeta (#833, CA-22): cuando el
+// borrador queda completo, y otra vez si se rompe y se vuelve a completar.
+// Al romperse se vacía, así el mismo texto vuelve a anunciarse. Teclear
+// en un campo ya lleno no cambia nada.
+const DRAFT_READY = 'Turno listo para registrar.'
+const draftAnnouncement = ref('')
+watch(
+  () => requiredStepsDone.value === REQUIRED_STEPS,
+  (complete) => {
+    draftAnnouncement.value = complete ? DRAFT_READY : ''
+  },
+)
+
 const isServiceDisabled = computed(
   () =>
     !selectedProfessionalId.value ||
@@ -306,7 +384,12 @@ async function onSubmit() {
     case 'success':
       created.value = outcome.appointment
       saveStatus.value = 'idle'
+      draftAnnouncement.value = ''
       toast.success('Turno registrado', { detail: 'El turno ya está en la agenda.' })
+      // El foco va al titular desde el primer cuadro: la ceremonia corta de
+      // la tarjeta no bloquea nada (#833, CA-15).
+      await nextTick()
+      successHeading.value?.focus()
       return
     case 'conflict':
       saveErrorDetail.value = outcome.detail
@@ -338,8 +421,10 @@ async function onSubmit() {
   }
 }
 
-function onStartNewAppointment() {
+async function onStartNewAppointment() {
   created.value = null
+  draftAnnouncement.value = ''
+  pickerDuration.value = null
   attendeeName.value = ''
   customerFullName.value = ''
   customerNameEdited.value = false
@@ -354,7 +439,51 @@ function onStartNewAppointment() {
   saveStatus.value = 'idle'
   saveErrorDetail.value = undefined
   idempotencyKey = newIdempotencyKey()
+  // Vuelve al borrador sin restos del cliente anterior (#833, CA-15b): se
+  // limpian servicio, día y hora y la persona; el profesional elegido se
+  // conserva, porque lo habitual es registrar varios turnos seguidos del
+  // mismo profesional. El foco va a Servicio, o a Profesional si no hay uno.
+  selectedServiceId.value = ''
+  await nextTick()
+  document
+    .getElementById(
+      selectedProfessionalId.value ? 'new-appointment-service' : 'new-appointment-professional',
+    )
+    ?.focus()
 }
+
+// El riel pegado nunca mide más que su contenedor (#833, CA-18b): con la
+// tarjeta, los renglones y una alerta puede pasar del alto disponible
+// (604 px a 1024×768). Entonces se pega por su borde inferior —`top`
+// negativo— y «Registrar turno» queda siempre a la vista; lo de arriba
+// sale al desplazar.
+const RAIL_GAP = 16
+const rail = ref<HTMLElement | null>(null)
+const railStickyTop = ref(RAIL_GAP)
+let railObserver: ResizeObserver | null = null
+// El contenedor que se desplaza, sea cual sea el cascarón que envuelve la página.
+function scrollerOf(el: HTMLElement): HTMLElement | null {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) return node
+  }
+  return null
+}
+function fitRail() {
+  const el = rail.value
+  const scroller = el && scrollerOf(el)
+  if (!el || !scroller) return
+  railStickyTop.value = Math.min(RAIL_GAP, scroller.clientHeight - el.offsetHeight - RAIL_GAP)
+}
+watch(rail, (el) => {
+  railObserver?.disconnect()
+  railObserver = null
+  if (!el || typeof ResizeObserver === 'undefined') return
+  railObserver = new ResizeObserver(fitRail)
+  railObserver.observe(el)
+  const scroller = scrollerOf(el)
+  if (scroller) railObserver.observe(scroller)
+})
+onBeforeUnmount(() => railObserver?.disconnect())
 
 function onRetryLoad() {
   void loadPage()
@@ -373,6 +502,13 @@ function onProfessionalSelect(professionalId: string) {
         {{ timezoneLabel(businessTimezone) }}, la {{ v.ofTheBusiness }}
       </p>
     </header>
+
+    <!-- El único anuncio del borrador (#833, CA-22): cortés, oculto y fuera
+         de la tarjeta. Vive desde el primer cuadro para que el lector de
+         pantalla lo conozca antes de que cambie. -->
+    <p class="new-appointment-page__sr-only" aria-live="polite" data-testid="draft-announcer">
+      {{ draftAnnouncement }}
+    </p>
 
     <!-- Evento 01: sin profesionales ni zona resueltos, la espera conserva la
          geometría del formulario por llegar (esqueleto, no un indicador
@@ -416,40 +552,40 @@ function onProfessionalSelect(professionalId: string) {
         </PageState>
       </div>
 
-      <!-- Evento 12: el éxito es la pantalla completa —divisor, rótulo,
-           titular en serif y ficha de pergamino con el turno creado—, no una
-           alerta pequeña flotando arriba a la izquierda. -->
-      <div
-        v-else-if="created"
-        class="new-appointment-page__state new-appointment-page__state--success"
-      >
-        <PageState
-          variant="success"
-          status-label="Confirmación"
-          headline="Turno registrado"
-          role="status"
-        >
-          <span class="new-appointment-page__ticket">
-            {{ created.attendeeName }} · {{ created.serviceName }} ({{
-              created.durationMinutes
-            }}
-            min) · {{ created.priceAmount }} {{ created.currency }}
-          </span>
-          <span class="new-appointment-page__success-note">
+      <!-- Evento 12, registrado (#833): la misma tarjeta pasa a confirmada con
+           una ceremonia corta, en el sitio del riel. Ningún role="status" la
+           envuelve: el titular recibe el foco y el aviso emergente anuncia. -->
+      <div v-else-if="createdTicket" class="new-appointment-page__layout">
+        <div class="new-appointment-page__form new-appointment-page__done">
+          <p class="new-appointment-page__done-label">Confirmación</p>
+          <h2 ref="successHeading" tabindex="-1" class="new-appointment-page__done-title">
+            Turno registrado
+          </h2>
+          <p class="new-appointment-page__success-note">
             El turno quedó confirmado en la agenda {{ v.ofTheProfessional }}. Las notificaciones al
             cliente todavía no están disponibles (B5 las agrega más adelante).
-          </span>
-          <template #action>
-            <BaseButton
-              type="button"
-              variant="primary"
-              class="new-appointment-page__submit"
-              @click="onStartNewAppointment"
-            >
-              Registrar otro turno
-            </BaseButton>
-          </template>
-        </PageState>
+          </p>
+          <BaseButton
+            type="button"
+            variant="primary"
+            class="new-appointment-page__submit new-appointment-page__again"
+            @click="onStartNewAppointment"
+          >
+            Registrar otro turno
+          </BaseButton>
+        </div>
+        <aside class="new-appointment-page__rail new-appointment-page__rail--done">
+          <AppointmentTicket
+            class="new-appointment-page__card"
+            state="confirmed"
+            state-label="Registrado"
+            ceremony="short"
+            label="Turno registrado"
+            :business-name="sessionBusinessName"
+            :professional-label="v.Professional"
+            v-bind="createdTicket"
+          />
+        </aside>
       </div>
 
       <form v-else class="new-appointment-page__layout" novalidate @submit.prevent="onSubmit">
@@ -714,6 +850,7 @@ function onProfessionalSelect(professionalId: string) {
                   :timezone="businessTimezone"
                   :disabled="saveStatus === 'saving'"
                   :error="attempted ? fieldErrors.startsAt : undefined"
+                  @duration="onPickerDuration"
                 />
               </div>
             </section>
@@ -805,7 +942,11 @@ function onProfessionalSelect(professionalId: string) {
              mano; en móvil la retícula colapsa y cae después del último paso,
              que es donde especificacion-frontend-nava.md §7.3 pide el resumen
              antes del CTA. -->
-        <aside class="new-appointment-page__rail">
+        <aside
+          ref="rail"
+          class="new-appointment-page__rail"
+          :style="{ '--rail-sticky-top': `${railStickyTop}px` }"
+        >
           <!-- El titular de la alerta va en el cuerpo, no en el prop `title`
                de BaseAlert: ese prop compone un <h4> y esta pantalla ya tiene
                un <h2> por banda, así que un titular de alerta rompería el
@@ -837,97 +978,52 @@ function onProfessionalSelect(professionalId: string) {
             No pudimos registrar el turno. Tus datos se conservaron; inténtalo de nuevo.
           </BaseAlert>
 
-          <!-- Boleto del turno: se llena mientras se escribe. Lo pendiente se
-               nombra en tenue («Por elegir») en vez de ocultarse, para que la
-               forma del boleto no salte con cada campo. -->
-          <div
-            class="new-appointment-page__resumen"
-            aria-labelledby="new-appointment-resumen-title"
-          >
-            <div class="new-appointment-page__resumen-head">
-              <h2 id="new-appointment-resumen-title" class="new-appointment-page__resumen-title">
-                Resumen
-              </h2>
-              <span class="new-appointment-page__resumen-progress">
-                {{ requiredStepsDone }}/{{ REQUIRED_STEPS }} pasos
-              </span>
-            </div>
-
-            <div class="new-appointment-page__resumen-when">
-              <Transition name="nt-swap" mode="out-in">
-                <span
-                  :key="startsAtTime || 'empty'"
-                  class="new-appointment-page__resumen-time"
-                  :class="{ 'new-appointment-page__resumen-time--empty': !startsAtTime }"
+          <!-- La tarjeta de turno compartida, en borrador (#833): se llena a la
+               vista. Cada hueco reserva su alto desde el primer cuadro, así
+               un dato que llega no mueve nada. Sin región viva dentro: el
+               anuncio va aparte, fuera de la tarjeta. -->
+          <p class="new-appointment-page__progress">
+            {{ requiredStepsDone }}/{{ REQUIRED_STEPS }} pasos
+          </p>
+          <AppointmentTicket
+            class="new-appointment-page__card"
+            state="draft"
+            state-label="Por registrar"
+            filling
+            label="Turno por registrar"
+            :business-name="sessionBusinessName"
+            :professional-label="v.Professional"
+            v-bind="draftTicket"
+          />
+          <!-- Para quién es y quién lo pide: debajo de la tarjeta, nunca dentro. -->
+          <dl class="new-appointment-page__lines">
+            <div class="new-appointment-page__line">
+              <dt>Para</dt>
+              <dd>
+                <template v-if="attendeeName.trim()">{{ attendeeName.trim() }}</template>
+                <span v-else class="new-appointment-page__line-blank"
+                  ><span class="new-appointment-page__sr-only">Por escribir</span></span
                 >
-                  <template v-if="startsAtTime"
-                    >{{ summaryClock.clock
-                    }}<small v-if="summaryClock.suffix"
-                      >&nbsp;{{ summaryClock.suffix }}</small
-                    ></template
-                  >
-                  <template v-else>--:--</template>
-                </span>
-              </Transition>
-              <Transition name="nt-swap" mode="out-in">
-                <span :key="summaryDateLabel || 'empty'" class="new-appointment-page__resumen-date">
-                  {{ summaryDateLabel || 'Fecha por definir' }}
-                </span>
-              </Transition>
+              </dd>
             </div>
-
-            <div class="new-appointment-page__resumen-perforation" aria-hidden="true" />
-
-            <dl class="new-appointment-page__resumen-list">
-              <div v-if="!hideProfessionalField" class="new-appointment-page__resumen-item">
-                <dt class="new-appointment-page__resumen-label">{{ v.Professional }}</dt>
-                <dd class="new-appointment-page__resumen-value">
-                  <Transition name="nt-swap" mode="out-in">
-                    <span
-                      v-if="selectedProfessionalName"
-                      :key="selectedProfessionalName"
-                      class="new-appointment-page__resumen-swap"
-                    >
-                      <ProfessionalAvatar :full-name="selectedProfessionalName" size="closed" />
-                      <span>{{ selectedProfessionalName }}</span>
-                    </span>
-                    <span
-                      v-else
-                      key="empty"
-                      class="new-appointment-page__resumen-swap new-appointment-page__resumen-value--empty"
-                    >
-                      Por elegir
-                    </span>
-                  </Transition>
-                </dd>
-              </div>
-              <div class="new-appointment-page__resumen-item">
-                <dt class="new-appointment-page__resumen-label">Servicio</dt>
-                <dd class="new-appointment-page__resumen-value">
-                  <Transition name="nt-swap" mode="out-in">
-                    <span
-                      :key="selectedServiceName || 'empty'"
-                      class="new-appointment-page__resumen-swap"
-                      :class="{
-                        'new-appointment-page__resumen-value--empty': !selectedServiceName,
-                      }"
-                    >
-                      {{ selectedServiceName || 'Por elegir' }}
-                    </span>
-                  </Transition>
-                </dd>
-              </div>
-              <div class="new-appointment-page__resumen-item">
-                <dt class="new-appointment-page__resumen-label">Persona atendida</dt>
-                <dd
-                  class="new-appointment-page__resumen-value"
-                  :class="{ 'new-appointment-page__resumen-value--empty': !attendeeName.trim() }"
+            <div class="new-appointment-page__line">
+              <dt>Cliente</dt>
+              <dd>
+                <template v-if="customerFullName.trim()">{{ customerFullName.trim() }}</template>
+                <span v-else class="new-appointment-page__line-blank"
+                  ><span class="new-appointment-page__sr-only">Por escribir</span></span
                 >
-                  {{ attendeeName.trim() || 'Por escribir' }}
-                </dd>
-              </div>
-            </dl>
-          </div>
+              </dd>
+            </div>
+            <div v-if="customerPhone" class="new-appointment-page__line">
+              <dt>Teléfono</dt>
+              <dd>{{ customerPhone }}</dd>
+            </div>
+            <div v-if="customerEmail.trim()" class="new-appointment-page__line">
+              <dt>Correo</dt>
+              <dd>{{ customerEmail.trim() }}</dd>
+            </div>
+          </dl>
 
           <!-- Acciones del formulario: Registrar es la acción principal y
                Cancelar vuelve a la agenda sin guardar. -->
@@ -1023,6 +1119,106 @@ function onProfessionalSelect(professionalId: string) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* ------------------------------------------- tarjeta del borrador (#833) */
+
+/* «n/3 pasos»: una línea pequeña fuera de la tarjeta, nunca una caja. */
+.new-appointment-page__progress {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  line-height: 16px;
+  color: var(--color-on-strong-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La tarjeta compartida sobre el lienzo del panel: las muescas del troquel
+   se calan con el mismo color que hay detrás. */
+.new-appointment-page__card {
+  --ticket-backdrop: var(--color-surface-strong);
+}
+
+/* Renglones bajo la tarjeta: para quién es y quién lo pide. */
+.new-appointment-page__lines {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.new-appointment-page__line {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  font-size: var(--font-size-body-sm);
+  line-height: 20px;
+}
+
+.new-appointment-page__line dt {
+  color: var(--color-on-strong-muted);
+}
+
+.new-appointment-page__line dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-on-strong);
+}
+
+.new-appointment-page__line-blank {
+  display: inline-block;
+  width: 9em;
+  height: 0.56em;
+  vertical-align: middle;
+  background-color: color-mix(in srgb, var(--color-on-strong) 10%, transparent);
+  border-radius: 2px;
+}
+
+/* Registrado: el titular recibe el foco; la tarjeta ya está en su sitio y
+   solo corre su ceremonia corta, sin entrada del riel. */
+.new-appointment-page__done {
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+.new-appointment-page__done-label {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--color-success-on-strong);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.new-appointment-page__done-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 40px;
+  color: var(--color-on-strong);
+}
+
+.new-appointment-page__done-title:focus {
+  outline: none;
+}
+
+.new-appointment-page__done-title:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+.new-appointment-page__success-note {
+  max-width: 46ch;
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: 20px;
+  color: var(--color-on-strong-muted);
+}
+
+.new-appointment-page__rail--done {
+  animation: none;
 }
 
 /* ------------------------------------------------------ hoja del formulario */
@@ -1555,168 +1751,6 @@ function onProfessionalSelect(professionalId: string) {
   color: var(--color-text-secondary);
 }
 
-/* -------------------------------------------------------------- resumen */
-
-/* Boleto del turno: superficie elevada con la hora como protagonista, una
-   línea perforada con muescas a los lados y los datos debajo. Es la misma
-   metáfora de boleto que usa «Mi turno» en la reserva pública. */
-.new-appointment-page__resumen {
-  --ticket-bg: var(--color-field-strong-raised);
-  --ticket-pad: 16px;
-
-  position: relative;
-  padding: var(--ticket-pad);
-  background-color: var(--ticket-bg);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-  border-radius: 10px;
-  box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.55);
-}
-
-.new-appointment-page__resumen-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.new-appointment-page__resumen-title {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 16px;
-  color: var(--color-text-secondary);
-}
-
-.new-appointment-page__resumen-progress {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-caption);
-  line-height: 14px;
-  color: var(--color-on-strong-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.new-appointment-page__resumen-when {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 14px;
-}
-
-.new-appointment-page__resumen-time {
-  font-family: var(--font-display);
-  font-size: 44px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  color: var(--color-on-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.new-appointment-page__resumen-time small {
-  font-size: 0.45em;
-  letter-spacing: 0;
-}
-
-/* El marcador pendiente, con la misma serif: el boleto no cambia de letra al
-   elegir la hora. */
-.new-appointment-page__resumen-time--empty {
-  letter-spacing: 0.06em;
-  color: var(--color-on-strong-muted);
-}
-
-.new-appointment-page__resumen-date {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body-sm);
-  line-height: 20px;
-  color: var(--color-on-strong-muted);
-}
-
-.new-appointment-page__resumen-date::first-letter {
-  text-transform: uppercase;
-}
-
-/* Perforación: filete punteado de borde a borde con dos muescas del color
-   del lienzo en los extremos. */
-.new-appointment-page__resumen-perforation {
-  position: relative;
-  height: 0;
-  margin: 16px calc(var(--ticket-pad) * -1);
-  border-top: 2px dashed color-mix(in srgb, var(--color-on-strong) 16%, transparent);
-}
-
-.new-appointment-page__resumen-perforation::before,
-.new-appointment-page__resumen-perforation::after {
-  content: '';
-  position: absolute;
-  top: -9px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: var(--color-surface-strong);
-  border: var(--border-width-normal) solid
-    color-mix(in srgb, var(--color-on-strong) 12%, transparent);
-}
-
-.new-appointment-page__resumen-perforation::before {
-  left: -9px;
-  clip-path: inset(0 0 0 50%);
-}
-
-.new-appointment-page__resumen-perforation::after {
-  right: -9px;
-  clip-path: inset(0 50% 0 0);
-}
-
-.new-appointment-page__resumen-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0;
-}
-
-.new-appointment-page__resumen-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.new-appointment-page__resumen-label {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 16px;
-  color: var(--color-text-secondary);
-}
-
-.new-appointment-page__resumen-value {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-body);
-  line-height: 21px;
-  font-weight: 600;
-  color: var(--color-on-strong);
-  overflow-wrap: anywhere;
-}
-
-.new-appointment-page__resumen-swap {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-}
-
-.new-appointment-page__resumen-value--empty {
-  font-weight: 400;
-  font-style: italic;
-  color: var(--color-on-strong-muted);
-}
-
 /* ------------------------------------------------------- alerta y acciones */
 
 /* Botón primario sólido en latón sobre el canvas de tinta: BaseButton
@@ -1787,9 +1821,10 @@ function onProfessionalSelect(professionalId: string) {
 /* La acción del éxito es el mismo botón sólido en latón, pero centrado bajo
    la ficha y sin la medida completa del CTA del formulario (atlas evento
    12). */
-.new-appointment-page .new-appointment-page__state .new-appointment-page__submit {
+.new-appointment-page .new-appointment-page__done .new-appointment-page__submit {
   width: auto;
-  align-self: center;
+  min-width: 220px;
+  align-self: flex-start;
 }
 
 /* Alerta de tinta del sistema (DEC-149): solo se ajusta la medida a la
@@ -1818,20 +1853,15 @@ function onProfessionalSelect(professionalId: string) {
   color: inherit;
 }
 
-/* Monograma de la familia (#757, 8d) en el disparador «Profesional» y en el
-   boleto: el retrato ya es de latón (BrassMonogram, #799); aquí solo se
-   enciende el rombo, que en los tamaños de selector va apagado, y se recorta
-   contra el fondo de cada sitio. */
-.new-appointment-page :deep(.professional-select__trigger .professional-avatar),
-.new-appointment-page__resumen :deep(.professional-avatar) {
+/* Monograma de la familia (#757, 8d) en el disparador «Profesional»: el
+   retrato ya es de latón (BrassMonogram, #799); aquí solo se enciende el
+   rombo, que en los tamaños de selector va apagado, y se recorta contra el
+   fondo del campo. */
+.new-appointment-page :deep(.professional-select__trigger .professional-avatar) {
   --monogram-pendant-display: block;
   --monogram-pendant: 8px;
   --monogram-cutout: var(--color-field-strong);
   --monogram-radius: 2px;
-}
-
-.new-appointment-page__resumen :deep(.professional-avatar) {
-  --monogram-cutout: var(--ticket-bg);
 }
 
 /* ------------------------------------------------- estados de página completos */
@@ -1870,31 +1900,6 @@ function onProfessionalSelect(professionalId: string) {
   --page-state-mark: var(--color-warning-on-strong) !important;
 }
 
-.new-appointment-page__state--success :deep(.page-state) {
-  --page-state-mark: var(--color-success-on-strong) !important;
-}
-
-.new-appointment-page__ticket,
-.new-appointment-page__success-note {
-  display: block;
-}
-
-/* Ficha del turno recién creado: pergamino, el mismo material con el que la
-   agenda dibuja un turno vigente. */
-.new-appointment-page__ticket {
-  padding: 13px 15px;
-  margin-bottom: 12px;
-  font-size: var(--font-size-body);
-  line-height: 22px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: left;
-  color: var(--color-text-primary);
-  background-color: var(--color-surface-muted);
-  border-left: 4px solid var(--color-appt-confirmed);
-  border-radius: 10px;
-}
-
 /* ------------------------------------------------------------- movimiento */
 
 /* Entrada escalonada: cada paso sube unos píxeles y aparece, uno tras otro;
@@ -1930,25 +1935,6 @@ function onProfessionalSelect(professionalId: string) {
   transform: scale(0.4);
 }
 
-/* Datos del boleto: el valor viejo sale hacia arriba y el nuevo entra desde
-   abajo, como una ficha que se reemplaza. */
-.nt-swap-enter-active,
-.nt-swap-leave-active {
-  transition:
-    transform 180ms ease,
-    opacity 180ms ease;
-}
-
-.nt-swap-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.nt-swap-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
 .new-appointment-page__state {
   animation: nt-rise 420ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
@@ -1966,9 +1952,7 @@ function onProfessionalSelect(professionalId: string) {
   .new-appointment-page__section-number,
   .new-appointment-page .new-appointment-page__submit,
   .nt-mark-enter-active,
-  .nt-mark-leave-active,
-  .nt-swap-enter-active,
-  .nt-swap-leave-active {
+  .nt-mark-leave-active {
     transition: none;
   }
 
@@ -1987,9 +1971,7 @@ function onProfessionalSelect(professionalId: string) {
 :root[data-motion='reduced'] .new-appointment-page__section-number,
 :root[data-motion='reduced'] .new-appointment-page .new-appointment-page__submit,
 :root[data-motion='reduced'] .nt-mark-enter-active,
-:root[data-motion='reduced'] .nt-mark-leave-active,
-:root[data-motion='reduced'] .nt-swap-enter-active,
-:root[data-motion='reduced'] .nt-swap-leave-active {
+:root[data-motion='reduced'] .nt-mark-leave-active {
   transition: none;
 }
 
@@ -2024,7 +2006,7 @@ function onProfessionalSelect(professionalId: string) {
 
   .new-appointment-page__rail {
     position: sticky;
-    top: 16px;
+    top: var(--rail-sticky-top, 16px);
   }
 
   .new-appointment-page__sheet {
@@ -2118,10 +2100,6 @@ function onProfessionalSelect(professionalId: string) {
     gap: 10px;
     font-size: var(--font-size-body);
     line-height: 22px;
-  }
-
-  .new-appointment-page .new-appointment-page__state .new-appointment-page__submit {
-    min-width: 0;
   }
 
   .new-appointment-page :deep(.base-alert) {

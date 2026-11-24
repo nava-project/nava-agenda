@@ -49,3 +49,13 @@ export function formatMoney(amount: string, currency: string): string {
   const parts = moneyParts(amount, currency)
   return `${parts.symbol} ${parts.amount}`
 }
+
+/**
+ * «$ 25.000» solo si el importe es un decimal legible; si no, `null`: quien lo
+ * muestra lo omite en vez de enseñar un precio que no es (#833).
+ */
+export function readableMoney(amount: string, currency: string): string | null {
+  return DECIMAL_PATTERN.test(amount.trim()) && currency.trim() !== ''
+    ? formatMoney(amount, currency)
+    : null
+}

@@ -3,6 +3,7 @@
 // zona del negocio, nunca en la del dispositivo (RN-DIS-07, CA-098-04).
 import { getCivilDateInTimezone, minutesSinceCivilMidnight } from './civilDate'
 import { formatTimeInTimezone } from './formatInstant'
+import { formatClock } from '@/shared/model/openingHours'
 
 export interface TicketMoment {
   /** «Jueves». */
@@ -64,6 +65,47 @@ export function ticketMoment(
     day: part('day'),
     time: formatTimeInTimezone(startsAt, timezone),
     endTime: formatTimeInTimezone(endsAt, timezone),
+    at,
+    from: Math.max(0, from),
+    to: Math.min(24 * 60, Math.max(to, from + 60)),
+  }
+}
+
+/**
+ * El mismo momento para un turno que aún no existe: el borrador de «Nuevo
+ * turno» (#833) tiene una fecha y una hora civiles en la zona del negocio, no
+ * un instante. La ventana de la regla se calcula igual que en `ticketMoment`
+ * (7 a. m. a 7 p. m., ensanchada en horas enteras hasta contener el turno).
+ */
+export function civilTicketMoment(
+  civilDate: string,
+  clock: string,
+  durationMinutes: number,
+): TicketMoment | null {
+  const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(civilDate)
+  const time = /^(\d{2}):(\d{2})/.exec(clock)
+  if (!date || !time || !(durationMinutes > 0)) return null
+  const at = Number(time[1]) * 60 + Number(time[2])
+  const end = at + durationMinutes
+  const from = Math.floor(Math.min(at, DEFAULT_WINDOW.start) / 60) * 60
+  const to = Math.ceil(Math.max(end, DEFAULT_WINDOW.end) / 60) * 60
+  const noon = new Date(Date.UTC(Number(date[1]), Number(date[2]) - 1, Number(date[3]), 12))
+  const parts = new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'UTC',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).formatToParts(noon)
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const endClock = `${pad(Math.floor((end % 1440) / 60))}:${pad(end % 60)}`
+  return {
+    weekday: capitalize(part('weekday')),
+    month: part('month').replace('.', '').toLocaleUpperCase('es-CO'),
+    day: part('day'),
+    time: formatClock(`${time[1]}:${time[2]}`),
+    endTime: formatClock(endClock),
     at,
     from: Math.max(0, from),
     to: Math.min(24 * 60, Math.max(to, from + 60)),
