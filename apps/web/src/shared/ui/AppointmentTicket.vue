@@ -190,14 +190,14 @@ const rulerMarks = computed(
           <span v-else class="appointment-ticket__blank appointment-ticket__blank--weekday" />
         </p>
         <p class="appointment-ticket__time">
-          <template v-if="!time">
-            <span class="appointment-ticket__blank appointment-ticket__blank--time"
+          <!-- El «a. m.» en menor ensancha el renglón: la silueta lleva uno
+               invisible, en el mismo renglón sin corte, para que la hora real
+               no lo mueva al llegar. -->
+          <span v-if="!time" class="appointment-ticket__time-blank"
+            ><span class="appointment-ticket__blank appointment-ticket__blank--time"
               ><span class="appointment-ticket__sr">Día y hora por elegir</span></span
-            >
-            <!-- El «a. m.» en menor ensancha el renglón: la silueta lleva uno
-                 invisible para que la hora real no lo mueva al llegar. -->
-            <small aria-hidden="true">&nbsp;</small>
-          </template>
+            ><small aria-hidden="true">&nbsp;</small></span
+          >
           <template v-else
             >{{ timeParts.clock
             }}<small v-if="timeParts.suffix">&nbsp;{{ timeParts.suffix }}</small></template
@@ -565,6 +565,10 @@ const rulerMarks = computed(
   height: 0.5em;
 }
 
+.appointment-ticket__time-blank {
+  white-space: nowrap;
+}
+
 .appointment-ticket__blank--note {
   width: 11em;
 }
@@ -573,12 +577,13 @@ const rulerMarks = computed(
   width: 8em;
 }
 
-/* La silueta del retrato, del tamaño del retrato `row` (52 px; 44 en un teléfono). */
+/* La silueta del retrato: el monograma de latón cuadrado, del tamaño `row`
+   (52 px; 44 en un teléfono). Nunca un círculo (#737). */
 .appointment-ticket__blank--avatar {
   flex: none;
   width: 52px;
   height: 52px;
-  border-radius: 50%;
+  border-radius: 2px;
 }
 
 .appointment-ticket__sr {
@@ -649,6 +654,20 @@ const rulerMarks = computed(
   .appointment-ticket__time {
     font-size: 36px;
     line-height: 40px;
+  }
+}
+
+/* En el borrador muy angosto (un teléfono de 320–360 px), el nombre del
+   profesional y «hasta … · zona» se parten en dos líneas: sus renglones
+   guardan las dos desde la silueta, así el dato que llega no estira la
+   tarjeta (#833, CLS 0). */
+@container appointment-ticket (max-width: 340px) {
+  .appointment-ticket--filling .appointment-ticket__note {
+    min-height: 36px;
+  }
+
+  .appointment-ticket--filling .appointment-ticket__who {
+    min-height: 56px;
   }
 }
 
