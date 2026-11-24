@@ -57,6 +57,7 @@ import {
   BaseButton,
   AddressAutocomplete,
   BaseInput,
+  ContentReveal,
   DiamondLoader,
   DiamondRule,
   LocationMap,
@@ -611,6 +612,17 @@ function observeSections() {
   computeActiveSection()
 }
 
+// El índice sigue el scroll desde que la página lista está en el DOM. Antes lo
+// avisaba el `after-enter` del fundido; con ContentReveal (#817) el contenido
+// se monta al instante, debajo del esqueleto.
+watch(
+  () => loadStatus.value === 'ready',
+  (ready) => {
+    if (ready) observeSections()
+  },
+  { flush: 'post' },
+)
+
 function goToSection(id: string) {
   activeSection.value = id
   const el = document.getElementById(id)
@@ -638,52 +650,50 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
       </p>
     </header>
 
-    <Transition name="settings-content" mode="out-in" @after-enter="observeSections">
-      <div
-        v-if="loadStatus === 'loading'"
-        key="loading"
-        class="settings-page__state"
-        role="status"
-        aria-live="polite"
-      >
-        <DiamondLoader label="Cargando la configuración…" layout="overlay" />
-        <!-- La forma real (#759): el índice sobre su riel y dos secciones con
+    <!-- Carga → configuración sin parpadeo (#817): el esqueleto se desvanece por
+         encima del contenido ya montado, en lugar de un mode="out-in". -->
+    <ContentReveal class="settings-page__stage" :loading="loadStatus === 'loading'">
+      <template #loading>
+        <div class="settings-page__state" role="status" aria-live="polite">
+          <DiamondLoader label="Cargando la configuración…" layout="overlay" />
+          <!-- La forma real (#759): el índice sobre su riel y dos secciones con
              encabezado, rótulo de alcance, troquel y una fila de opciones, en la
              misma rejilla que la página lista. -->
-        <div class="settings-page__skeletons settings-page__layout" aria-hidden="true">
-          <span class="settings-page__skeleton-index">
-            <span
-              v-for="n in SECTIONS.length"
-              :key="n"
-              class="settings-page__skeleton settings-page__skeleton--index"
-            />
-          </span>
-          <span class="settings-page__skeleton-panels">
-            <span v-for="n in 2" :key="n" class="settings-page__skeleton-panel">
-              <span class="settings-page__skeleton-head">
-                <span class="settings-page__skeleton settings-page__skeleton--title" />
-                <span class="settings-page__skeleton settings-page__skeleton--scope" />
-              </span>
-              <span class="settings-page__skeleton settings-page__skeleton--line" />
-              <span class="settings-page__skeleton-body">
-                <span class="settings-page__skeleton settings-page__skeleton--label" />
-                <span class="settings-page__skeleton-tiles">
-                  <span
-                    v-for="t in 3"
-                    :key="t"
-                    class="settings-page__skeleton settings-page__skeleton--tile"
-                  />
+          <div class="settings-page__skeletons settings-page__layout" aria-hidden="true">
+            <span class="settings-page__skeleton-index">
+              <span
+                v-for="n in SECTIONS.length"
+                :key="n"
+                class="settings-page__skeleton settings-page__skeleton--index"
+              />
+            </span>
+            <span class="settings-page__skeleton-panels">
+              <span v-for="n in 2" :key="n" class="settings-page__skeleton-panel">
+                <span class="settings-page__skeleton-head">
+                  <span class="settings-page__skeleton settings-page__skeleton--title" />
+                  <span class="settings-page__skeleton settings-page__skeleton--scope" />
                 </span>
-                <span class="settings-page__skeleton settings-page__skeleton--label" />
-                <span class="settings-page__skeleton settings-page__skeleton--field" />
+                <span class="settings-page__skeleton settings-page__skeleton--line" />
+                <span class="settings-page__skeleton-body">
+                  <span class="settings-page__skeleton settings-page__skeleton--label" />
+                  <span class="settings-page__skeleton-tiles">
+                    <span
+                      v-for="t in 3"
+                      :key="t"
+                      class="settings-page__skeleton settings-page__skeleton--tile"
+                    />
+                  </span>
+                  <span class="settings-page__skeleton settings-page__skeleton--label" />
+                  <span class="settings-page__skeleton settings-page__skeleton--field" />
+                </span>
               </span>
             </span>
-          </span>
+          </div>
         </div>
-      </div>
+      </template>
 
       <BaseAlert
-        v-else-if="loadStatus === 'load-error'"
+        v-if="loadStatus === 'load-error'"
         key="error"
         variant="warning"
         title="No pudimos cargar la configuración"
@@ -695,7 +705,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
         </template>
       </BaseAlert>
 
-      <div v-else key="ready" class="settings-page__layout">
+      <div v-else-if="loadStatus !== 'loading'" key="ready" class="settings-page__layout">
         <SettingsIndex :items="SECTIONS" :active="activeSection" @select="goToSection" />
 
         <form class="settings-page__form settings-ink" novalidate @submit.prevent="onSave">
@@ -1256,7 +1266,7 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
           </div>
         </form>
       </div>
-    </Transition>
+    </ContentReveal>
   </section>
 </template>
 
@@ -1280,7 +1290,8 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
 .settings-page__header,
 .settings-page__state,
 .settings-page__layout,
-.settings-page > :deep(.base-alert) {
+.settings-page > :deep(.base-alert),
+.settings-page__stage > :deep(.base-alert) {
   width: min(100%, var(--settings-width));
   margin-inline: auto;
 }
@@ -2259,17 +2270,6 @@ const previewClass = computed(() => ({ 'settings-page__preview--changed': brandD
     opacity: 0;
     transform: translateX(-8px);
   }
-}
-
-/* Fundido entre carga/error/listo (estandar-diseno-visual.md §12). */
-.settings-content-enter-active,
-.settings-content-leave-active {
-  transition: opacity var(--motion-duration-base) var(--motion-easing-standard);
-}
-
-.settings-content-enter-from,
-.settings-content-leave-to {
-  opacity: 0;
 }
 
 @keyframes settings-skeleton-pulse {

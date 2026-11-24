@@ -366,6 +366,65 @@ describe('CatalogPage', () => {
     }
   })
 
+  it('keeps the skeleton cover until a refetched first page is revealed, not just requested (#817)', async () => {
+    // Mismo visor que arriba (caben 3 filas), pero la primera página trae solo
+    // una de 34: el ajuste tiene que volver a pedirla con 3.
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 600 })
+    document.body.appendChild(scroller)
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height }) as DOMRect
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        if (this === scroller) return rect(0, 600)
+        if (this.classList.contains('catalog-page__list')) return rect(200, 320)
+        if (this.classList.contains('catalog-page__pagination')) return rect(536, 60)
+        return rect(0, 0)
+      })
+
+    try {
+      fetchMock.mockResolvedValueOnce({
+        kind: 'success',
+        page: listPage(oneService, { total: 34, totalPages: 2 }),
+      })
+      let resolveRefit: (value: unknown) => void = () => {}
+      fetchMock.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveRefit = resolve
+        }),
+      )
+      const wrapper = mount(CatalogPage, {
+        attachTo: scroller,
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      await flushPromises()
+      await waitOutInitialLoadHold()
+      await flushPromises()
+
+      expect(fetchMock).toHaveBeenLastCalledWith({ page: 1, pageSize: 3, search: undefined })
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+
+      resolveRefit({
+        kind: 'success',
+        page: listPage(fourServices.slice(0, 3), { pageSize: 3, total: 34, totalPages: 12 }),
+      })
+      await flushPromises()
+      // Respondida pero aún retenida: el esqueleto sigue encima.
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+      await waitOutPageLoadHold()
+      await flushPromises()
+
+      expect(wrapper.find('.content-reveal__cover').exists()).toBe(false)
+      expect(wrapper.findAll('li').length).toBe(3)
+      expect(wrapper.find('.catalog-page__ready--fitting').exists()).toBe(false)
+      wrapper.unmount()
+    } finally {
+      rectSpy.mockRestore()
+      scroller.remove()
+    }
+  })
+
   // --- Buscador -----------------------------------------------------------
 
   it('searches after a debounce, resets to page 1, and sends the trimmed term', async () => {

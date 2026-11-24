@@ -129,6 +129,11 @@ function onRetry() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* El hueco de la barra queda reservado: cuando una pantalla pasa de un
+     esqueleto que cabe a un contenido que no, la barra clásica de escritorio
+     ya no estrecha la página ni la corre de lado (#817, CLS 0). Con barras
+     superpuestas (teléfonos, macOS) no cambia nada. */
+  scrollbar-gutter: stable;
   /* Barra de scroll fina y neutra (v2: sin latón). */
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent) transparent;
