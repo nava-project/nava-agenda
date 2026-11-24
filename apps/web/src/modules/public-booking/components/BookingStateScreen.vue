@@ -9,7 +9,7 @@
 // pasa y, solo si sirve de algo, «Reintentar». La pantalla reserva el alto de
 // la página para que el pie no salte cuando llega el estado (CLS).
 import { computed } from 'vue'
-import { DiamondLoader } from '@/shared/ui'
+import { DiamondLoader, SunDiamond } from '@/shared/ui'
 
 interface Props {
   status: 'loading' | 'not-found' | 'network-error' | 'unexpected-error'
@@ -26,6 +26,16 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{ retry: [] }>()
 
+// «Volver» solo tiene sentido si hay una página anterior en esta pestaña: quien
+// abre el enlace directo desde WhatsApp no tiene a dónde volver.
+function canGoBack(): boolean {
+  return typeof window !== 'undefined' && window.history.length > 1
+}
+
+function goBack() {
+  window.history.back()
+}
+
 const content = computed(() => {
   switch (props.status) {
     case 'not-found':
@@ -36,6 +46,12 @@ const content = computed(() => {
           body: 'Pide al negocio el enlace de nuevo y ábrelo tal como te llegue.',
         }),
         retry: false,
+        // Un camino para seguir (#809): qué hacer si ya tenía turno y, si llegó
+        // desde otra página, volver a ella.
+        hint: props.notFound
+          ? null
+          : '¿Ya tenías un turno? Ábrelo desde el enlace que te llegó por correo o WhatsApp.',
+        back: canGoBack(),
       }
     case 'network-error':
       return {
@@ -62,13 +78,15 @@ const content = computed(() => {
     <h1 class="pb-sr-only">{{ title }}</h1>
     <DiamondLoader v-if="status === 'loading'" :label="loadingHeadline" announce />
     <div v-else-if="content" class="bk-state__box" role="alert">
-      <!-- Un horizonte con el sol a medio salir: tranquilo, sin alarma. -->
-      <svg class="bk-state__horizon" viewBox="0 0 64 32" aria-hidden="true">
-        <path class="bk-state__sun" d="M18 30a14 14 0 0 1 28 0z" />
-        <path class="bk-state__line" d="M4 30h56" />
-      </svg>
+      <!-- El rombo en el sol de la familia, quieto sobre su horizonte: un estado,
+           no una espera (#809). -->
+      <div class="bk-state__mark" aria-hidden="true">
+        <SunDiamond still />
+        <span class="bk-state__line" />
+      </div>
       <h2 class="bk-state__headline">{{ content.headline }}</h2>
       <p class="bk-state__body">{{ content.body }}</p>
+      <p v-if="'hint' in content && content.hint" class="bk-state__hint">{{ content.hint }}</p>
       <button
         v-if="content.retry"
         type="button"
@@ -77,16 +95,26 @@ const content = computed(() => {
       >
         Reintentar
       </button>
+      <button
+        v-else-if="'back' in content && content.back"
+        type="button"
+        class="bk-cta bk-cta--secondary bk-state__retry"
+        @click="goBack"
+      >
+        Volver
+      </button>
     </div>
   </main>
 </template>
 
 <style scoped>
+/* El bloque queda centrado en el alto que la página reserva para el pie (CLS),
+   un poco por encima del centro óptico: sin ~500 px de vacío debajo (#809). */
 .bk-state {
   display: grid;
-  align-content: start;
+  align-content: center;
   justify-items: center;
-  padding-top: clamp(48px, 14vh, 128px);
+  padding-bottom: clamp(64px, 14vh, 160px);
 }
 
 .bk-state__box {
@@ -97,21 +125,18 @@ const content = computed(() => {
   text-align: center;
 }
 
-.bk-state__horizon {
-  width: 80px;
-  height: 40px;
-  margin-bottom: var(--space-2);
-  overflow: visible;
+.bk-state__mark {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
-.bk-state__sun {
-  fill: var(--color-sun);
-}
-
+/* El horizonte en latón bajo la marca, como la regla de la familia. */
 .bk-state__line {
-  stroke: var(--color-text-secondary);
-  stroke-width: 1.5;
-  stroke-linecap: round;
+  width: 96px;
+  height: 1px;
+  background-color: var(--color-brass-line);
 }
 
 .bk-state__headline {
@@ -130,6 +155,16 @@ const content = computed(() => {
   line-height: 24px;
   color: var(--color-text-secondary);
   text-wrap: pretty;
+}
+
+.bk-state__hint {
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-4);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+  border-top: 1px dashed color-mix(in srgb, var(--color-brass-line) 60%, transparent);
 }
 
 .bk-state__retry {

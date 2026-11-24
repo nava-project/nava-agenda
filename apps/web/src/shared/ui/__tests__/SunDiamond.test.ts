@@ -56,4 +56,15 @@ describe('SunDiamond', () => {
       for (const prop of props) expect(['transform', 'opacity']).toContain(prop)
     }
   })
+
+  it('stands still as a state mark, not a wait (#809)', () => {
+    const wrapper = mount(SunDiamond, { props: { still: true } })
+    expect(wrapper.classes()).toContain('sun-diamond--still')
+    expect(mount(SunDiamond).classes()).not.toContain('sun-diamond--still')
+    const css = readFileSync(resolve(__dirname, '../SunDiamond.vue'), 'utf-8')
+    const block = /\.sun-diamond--still,[\s\S]*?\{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(block).toContain('animation: none')
+    for (const part of ['__rays', '__sun', '__gem', '__gleam'])
+      expect(css).toContain(`.sun-diamond--still .sun-diamond${part}`)
+  })
 })

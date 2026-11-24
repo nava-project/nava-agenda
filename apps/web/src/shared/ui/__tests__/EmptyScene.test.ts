@@ -2,6 +2,8 @@
  * Tests for EmptyScene (DEC-113): una escena por tipo de vacío, slots de
  * titular/ayuda/acción, ilustración decorativa y sin violaciones axe.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -56,5 +58,16 @@ describe('EmptyScene', () => {
     })
     expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
     wrapper.unmount()
+  })
+
+  it('speaks the family: serif title from 20 px and a brass drawing (#809, DEC-189)', () => {
+    const css = readFileSync(resolve(__dirname, '../EmptyScene.vue'), 'utf-8')
+    const title = /\.empty-scene__title \{([^}]*)\}/.exec(css)?.[1] ?? ''
+    expect(title).toContain('font-family: var(--font-display)')
+    expect(title).toContain('font-weight: 400')
+    // Ni la serif por debajo de 20 px (DEC-189): en ningún ancho.
+    for (const m of css.matchAll(/\.empty-scene__title \{[^}]*font-size: (\d+)px/g))
+      expect(Number(m[1])).toBeGreaterThanOrEqual(20)
+    expect(/\.empty-scene__art \{([^}]*)\}/.exec(css)?.[1]).toContain('var(--color-brass-line)')
   })
 })

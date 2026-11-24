@@ -21,9 +21,12 @@ import { computed, useId } from 'vue'
 interface Props {
   /** sm: dentro de un botón (sin rayos) · md: en línea · lg: espera de pantalla. */
   size?: 'sm' | 'md' | 'lg'
+  /** Quieto: la marca como estado y no como espera (un enlace que no lleva a
+   * ninguna agenda, #809). Sin entrada, giro, respiro ni brillo. */
+  still?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), { size: 'lg' })
+const props = withDefaults(defineProps<Props>(), { size: 'lg', still: false })
 
 const uid = useId()
 const maskId = `sd-cut-${uid}`
@@ -48,7 +51,7 @@ const FACETS = [
 <template>
   <svg
     class="sun-diamond"
-    :class="`sun-diamond--${size}`"
+    :class="[`sun-diamond--${size}`, { 'sun-diamond--still': still }]"
     viewBox="0 0 48 48"
     aria-hidden="true"
     focusable="false"
@@ -268,6 +271,15 @@ const FACETS = [
 :root[data-motion='reduced'] .sun-diamond__sun,
 :root[data-motion='reduced'] .sun-diamond__gem,
 :root[data-motion='reduced'] .sun-diamond__gleam {
+  animation: none;
+}
+
+/* Quieto (#809): la marca de un estado, no de una espera. */
+.sun-diamond--still,
+.sun-diamond--still .sun-diamond__rays,
+.sun-diamond--still .sun-diamond__sun,
+.sun-diamond--still .sun-diamond__gem,
+.sun-diamond--still .sun-diamond__gleam {
   animation: none;
 }
 </style>

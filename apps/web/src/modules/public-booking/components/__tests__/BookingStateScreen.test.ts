@@ -3,7 +3,9 @@
  * página de los pasos públicos conservan el copy, los roles y el reintento
  * que cada página repetía por su cuenta.
  */
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import BookingStateScreen from '../BookingStateScreen.vue'
@@ -76,5 +78,59 @@ describe('BookingStateScreen', () => {
       expect(await axe(wrapper.element)).toHaveNoViolations()
       wrapper.unmount()
     }
+  })
+
+  describe('el enlace que no lleva a ninguna agenda (#809)', () => {
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('shows the family sun-diamond, still, instead of a half sun', () => {
+      const wrapper = mountScreen('not-found')
+      const mark = wrapper.get('.bk-state__mark')
+      expect(mark.attributes('aria-hidden')).toBe('true')
+      expect(mark.find('.sun-diamond--still').exists()).toBe(true)
+      expect(wrapper.find('.bk-state__horizon').exists()).toBe(false)
+    })
+
+    it('tells what to do with a turn already booked', () => {
+      const wrapper = mountScreen('not-found')
+      expect(wrapper.get('.bk-state__hint').text()).toBe(
+        '¿Ya tenías un turno? Ábrelo desde el enlace que te llegó por correo o WhatsApp.',
+      )
+      // Los errores conservan «Reintentar» y no llevan esa ayuda.
+      const offline = mountScreen('network-error')
+      expect(offline.find('.bk-state__hint').exists()).toBe(false)
+      expect(offline.get('button').text()).toBe('Reintentar')
+    })
+
+    it('offers «Volver» only when there is a page to go back to', async () => {
+      expect(mountScreen('not-found').find('button').exists()).toBe(false)
+      vi.spyOn(window.history, 'length', 'get').mockReturnValue(3)
+      const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+      const wrapper = mountScreen('not-found')
+      const button = wrapper.get('button')
+      expect(button.text()).toBe('Volver')
+      await button.trigger('click')
+      expect(back).toHaveBeenCalledOnce()
+    })
+
+    it('keeps the page own wording for «Mi turno» without the booking hint', () => {
+      const wrapper = mount(BookingStateScreen, {
+        props: {
+          status: 'not-found',
+          title: 'Mi turno',
+          loadingHeadline: 'Cargando tu turno…',
+          notFound: { headline: 'Este enlace ya no sirve', body: 'Pide uno nuevo al negocio.' },
+        },
+      })
+      expect(wrapper.text()).toContain('Este enlace ya no sirve')
+      expect(wrapper.find('.bk-state__hint').exists()).toBe(false)
+    })
+
+    it('centers the block in the reserved height instead of leaving it on top', () => {
+      const css = readFileSync(resolve(__dirname, '../BookingStateScreen.vue'), 'utf-8')
+      expect(/\.bk-state \{([^}]*)\}/.exec(css)?.[1]).toContain('align-content: center')
+    })
   })
 })

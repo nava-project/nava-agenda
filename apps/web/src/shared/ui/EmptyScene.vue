@@ -10,6 +10,10 @@
  * (tijeras, navajas, postes): las ilustraciones son del mismo lenguaje de
  * regla, rombo y marco que el resto del panel.
  *
+ * Con la familia (#809, DEC-189): el titular va en serif (desde 20 px) y el
+ * dibujo en latón, como las reglas y los filetes; el Sol de la agenda sigue
+ * siendo el único color vivo.
+ *
  * Es decorativo salvo por el texto: el SVG va `aria-hidden` y el titular, la
  * ayuda y la acción son contenido normal. Sin entradas ni movimiento
  * infinito: aparece quieta (revisión del PR 4a, WCAG 2.2.2).
@@ -139,7 +143,7 @@ withDefaults(
 .empty-scene__art {
   width: min(220px, 70%);
   margin-bottom: var(--space-2);
-  color: var(--color-border-control);
+  color: var(--color-brass-line);
 }
 
 .empty-scene__art svg {
@@ -149,11 +153,22 @@ withDefaults(
 }
 
 .empty-scene__title {
+  max-width: 28ch;
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 26px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 32px;
+  letter-spacing: -0.005em;
   color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+@media (max-width: 767px) {
+  .empty-scene__title {
+    font-size: 24px;
+    line-height: 30px;
+  }
 }
 
 .empty-scene__hint {
@@ -181,14 +196,14 @@ withDefaults(
 
 .es-slot,
 .es-card {
-  fill: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+  fill: color-mix(in srgb, var(--color-brass-line) 8%, transparent);
   stroke-dasharray: 4 4;
 }
 
 .es-slot--lead,
 .es-front {
   fill: var(--color-surface);
-  stroke: var(--color-text-secondary);
+  stroke: var(--color-brass-line);
   stroke-dasharray: none;
 }
 
@@ -215,6 +230,6 @@ withDefaults(
 
 .empty-scene--search .es-diamond,
 .empty-scene--assignments .es-diamond {
-  fill: var(--color-text-secondary);
+  fill: var(--color-brass-line);
 }
 </style>
