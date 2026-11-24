@@ -38,7 +38,12 @@ import {
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { rememberPublicProfessionals } from '../model/publicProfessionals'
-import { chosenStartFor, forgetChosenStart, rememberChosenStart } from '../model/chosenStart'
+import {
+  chosenStartFor,
+  forgetChosenStart,
+  rememberChosenStart,
+  takeReturnFromDetails,
+} from '../model/chosenStart'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import type { PublicServiceSlot } from '../model/publicServiceAvailabilityOutcome'
 import type { PublicService } from '../model/publicServiceListOutcome'
@@ -135,9 +140,14 @@ async function load() {
   restoreChosen()
 }
 
-// Al volver de «Tus datos», la hora elegida vuelve marcada, en su día, si sigue
-// libre; si no, se olvida y se avisa sin diálogo (#824).
+// La hora elegida vuelve marcada, en su día, si sigue libre; si no, se olvida y
+// se avisa sin diálogo (#824). Solo al volver de «Tus datos» se trae a la vista:
+// entrar de nuevo desde Servicios empieza arriba, con el foco en el título.
+let returningFromDetails = takeReturnFromDetails(props.slug, props.serviceId)
+
 function restoreChosen() {
+  const reveal = returningFromDetails
+  returningFromDetails = false
   const startsAt = chosenStartFor(props.slug, props.serviceId)
   if (!startsAt) return
   const day = days.value.find((d) => d.slots.some((s) => s.startsAt === startsAt))
@@ -151,7 +161,7 @@ function restoreChosen() {
   }
   activeDate.value = day.civilDate
   selected.value = slot
-  void nextTick(() => bringIntoView('.bk-min[aria-checked="true"]'))
+  if (reveal) void nextTick(() => bringIntoView('.bk-min[aria-checked="true"]'))
 }
 
 // Lo que se recupera al volver queda a la vista: la hora elegida o el aviso de
@@ -177,7 +187,15 @@ function bringIntoView(selector: string) {
   })
 }
 
-watch(() => [props.slug, props.serviceId], load, { immediate: true })
+watch(
+  () => [props.slug, props.serviceId] as const,
+  ([slug, serviceId], previous) => {
+    // Otro servicio en la misma pantalla es una llegada nueva.
+    if (previous) returningFromDetails = takeReturnFromDetails(slug, serviceId)
+    void load()
+  },
+  { immediate: true },
+)
 
 const retry = () => {
   void load()

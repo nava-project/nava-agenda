@@ -26,8 +26,12 @@ vi.mock('../../api/confirmPublicAppointmentApi', () => ({
 
 const routerPushMock = vi.hoisted(() => vi.fn())
 const routerReplaceMock = vi.hoisted(() => vi.fn())
+const leaveGuard = vi.hoisted(() => ({ current: null as null | ((to: unknown) => unknown) }))
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
+  onBeforeRouteLeave: (guard: (to: unknown) => unknown) => {
+    leaveGuard.current = guard
+  },
 }))
 
 const listPublicProfessionalsMock = vi.hoisted(() => vi.fn())
@@ -47,7 +51,8 @@ const loadPublicServicesMock = vi.hoisted(() => vi.fn())
 vi.mock('../../model/publicServices', () => ({ loadPublicServices: loadPublicServicesMock }))
 
 const { default: PublicCustomerDetailsPage } = await import('../PublicCustomerDetailsPage.vue')
-const { chosenStartFor, rememberChosenStart } = await import('../../model/chosenStart')
+const { chosenStartFor, rememberChosenStart, resetChosenStarts, takeReturnFromDetails } =
+  await import('../../model/chosenStart')
 
 const BASE_PROPS = {
   slug: 'barberia-ejemplo',
@@ -144,6 +149,20 @@ async function fillValidForm(wrapper: ReturnType<typeof mountPage>) {
 }
 
 describe('PublicCustomerDetailsPage', () => {
+  it('leaving for «Día y hora» of the same service marks the way back, and nothing else does (#824)', () => {
+    resetChosenStarts()
+    mountPage()
+    const { slug, serviceId } = BASE_PROPS
+    leaveGuard.current!({ name: 'reserva-publica-entrada', params: { slug } })
+    expect(takeReturnFromDetails(slug, serviceId)).toBe(false)
+    leaveGuard.current!({ name: 'reserva-publica-horario', params: { slug, serviceId: 'otro' } })
+    expect(takeReturnFromDetails(slug, 'otro')).toBe(false)
+    leaveGuard.current!({ name: 'reserva-publica-horario', params: { slug, serviceId } })
+    expect(takeReturnFromDetails(slug, serviceId)).toBe(true)
+    // La marca se consume: una sola llegada.
+    expect(takeReturnFromDetails(slug, serviceId)).toBe(false)
+  })
+
   it('shows required-field errors and preserves entered data on an invalid attempt (CA-096-02, CA-096-03)', async () => {
     const wrapper = mountPage()
     await wrapper.find('input[type="text"]').setValue('Ana Ríos')

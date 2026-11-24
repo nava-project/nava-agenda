@@ -10,7 +10,7 @@
 // `attendeeName` sin pedirlo dos veces cuando el cliente reserva para sí
 // mismo (CA-096-01, RN-RES-02).
 import { computed, nextTick, onMounted, reactive, ref, useId, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { AppointmentTicket, BaseButton, BaseDialog, BaseInput, PhoneField } from '@/shared/ui'
 import type { LatLng } from '@/shared/model/mapPicker'
 import { isPlacesAvailable, type PlaceSelection } from '@/shared/model/placesAutocomplete'
@@ -49,7 +49,7 @@ import { useBookingChrome } from '../model/bookingChrome'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import { publicProfessionalsFor } from '../model/publicProfessionals'
-import { forgetChosenStart } from '../model/chosenStart'
+import { forgetChosenStart, markReturnFromDetails } from '../model/chosenStart'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
@@ -87,6 +87,13 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), { anyProfessional: false, confirmed: false })
 const v = usePublicVocabulary()
 const router = useRouter()
+
+// Volver a «Día y hora» del mismo servicio (atrás o el enlace) trae la hora
+// elegida a la vista; entrar de nuevo desde Servicios no (#824).
+onBeforeRouteLeave((to) => {
+  if (to.name === 'reserva-publica-horario' && to.params.serviceId === props.serviceId)
+    markReturnFromDetails(props.slug, props.serviceId)
+})
 // Único por instancia: el diálogo vive en el <body> y no debe repetir ids.
 const conflictAltsLabelId = `pb-conflict-alts-${useId()}`
 

@@ -8,8 +8,10 @@
 // vuelve a aplicar la posición guardada en la misma tarea en que llega el
 // contenido, antes de pintarse: la hora elegida aparece ya en su sitio.
 //
-// Si la persona desplaza mientras tanto (rueda, toque o teclado), manda ella y
-// no se toca nada.
+// Si la persona desplaza o pulsa mientras tanto (rueda, toque, puntero o
+// teclado), manda ella y no se toca nada. Una navegación nueva también lo
+// cancela (`cancelStepScrollRestore`, desde el router): la posición guardada no
+// es de la pantalla que llega.
 
 export interface ScrollPosition {
   left: number
@@ -29,6 +31,11 @@ function stepIsReady(root: ParentNode): boolean {
   )
 }
 
+/** Cancela la restauración pendiente, si la hay. */
+export function cancelStepScrollRestore(): void {
+  cancelPending?.()
+}
+
 /** Vuelve a aplicar `position` cuando el paso termina de cargar, si hace falta. */
 export function restoreWhenStepReady(position: ScrollPosition, root: ParentNode = document): void {
   cancelPending?.()
@@ -43,7 +50,7 @@ export function restoreWhenStepReady(position: ScrollPosition, root: ParentNode 
   const observer = new MutationObserver(() => {
     if (stepIsReady(root)) apply()
   })
-  const userScrolls = ['wheel', 'touchmove', 'keydown'] as const
+  const userScrolls = ['wheel', 'touchmove', 'pointerdown', 'keydown'] as const
   const timer = window.setTimeout(() => cancel(), GIVE_UP_MS)
 
   function cancel() {

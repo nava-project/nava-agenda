@@ -35,7 +35,7 @@ vi.mock('../../components/ProfessionalReviews.vue', () => ({
 }))
 
 const { default: PublicDayTimePage } = await import('../PublicDayTimePage.vue')
-const { chosenStartFor, rememberChosenStart, resetChosenStarts } =
+const { chosenStartFor, markReturnFromDetails, rememberChosenStart, resetChosenStarts } =
   await import('../../model/chosenStart')
 
 const ANA = {
@@ -414,6 +414,7 @@ describe('PublicDayTimePage', () => {
       }
       try {
         rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        markReturnFromDetails('barberia', 'svc')
         respond()
         const first = mountPage()
         await flushPromises()
@@ -423,8 +424,33 @@ describe('PublicDayTimePage', () => {
 
         scrollTo.mockClear()
         hourTop = 200
+        markReturnFromDetails('barberia', 'svc')
         mountPage()
         await flushPromises()
+        expect(scrollTo).not.toHaveBeenCalled()
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = realRect
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('entering again from Servicios keeps the hour marked but starts at the top (E3)', async () => {
+      const scrollTo = vi.fn()
+      vi.stubGlobal('scrollTo', scrollTo)
+      const realRect = HTMLElement.prototype.getBoundingClientRect
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.matches('.bk-min[aria-checked="true"]'))
+          return { top: 900, bottom: 944, height: 44 } as DOMRect
+        return realRect.call(this)
+      }
+      try {
+        // Sin marca de vuelta: es una entrada hacia adelante.
+        rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        respond()
+        const wrapper = mountPage()
+        await flushPromises()
+        expect(checkedHour(wrapper)).toBeDefined()
+        expect(wrapper.get('a.bk-cta').text()).toContain('Seguir con tus datos')
         expect(scrollTo).not.toHaveBeenCalled()
       } finally {
         HTMLElement.prototype.getBoundingClientRect = realRect
