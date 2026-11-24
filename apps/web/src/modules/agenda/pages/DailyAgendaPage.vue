@@ -1402,6 +1402,17 @@ const dayChangeMarkerPercent = computed(() => {
                  el carril visible (escritorio, hoy) la regla va sobre el
                  carril, como en G3, y aquí se oculta. -->
             <div v-if="entries.length === 0" class="daily-agenda-page__blank">
+              <!-- El mensaje va antes que la regla: es lo que se lee primero y, en
+                   el teléfono, lo que debe quedar sobre el dock (#809). Desde
+                   768 px la regla sube por CSS, como en G3. -->
+              <div class="daily-agenda-page__blank-page">
+                <p class="daily-agenda-page__blank-title">
+                  No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
+                </p>
+                <p class="daily-agenda-page__blank-hint">
+                  Cuando alguien reserve o registres un turno, aparecerá aquí.
+                </p>
+              </div>
               <DayRuler
                 v-if="blankRuler"
                 class="daily-agenda-page__blank-ruler"
@@ -1412,14 +1423,6 @@ const dayChangeMarkerPercent = computed(() => {
                 :now="stripNowMinute"
                 :label="blankRuler.label"
               />
-              <div class="daily-agenda-page__blank-page">
-                <p class="daily-agenda-page__blank-title">
-                  No hay turnos para {{ selectedProfessional?.fullName }} {{ emptyStateDateText }}.
-                </p>
-                <p class="daily-agenda-page__blank-hint">
-                  Cuando alguien reserve, o registres un turno a mano, aparecerá aquí en su hora.
-                </p>
-              </div>
             </div>
 
             <DaylightStrip
@@ -1640,12 +1643,19 @@ const dayChangeMarkerPercent = computed(() => {
 .daily-agenda-page__blank {
   --ag-margin: 128px;
   --ag-margin-gap: var(--space-5);
+  --ag-row: 40px;
 
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   gap: var(--space-4);
   margin-top: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .daily-agenda-page__blank-ruler {
+    order: -1;
+  }
 }
 
 /* Con el carril visible (desde 1024 px, hoy) la regla ya va sobre el carril. */
@@ -1662,14 +1672,15 @@ const dayChangeMarkerPercent = computed(() => {
   padding: var(--space-3) var(--space-5) var(--space-5)
     calc(var(--space-4) + var(--ag-margin) + var(--ag-margin-gap));
   background-color: var(--color-surface);
-  /* Renglones cada 40 px, el alto del titular: la hoja de un cuaderno. */
+  /* Un renglón por línea escrita (40 px; 28 en el teléfono): la hoja de un
+     cuaderno. */
   background-image: linear-gradient(
     to bottom,
     transparent calc(100% - 1px),
     var(--ag-rule-line) calc(100% - 1px)
   );
   background-position: 0 var(--space-3);
-  background-size: 100% 40px;
+  background-size: 100% var(--ag-row);
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
 }
@@ -1691,19 +1702,19 @@ const dayChangeMarkerPercent = computed(() => {
   font-family: var(--font-display);
   font-size: 26px;
   font-weight: 400;
-  line-height: 40px;
+  line-height: var(--ag-row);
   letter-spacing: -0.005em;
   color: var(--color-text-primary);
   text-wrap: balance;
 }
 
-/* Cada línea escrita cae en su renglón, también la pista: con 20 px una de
-   cada dos quedaría tachada por la raya. */
+/* Cada línea escrita cae en su renglón, también la pista: con media altura
+   una de cada dos quedaría tachada por la raya. */
 .daily-agenda-page__blank-hint {
   max-width: 64ch;
   margin: 0;
   font-size: 15px;
-  line-height: 40px;
+  line-height: var(--ag-row);
   color: var(--color-text-secondary);
   text-wrap: pretty;
 }
@@ -1715,10 +1726,22 @@ const dayChangeMarkerPercent = computed(() => {
   }
 }
 
+/* En el teléfono la hoja es más densa para que el mensaje entero quede sobre
+   el dock (pedido de la dueña del 2026-11-15: el día vacío no obliga a
+   desplazar): margen estrecho, renglón de 28 px y la regla debajo. */
 @media (max-width: 767px) {
+  .daily-agenda-page__blank {
+    --ag-margin: 16px;
+    --ag-margin-gap: var(--space-3);
+    --ag-row: 28px;
+
+    gap: var(--space-3);
+  }
+
   .daily-agenda-page__blank-page {
-    padding-right: var(--space-4);
-    padding-left: calc(var(--space-3) + var(--ag-margin) + var(--ag-margin-gap));
+    padding: var(--space-2) var(--space-4) var(--space-3)
+      calc(var(--space-3) + var(--ag-margin) + var(--ag-margin-gap));
+    background-position: 0 var(--space-2);
   }
 
   .daily-agenda-page__blank-page::before {
@@ -1726,8 +1749,7 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   .daily-agenda-page__blank-title {
-    font-size: 22px;
-    line-height: 40px;
+    font-size: 20px;
   }
 }
 

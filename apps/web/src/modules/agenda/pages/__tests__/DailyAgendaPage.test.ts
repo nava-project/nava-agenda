@@ -850,6 +850,21 @@ describe('DailyAgendaPage', () => {
       expect(blank.props('now')).toBe(22 * 60 + 40)
     })
 
+    it('puts the message before the ruler, which only rises from 768 px (#809)', async () => {
+      // En el teléfono el mensaje entero debe quedar sobre el dock (pedido de
+      // la dueña del 2026-11-15): va primero en el DOM y la regla sube por CSS.
+      const { wrapper } = await mountWithFixedDate([])
+      const kids = wrapper.get('.daily-agenda-page__blank').element.children
+      expect(kids[0]!.classList).toContain('daily-agenda-page__blank-page')
+      expect(kids[1]!.classList).toContain('daily-agenda-page__blank-ruler')
+      expect(pageSource).toMatch(
+        /@media \(min-width: 768px\) \{\s*\.daily-agenda-page__blank-ruler \{\s*order: -1;/,
+      )
+      expect(pageSource).toMatch(
+        /@media \(max-width: 767px\) \{\s*\.daily-agenda-page__blank \{[^}]*--ag-row: 28px/,
+      )
+    })
+
     it('keeps a single «Nuevo turno» on an empty day: the header one (#809)', async () => {
       const { wrapper } = await mountWithFixedDate([])
       const buttons = wrapper.findAll('button').filter((b) => b.text() === 'Nuevo turno')
