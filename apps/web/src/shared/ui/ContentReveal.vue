@@ -14,6 +14,12 @@
  *   desvanece por encima. En ningún fotograma deja de verse algo entero.
  * - El alto de la celda es el del más alto de los dos: el cambio no empuja
  *   nada (CLS 0). Lo que viene detrás de la página está dentro del contenido.
+ * - Mientras carga, lo de debajo queda transparente e `inert`: no asoma si el
+ *   esqueleto es más bajo, no se enfoca con Tab y el lector de pantalla no lo
+ *   lee, pero conserva su caja para poder medirse. La opacidad, a diferencia
+ *   de `visibility`, no la deshace un descendiente (un acordeón abierto
+ *   declara `visibility: visible`). Se muestra entero en el mismo cuadro en
+ *   que el esqueleto empieza a irse.
  * - El esqueleto saliente lleva `aria-hidden` e `inert` desde que empieza a
  *   irse: el lector de pantalla no lee dos veces y nada en él se enfoca.
  * - Las llegadas del contenido (`nv-stagger` de las filas…) se dan por
@@ -27,16 +33,40 @@
  * contenido necesita medirse antes de verse (el ajuste de filas de una
  * lista), la carga sigue «en curso» hasta que esa medida termina.
  */
-import { ref } from 'vue'
+import { onMounted, onUpdated, ref } from 'vue'
 
 interface Props {
   /** Mientras es verdadero, el esqueleto tapa el contenido. */
   loading: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const root = ref<HTMLElement | null>(null)
+
+// Marca propia: solo se quita el `inert` que puso este componente, nunca uno
+// que el contenido tenga por su cuenta.
+const OWN_INERT = 'data-reveal-inert'
+
+function syncCovered(): void {
+  const stage = root.value
+  if (!stage) return
+  for (const child of stage.children) {
+    if (child.classList.contains('content-reveal__cover')) continue
+    if (props.loading && !child.hasAttribute('inert')) {
+      child.setAttribute('inert', '')
+      child.setAttribute(OWN_INERT, '')
+    } else if (!props.loading && child.hasAttribute(OWN_INERT)) {
+      child.removeAttribute('inert')
+      child.removeAttribute(OWN_INERT)
+    }
+  }
+}
+
+// El contenido de la ranura se monta y cambia dentro de este componente:
+// cada actualización vuelve a sincronizar lo que hay debajo de la tapa.
+onMounted(syncCovered)
+onUpdated(syncCovered)
 
 function settleArrivals(cover: Element): void {
   const stage = root.value
@@ -58,7 +88,7 @@ function quiet(el: Element): void {
 </script>
 
 <template>
-  <div ref="root" class="content-reveal">
+  <div ref="root" class="content-reveal" :class="{ 'content-reveal--covered': loading }">
     <slot />
     <Transition name="content-reveal" @before-leave="quiet">
       <div v-if="loading" class="content-reveal__cover">
@@ -79,6 +109,12 @@ function quiet(el: Element): void {
   grid-area: 1 / 1;
   align-self: start;
   min-width: 0;
+}
+
+/* Debajo de la tapa: con caja (se mide) pero transparente; `inert` (en el
+   script) lo saca del orden de tabulación y del árbol de accesibilidad. */
+.content-reveal--covered > :deep(*:not(.content-reveal__cover)) {
+  opacity: 0;
 }
 
 .content-reveal > .content-reveal__cover {

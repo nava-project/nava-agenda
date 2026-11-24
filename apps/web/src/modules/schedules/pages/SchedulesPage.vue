@@ -168,15 +168,15 @@ const hasShownWorkingHours = ref(false)
 const boardBusy = computed(
   () => workingHoursStatus.value === 'loading' && hasShownWorkingHours.value,
 )
-// El esqueleto de la página tapa también la primera semana (#817): sin esto se
-// destapaba un segundo esqueleto (el del tablero) y la semana llegaba después
-// desde transparente. Un fallo de la jornada sí se destapa: trae su aviso.
+// El esqueleto de la página tapa también la primera vista completa (#817): la
+// semana, el calendario de festivos, las excepciones y los festivos de
+// referencia. Sin esto se destapaba un segundo esqueleto (el del tablero), la
+// semana llegaba después desde transparente y los acordeones del lateral
+// crecían con la pantalla ya a la vista. Un fallo también se destapa: trae su
+// aviso. Se marca una sola vez (ver el watch junto a los festivos).
+const firstViewSettled = ref(false)
 const coverLoading = computed(
-  () =>
-    pageStatus.value === 'loading' ||
-    (pageStatus.value === 'ready' &&
-      workingHoursStatus.value === 'loading' &&
-      !hasShownWorkingHours.value),
+  () => pageStatus.value === 'loading' || (pageStatus.value === 'ready' && !firstViewSettled.value),
 )
 // Las cifras de la semana aún no tienen dato que mostrar (primera carga).
 const statsPending = computed(() => workingHoursStatus.value !== 'ready' && !boardBusy.value)
@@ -184,6 +184,10 @@ const statsPending = computed(() => workingHoursStatus.value !== 'ready' && !boa
 async function selectProfessional(professionalId: string) {
   selectedProfessionalId.value = professionalId
   workingHoursStatus.value = 'loading'
+  // Las tres consultas del profesional salen a la vez (#817): antes el
+  // lateral esperaba a la semana y llegaba una ida y vuelta más tarde.
+  void loadHolidayCalendar(professionalId)
+  void loadExceptions(professionalId)
 
   const outcome = await fetchWorkingHours(professionalId)
   // El profesional seleccionado pudo cambiar mientras la solicitud estaba en
@@ -197,9 +201,6 @@ async function selectProfessional(professionalId: string) {
   } else {
     workingHoursStatus.value = 'error'
   }
-
-  void loadHolidayCalendar(professionalId)
-  void loadExceptions(professionalId)
 }
 
 function onProfessionalChange(professionalId: string) {
@@ -540,6 +541,7 @@ async function onToggleHolidayCalendar(event: Event) {
 // upcomingColombianHolidays es un dato de referencia único para toda la
 // pantalla (no depende del profesional elegido): se carga una sola vez.
 const colombianHolidays = ref<ColombianHoliday[]>([])
+const colombianHolidaysSettled = ref(false)
 
 async function loadColombianHolidays() {
   const year = new Date().getFullYear()
@@ -548,7 +550,26 @@ async function loadColombianHolidays() {
     const today = new Date().toISOString().slice(0, 10)
     colombianHolidays.value = outcome.items.filter((h) => h.date >= today)
   }
+  colombianHolidaysSettled.value = true
 }
+
+// La primera vista completa (ver coverLoading): con profesionales, la semana y
+// el lateral resueltos (bien o con su aviso); sin ellos, solo la escena vacía.
+function settled(status: 'idle' | 'loading' | 'ready' | 'error'): boolean {
+  return status === 'ready' || status === 'error'
+}
+watch(
+  () =>
+    pageStatus.value === 'ready' &&
+    colombianHolidaysSettled.value &&
+    (professionals.value.length === 0 ||
+      (settled(workingHoursStatus.value) &&
+        settled(holidayCalendarStatus.value) &&
+        settled(exceptionsStatus.value))),
+  (done) => {
+    if (done) firstViewSettled.value = true
+  },
+)
 
 // --- HU-041: excepciones de jornada (CA-041-04/05) -------------------------
 
@@ -1149,7 +1170,7 @@ const editPreview = computed(() =>
     <ContentReveal class="schedules-page__stage" :loading="coverLoading">
       <template #loading>
         <div class="schedules-page__state" role="status" aria-live="polite">
-          <DiamondLoader :label="`Cargando ${v.professionals}…`" layout="overlay" />
+          <DiamondLoader :label="`Cargando los horarios…`" layout="overlay" />
           <div class="schedules-page__skeleton" aria-hidden="true">
             <span v-for="n in 4" :key="n" class="schedules-page__skeleton-row">
               <span class="schedules-page__skeleton-bar schedules-page__skeleton-bar--day" />
@@ -2586,8 +2607,17 @@ const editPreview = computed(() =>
     order: 2;
   }
 
-  .schedules-page__ready {
+  /* La cadena de alturas de escritorio pasa por el escenario de ContentReveal
+     (#817): sin esto la celda tomaba el alto del contenido y el tablero, que se
+     desplaza por dentro, quedaba en 6 px. */
+  .schedules-page__stage {
     flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .schedules-page__stage > :deep(.schedules-page__ready) {
+    align-self: stretch;
     min-height: 0;
   }
 

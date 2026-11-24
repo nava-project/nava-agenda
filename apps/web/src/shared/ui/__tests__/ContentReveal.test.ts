@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import { axe } from 'vitest-axe'
 import ContentReveal from '../ContentReveal.vue'
 
@@ -42,6 +42,62 @@ describe('ContentReveal', () => {
     expect(wrapper.get('.content-reveal__cover .skeleton').text()).toBe('Cargando…')
     expect(wrapper.get('.content-reveal__cover').attributes('aria-hidden')).toBeUndefined()
     wrapper.unmount()
+  })
+
+  it('keeps what lies underneath transparent and inert while covered, and releases it as the cover starts to leave', async () => {
+    const wrapper = mountReveal(true)
+    const content = wrapper.get('.content').element as HTMLElement
+    expect(wrapper.classes()).toContain('content-reveal--covered')
+    expect(content.hasAttribute('inert')).toBe(true)
+    await wrapper.setProps({ loading: false })
+    // En el mismo cuadro en que la tapa empieza a irse, aún en el DOM.
+    expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
+    expect(wrapper.classes()).not.toContain('content-reveal--covered')
+    expect(content.hasAttribute('inert')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('makes content mounted later under the cover inert too, and never removes an inert it did not set', async () => {
+    const Host = defineComponent({
+      props: {
+        loading: { type: Boolean, required: true },
+        late: { type: Boolean, required: true },
+      },
+      setup(props) {
+        return () =>
+          h(
+            ContentReveal,
+            { loading: props.loading },
+            {
+              default: () => [
+                h('div', { class: 'own', inert: '' }, 'propio'),
+                props.late ? h('div', { class: 'late' }, 'tarde') : null,
+              ],
+              loading: () => h('div', { class: 'skeleton' }, 'Cargando…'),
+            },
+          )
+      },
+    })
+    const wrapper = mount(Host, {
+      props: { loading: true, late: false },
+      attachTo: document.body,
+      global: { stubs: { transition: false } },
+    })
+    await wrapper.setProps({ late: true })
+    expect(wrapper.get('.late').attributes('inert')).toBe('')
+
+    await wrapper.setProps({ loading: false })
+    expect(wrapper.get('.late').attributes('inert')).toBeUndefined()
+    // El `inert` propio del contenido sigue en su sitio.
+    expect(wrapper.get('.own').attributes('inert')).toBe('')
+    wrapper.unmount()
+  })
+
+  it('hides the covered content with opacity, which keeps its box and no descendant can undo', () => {
+    const source = readFileSync(resolve(__dirname, '../ContentReveal.vue'), 'utf8')
+    expect(source).toMatch(
+      /\.content-reveal--covered > :deep\(\*:not\(\.content-reveal__cover\)\) \{\s*opacity: 0;/,
+    )
   })
 
   it('shows only the content once loaded', () => {
