@@ -47,6 +47,7 @@ const loadPublicServicesMock = vi.hoisted(() => vi.fn())
 vi.mock('../../model/publicServices', () => ({ loadPublicServices: loadPublicServicesMock }))
 
 const { default: PublicCustomerDetailsPage } = await import('../PublicCustomerDetailsPage.vue')
+const { chosenStartFor, rememberChosenStart } = await import('../../model/chosenStart')
 
 const BASE_PROPS = {
   slug: 'barberia-ejemplo',
@@ -455,6 +456,7 @@ describe('PublicCustomerDetailsPage', () => {
       kind: 'success',
       appointment: CONFIRMED_APPOINTMENT,
     })
+    rememberChosenStart(BASE_PROPS.slug, BASE_PROPS.serviceId, BASE_PROPS.startsAt)
     const wrapper = mountPage()
     await fillValidForm(wrapper)
     await wrapper.find('form').trigger('submit')
@@ -467,6 +469,8 @@ describe('PublicCustomerDetailsPage', () => {
 
     expect(confirmPublicAppointmentMock).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('Tu turno quedó agendado')
+    // Reservada: volver a «Día y hora» ya no recupera esta hora (#824).
+    expect(chosenStartFor(BASE_PROPS.slug, BASE_PROPS.serviceId)).toBeNull()
     expect(wrapper.text()).toContain('Barbería Ejemplo')
     expect(wrapper.find('form').exists()).toBe(false)
     // El token en claro nunca se muestra en pantalla (DEC-089): solo viaja
@@ -599,6 +603,7 @@ describe('PublicCustomerDetailsPage', () => {
       kind: 'schedule-conflict',
       alternatives: [],
     })
+    rememberChosenStart(BASE_PROPS.slug, BASE_PROPS.serviceId, BASE_PROPS.startsAt)
     const wrapper = mountPage()
     await reachConflict(wrapper)
 
@@ -611,6 +616,8 @@ describe('PublicCustomerDetailsPage', () => {
       params: { slug: BASE_PROPS.slug, serviceId: BASE_PROPS.serviceId },
       query: { profesional: BASE_PROPS.professionalId },
     })
+    // La hora quedó ocupada: «Día y hora» no la vuelve a marcar (#824).
+    expect(chosenStartFor(BASE_PROPS.slug, BASE_PROPS.serviceId)).toBeNull()
     wrapper.unmount()
   })
 

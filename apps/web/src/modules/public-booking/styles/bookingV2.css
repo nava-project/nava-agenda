@@ -614,6 +614,14 @@
   }
 }
 
+/* Aviso discreto bajo el título: la hora elegida dejó de estar libre (#824). */
+.bk-daytime__lost {
+  margin: calc(-1 * var(--space-3)) 0 var(--space-5);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
 .bk-daytime__grid {
   display: grid;
   gap: var(--space-10);
@@ -1420,7 +1428,10 @@
 }
 
 .bk-skel--hours {
-  height: 220px;
+  /* Del orden de una jornada real (~860 px de horas): con 220 px quedaba bajo
+     el esqueleto una franja vacía donde el pie espera sin verse, y una posición
+     restaurada baja se recortaba contra la página corta (H7, #824). */
+  height: 640px;
   border-radius: var(--radius-lg);
 }
 
@@ -1717,6 +1728,19 @@
   font-size: 13px;
   color: var(--color-text-secondary);
   border-top: 1px solid var(--bk-line);
+  /* El pie nunca sirve de ancla de desplazamiento (H7, #824). Al volver a
+     «Día y hora», el router restaura la posición mientras el paso muestra su
+     esqueleto; si lo visible era el pie, el navegador lo mantenía en su sitio
+     cuando llegaban las horas y la vista acababa al final de la página, lejos
+     de la hora elegida. */
+  overflow-anchor: none;
+}
+
+/* Mientras el paso muestra su esqueleto, el pie guarda su sitio sin verse: el
+   esqueleto es más corto que el contenido y el pie, a la vista, saltaría hacia
+   abajo al llegar (H7/H8, #824). */
+.bk:has(> main[aria-busy='true']) > .bk-foot {
+  visibility: hidden;
 }
 
 .bk-foot__firm {

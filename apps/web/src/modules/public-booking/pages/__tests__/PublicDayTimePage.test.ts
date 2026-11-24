@@ -35,6 +35,8 @@ vi.mock('../../components/ProfessionalReviews.vue', () => ({
 }))
 
 const { default: PublicDayTimePage } = await import('../PublicDayTimePage.vue')
+const { chosenStartFor, rememberChosenStart, resetChosenStarts } =
+  await import('../../model/chosenStart')
 
 const ANA = {
   id: 'pro-ana',
@@ -108,6 +110,7 @@ beforeEach(() => {
   listProfessionalsMock.mockReset()
   availabilityMock.mockReset()
   servicesMock.mockReset()
+  resetChosenStarts()
   document.body.innerHTML = ''
 })
 
@@ -355,5 +358,112 @@ describe('PublicDayTimePage', () => {
     await flushPromises()
     await hours(wrapper)[0]!.trigger('click')
     expect(await axe(wrapper.element)).toHaveNoViolations()
+  })
+
+  // H7 (#824): al volver de «Tus datos», la hora elegida vuelve marcada.
+  describe('coming back from «Tus datos»', () => {
+    const checkedHour = (w: VueWrapper) =>
+      hours(w).find((h) => h.attributes('aria-checked') === 'true')
+
+    it('remembers the chosen hour and brings it back marked, on its day, with the pase ready', async () => {
+      respond()
+      const first = mountPage('pro-ana')
+      await flushPromises()
+      await days(first)[1]!.trigger('click')
+      await hours(first)[0]!.trigger('click')
+      expect(chosenStartFor('barberia', 'svc')).toBe('2030-01-15T18:30:00-05:00')
+      first.unmount()
+
+      const back = mountPage('pro-ana')
+      await flushPromises()
+      expect(days(back)[1]!.attributes('aria-checked')).toBe('true')
+      expect(checkedHour(back)?.attributes('aria-label')).toMatch(/6:30\s?p\.\s?m\./)
+      expect(back.get('a.bk-cta').text()).toContain('Seguir con tus datos')
+      expect(back.find('.bk-daytime__lost').exists()).toBe(false)
+    })
+
+    it('forgets an hour that is no longer free and says so without a dialog', async () => {
+      rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+      respond(
+        [ANA, BETO],
+        slots.filter((s) => s.startsAt !== '2030-01-14T14:00:00-05:00'),
+      )
+      const wrapper = mountPage()
+      await flushPromises()
+      expect(checkedHour(wrapper)).toBeUndefined()
+      expect(wrapper.find('a.bk-cta').exists()).toBe(false)
+      const notice = wrapper.get('.bk-daytime__lost')
+      expect(notice.attributes('role')).toBe('status')
+      expect(notice.text()).toBe('La hora que habías elegido ya no está libre. Elige otra.')
+      expect(wrapper.find('[role="dialog"], [role="alertdialog"]').exists()).toBe(false)
+      expect(chosenStartFor('barberia', 'svc')).toBeNull()
+
+      await hours(wrapper)[0]!.trigger('click')
+      expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
+    })
+
+    it('brings the recovered hour into view when the screen starts at the top, and leaves a visible one alone', async () => {
+      const scrollTo = vi.fn()
+      vi.stubGlobal('scrollTo', scrollTo)
+      const realRect = HTMLElement.prototype.getBoundingClientRect
+      let hourTop = 900
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.matches('.bk-min[aria-checked="true"]'))
+          return { top: hourTop, bottom: hourTop + 44, height: 44 } as DOMRect
+        return realRect.call(this)
+      }
+      try {
+        rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        respond()
+        const first = mountPage()
+        await flushPromises()
+        expect(scrollTo).toHaveBeenCalledTimes(1)
+        expect(scrollTo.mock.calls[0]![0]).toMatchObject({ behavior: 'instant' })
+        first.unmount()
+
+        scrollTo.mockClear()
+        hourTop = 200
+        mountPage()
+        await flushPromises()
+        expect(scrollTo).not.toHaveBeenCalled()
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = realRect
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('brings the «no longer free» notice into view, since the old position leads nowhere', async () => {
+      const scrollTo = vi.fn()
+      vi.stubGlobal('scrollTo', scrollTo)
+      const realRect = HTMLElement.prototype.getBoundingClientRect
+      HTMLElement.prototype.getBoundingClientRect = function (this: HTMLElement) {
+        if (this.matches('.bk-daytime__lost'))
+          return { top: -420, bottom: -400, height: 20 } as DOMRect
+        return realRect.call(this)
+      }
+      try {
+        rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+        respond(
+          [ANA, BETO],
+          slots.filter((s) => s.startsAt !== '2030-01-14T14:00:00-05:00'),
+        )
+        mountPage()
+        await flushPromises()
+        expect(scrollTo).toHaveBeenCalledTimes(1)
+        expect(scrollTo.mock.calls[0]![0]).toMatchObject({ behavior: 'instant' })
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = realRect
+        vi.unstubAllGlobals()
+      }
+    })
+
+    it('does not bring back an hour of another service', async () => {
+      rememberChosenStart('barberia', 'otro', '2030-01-14T09:00:00-05:00')
+      respond()
+      const wrapper = mountPage()
+      await flushPromises()
+      expect(checkedHour(wrapper)).toBeUndefined()
+      expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
+    })
   })
 })

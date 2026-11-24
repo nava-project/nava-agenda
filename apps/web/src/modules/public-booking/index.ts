@@ -5,6 +5,7 @@
 // contexto público de un negocio a partir de su enlace de reservas. Los
 // componentes, el estado y el cliente API internos permanecen privados.
 export { publicBookingRoutes } from './routes'
+export { restoreWhenStepReady } from './layouts/stepScroll'
 // DEC-188 (2c): «Mi turno» usa el mismo marco v2, las mismas pantallas de estado,
 // el mismo selector de día y hora y el mismo archivo de calendario que la
 // reserva. Se exponen esas

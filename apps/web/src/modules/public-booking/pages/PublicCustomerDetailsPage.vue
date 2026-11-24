@@ -49,6 +49,7 @@ import { useBookingChrome } from '../model/bookingChrome'
 import { newIdempotencyKey } from '../model/idempotencyKey'
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import { publicProfessionalsFor } from '../model/publicProfessionals'
+import { forgetChosenStart } from '../model/chosenStart'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import { DEFAULT_PHONE_COUNTRY, composePhone, phoneCountry } from '@/shared/model/phoneCountries'
@@ -549,6 +550,8 @@ async function handleConfirm() {
       confirmedAppointment.value = visit
       justConfirmed.value = true
       confirmState.value = 'confirmed'
+      // Reservada: volver a «Día y hora» ya no recupera esta hora (#824).
+      forgetChosenStart(props.slug, props.serviceId)
       chrome.completed.value = true
       idempotencyKey.value = null
       // La URL pasa a ser la de la confirmación (replace: «Atrás» sigue llevando a
@@ -618,6 +621,8 @@ async function handleConfirm() {
 // cercanas (el resumen se actualiza y hay que volver a confirmar) o se vuelve
 // al calendario. Los datos del formulario siguen en esta página mientras tanto.
 function pickAnotherSlot() {
+  // La hora quedó ocupada y el diálogo ya lo dijo: no se recupera (#824).
+  forgetChosenStart(props.slug, props.serviceId)
   // Con «Cualquiera» se vuelve a Cualquiera; si no, al profesional elegido.
   void router.push({
     name: 'reserva-publica-horario',
