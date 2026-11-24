@@ -4,6 +4,8 @@
  * contenido solo cuando hay sesión autenticada. `sessionStore` se
  * sustituye por un doble de prueba controlable.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -169,5 +171,18 @@ describe('PrivateShell', () => {
       // El acceso y la reserva pública nunca heredan el tema del panel.
       expect(document.documentElement.dataset.appTheme).toBeUndefined()
     })
+  })
+})
+
+// F7 (#830): la salida de un aviso desliza 28 px a la derecha y en el teléfono
+// cruza el borde. El visor la recorta de lado, sin volverse contenedor de
+// desplazamiento ni recortar en vertical; así el documento nunca desborda y la
+// página no se corre. jsdom no maqueta: se comprueba la regla.
+describe('PrivateShell · visor', () => {
+  it('recorta de lado lo que sale del visor, sin desplazamiento propio', () => {
+    const source = readFileSync(resolve(__dirname, '../PrivateShell.vue'), 'utf8')
+    const rule = source.match(/\.private-shell__viewport \{([^}]*)\}/)?.[1] ?? ''
+    expect(rule).toMatch(/overflow-x:\s*clip;/)
+    expect(rule).not.toMatch(/overflow(-y)?:\s*(hidden|auto|scroll|clip)/)
   })
 })
