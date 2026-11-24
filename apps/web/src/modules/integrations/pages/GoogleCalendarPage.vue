@@ -74,14 +74,36 @@ const view = computed<GoogleCalendarView | null>(() =>
 const isConnectedLike = computed(
   () => view.value === 'connected' || view.value === 'syncing' || view.value === 'sync-error',
 )
+
+// La sincronización pedida desde esta página (#840 r2): desde «Sincronizar ahora»
+// hasta que el sondeo devuelve un estado que ya no es «sincronizando», la fila de
+// acciones se queda con los botones del estado de origen, en espera. Si de error
+// se pasara a sincronizando, «Volver a conectar» se iría y la fila perdería un
+// renglón en el teléfono, y luego volvería; así el cambio es uno solo, al final.
+// La espera usa `aria-disabled` y no `disabled`: un botón deshabilitado suelta el
+// foco (Firefox lo manda al body) y el foco debe quedarse en «Sincronizar ahora».
+const syncOrigin = ref<GoogleCalendarView | null>(null)
+const syncWaiting = computed(() => syncOrigin.value !== null)
+const actionsView = computed(() => syncOrigin.value ?? view.value)
+const actionsConnectedLike = computed(
+  () =>
+    actionsView.value === 'connected' ||
+    actionsView.value === 'syncing' ||
+    actionsView.value === 'sync-error',
+)
 const canConnect = computed(
-  () => view.value === 'not-connected' || view.value === 'reauth' || view.value === 'sync-error',
+  () =>
+    actionsView.value === 'not-connected' ||
+    actionsView.value === 'reauth' ||
+    actionsView.value === 'sync-error',
 )
 // Como mucho una acción llena por estado (#838): «Conectar» sin conexión o al
 // reconectar; «Sincronizar ahora» solo cuando hay un error que reintentar. El
 // estado sano (conectado o publicando) no lleva ningún acento lleno.
-const connectVariant = computed(() => (view.value === 'sync-error' ? 'secondary' : 'primary'))
-const syncVariant = computed(() => (view.value === 'sync-error' ? 'primary' : 'secondary'))
+const connectVariant = computed(() =>
+  actionsView.value === 'sync-error' ? 'secondary' : 'primary',
+)
+const syncVariant = computed(() => (actionsView.value === 'sync-error' ? 'primary' : 'secondary'))
 
 let pollTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
@@ -139,6 +161,7 @@ async function refresh() {
   const outcome = await fetchConnection()
   if (disposed) return
   if (outcome.kind === 'success') applyConnection(outcome.connection)
+  settleSync()
 }
 
 onMounted(() => void load())
@@ -154,7 +177,7 @@ function failureMessage(kind: 'network-error' | 'unexpected-error', what: string
 }
 
 async function onConnect() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
   busy.value = 'connect'
   actionError.value = null
   const outcome = await startConnect()
@@ -174,7 +197,8 @@ async function onConnect() {
 }
 
 async function onSync() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
+  syncOrigin.value = view.value
   busy.value = 'sync'
   actionError.value = null
   const outcome = await syncNow()
@@ -190,10 +214,16 @@ async function onSync() {
     actionError.value = failureMessage(outcome.kind, 'sincronizar')
   }
   busy.value = null
+  settleSync()
+}
+
+/** La espera termina cuando ya no se está publicando (o si el envío falló). */
+function settleSync() {
+  if (busy.value !== 'sync' && view.value !== 'syncing') syncOrigin.value = null
 }
 
 function openDisconnect() {
-  if (busy.value) return
+  if (busy.value || syncWaiting.value) return
   actionError.value = null
   isDisconnectOpen.value = true
 }
@@ -298,8 +328,10 @@ const pendingLabel = computed(() => {
 })
 
 // Texto del encabezado de estado: dice qué pasa y qué sigue, sin jerga técnica.
-const headline = computed(() => {
-  switch (view.value) {
+const headline = computed(() => headlineFor(view.value))
+
+function headlineFor(state: GoogleCalendarView | null): string {
+  switch (state) {
     case 'unavailable':
       return 'Todavía no está disponible'
     case 'needs-professional':
@@ -315,10 +347,12 @@ const headline = computed(() => {
     default:
       return 'Lleva tu agenda a Google Calendar'
   }
-})
+}
 
-const lead = computed(() => {
-  switch (view.value) {
+const lead = computed(() => leadFor(view.value, pendingLabel.value))
+
+function leadFor(state: GoogleCalendarView | null, pending: string): string {
+  switch (state) {
     case 'unavailable':
       return 'La conexión con Google Calendar no está disponible en este entorno. El resto de Nava Agenda funciona igual.'
     case 'needs-professional':
@@ -328,12 +362,29 @@ const lead = computed(() => {
     case 'sync-error':
       return 'Tus turnos están a salvo en Nava Agenda. Pulsa «Sincronizar ahora» para reintentar el envío.'
     case 'syncing':
-      return `Estamos enviando ${pendingLabel.value} a Google. Tarda unos segundos.`
+      return `Estamos enviando ${pending} a Google. Tarda unos segundos.`
     case 'connected':
       return 'Cada turno nuevo, cambio o cancelación se publica solo, y tus clientes reciben su invitación.'
     default:
       return 'Tus turnos y bloqueos aparecerán solos en tu calendario, y tus clientes recibirán la invitación por correo.'
   }
+}
+
+// Conectado, sincronizando y error se alternan solos al pulsar «Sincronizar
+// ahora» y al terminar el sondeo (#840 r1, C1). Sus titulares y textos miden
+// distinto, así que los tres se apilan en la misma celda: el actual se ve y los
+// otros, invisibles y fuera del árbol accesible, solo reservan el alto. Así los
+// datos, las acciones y el Recordatorio no suben ni bajan. El recuento de
+// «sincronizando» se reserva con dos cifras.
+const SYNC_FAMILY: readonly GoogleCalendarView[] = ['connected', 'syncing', 'sync-error']
+const copyReserve = computed(() => {
+  const current = view.value
+  if (current === null || !SYNC_FAMILY.includes(current)) return []
+  return SYNC_FAMILY.filter((state) => state !== current).map((state) => ({
+    state,
+    headline: headlineFor(state),
+    lead: leadFor(state, '10 cambios'),
+  }))
 })
 
 // Recorrido hacia la conexión: solo mientras todavía no hay una conexión viva.
@@ -459,6 +510,12 @@ const HOW_IT_WORKS = [
             <div class="gcal-hero__copy">
               <h2 id="gcal-state-title" class="gcal-hero__title">{{ headline }}</h2>
               <p class="gcal-copy" aria-live="polite">{{ lead }}</p>
+              <template v-for="r in copyReserve" :key="r.state">
+                <p class="gcal-hero__title gcal-hero__copy-reserve" aria-hidden="true">
+                  {{ r.headline }}
+                </p>
+                <p class="gcal-copy gcal-hero__copy-reserve" aria-hidden="true">{{ r.lead }}</p>
+              </template>
             </div>
 
             <RouterLink
@@ -499,7 +556,7 @@ const HOW_IT_WORKS = [
           </div>
 
           <footer
-            v-if="view !== 'unavailable' && view !== 'needs-professional'"
+            v-if="actionsView !== 'unavailable' && actionsView !== 'needs-professional'"
             class="gcal-hero__actions"
           >
             <BaseButton
@@ -507,7 +564,9 @@ const HOW_IT_WORKS = [
               type="button"
               size="lg"
               :variant="connectVariant"
-              :disabled="busy !== null || redirecting"
+              :class="{ 'gcal-wait': syncWaiting }"
+              :disabled="(busy !== null && busy !== 'sync') || redirecting"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
               @click="onConnect"
             >
               <span class="gcal-action">
@@ -526,24 +585,26 @@ const HOW_IT_WORKS = [
                 {{
                   redirecting
                     ? 'Abriendo Google…'
-                    : view === 'reauth' || view === 'sync-error'
+                    : actionsView === 'reauth' || actionsView === 'sync-error'
                       ? 'Volver a conectar'
                       : 'Conectar Google Calendar'
                 }}
               </span>
             </BaseButton>
             <BaseButton
-              v-if="isConnectedLike"
+              v-if="actionsConnectedLike"
               type="button"
               size="lg"
               :variant="syncVariant"
-              :disabled="busy !== null"
+              :class="{ 'gcal-wait': syncWaiting }"
+              :disabled="busy !== null && busy !== 'sync'"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
               @click="onSync"
             >
               <span class="gcal-action">
                 <svg
                   class="gcal-action__icon"
-                  :class="{ 'gcal-action__icon--spin': busy === 'sync' || view === 'syncing' }"
+                  :class="{ 'gcal-action__icon--spin': syncWaiting || view === 'syncing' }"
                   viewBox="0 0 20 20"
                   width="16"
                   height="16"
@@ -555,18 +616,20 @@ const HOW_IT_WORKS = [
                 <!-- Las dos palabras ocupan la misma celda: el botón mide lo de la
                    más larga y no cambia de ancho al sincronizar (#838). -->
                 <span class="gcal-action__swap">
-                  <span :class="{ 'gcal-action__off': busy === 'sync' }">Sincronizar ahora</span>
-                  <span :class="{ 'gcal-action__off': busy !== 'sync' }">Sincronizando…</span>
+                  <span :class="{ 'gcal-action__off': syncWaiting }">Sincronizar ahora</span>
+                  <span :class="{ 'gcal-action__off': !syncWaiting }">Sincronizando…</span>
                 </span>
               </span>
             </BaseButton>
             <BaseButton
-              v-if="isConnectedLike || view === 'reauth'"
+              v-if="actionsConnectedLike || actionsView === 'reauth'"
               class="gcal-hero__disconnect"
+              :class="{ 'gcal-wait': syncWaiting }"
               type="button"
               size="lg"
               variant="secondary"
-              :disabled="busy !== null"
+              :disabled="busy !== null && busy !== 'sync'"
+              :aria-disabled="syncWaiting ? 'true' : undefined"
               @click="openDisconnect"
             >
               Desconectar
@@ -921,10 +984,28 @@ const HOW_IT_WORKS = [
 }
 
 .gcal-hero__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-rows: auto auto;
+  row-gap: 6px;
   min-width: 0;
+  /* Las filas no cambian de alto, pero lo de dentro sí se recoloca: si el
+     navegador anclara el desplazamiento a ese texto, correría la página. */
+  overflow-anchor: none;
+}
+
+/* Los titulares apilados en la primera fila y los textos en la segunda: cada
+   fila mide lo del más alto, así que el texto empieza siempre a la misma altura
+   aunque el titular pase de dos renglones a uno. */
+.gcal-hero__copy > .gcal-hero__title {
+  grid-area: 1 / 1;
+}
+
+.gcal-hero__copy > .gcal-copy {
+  grid-area: 2 / 1;
+}
+
+.gcal-hero__copy-reserve {
+  visibility: hidden;
 }
 
 .gcal-hero__title {
@@ -988,6 +1069,14 @@ const HOW_IT_WORKS = [
 /* «Desconectar» queda al final de la fila, apartado de la acción principal, y es
    secundario con el texto en el rojo de peligro (≥ 4,5:1 en Día y Noche): el rojo
    lleno queda para la confirmación del diálogo (#838). */
+.gcal-hero__actions .gcal-wait {
+  /* La espera de la sincronización (#840 r2): el aspecto de deshabilitado de
+     BaseButton, sin el atributo nativo para que el foco no se pierda. */
+  opacity: 0.48;
+  cursor: progress;
+  pointer-events: none;
+}
+
 .gcal-hero__actions .gcal-hero__disconnect {
   margin-left: auto;
   color: var(--color-danger-text);

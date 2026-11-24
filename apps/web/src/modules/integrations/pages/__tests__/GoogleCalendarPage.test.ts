@@ -74,7 +74,7 @@ async function mountWith(connection: object): Promise<VueWrapper> {
 // visibility para reservar el ancho, #838) no cuenta, como no la ve ni la oye nadie.
 function visibleText(el: Element): string {
   const clone = el.cloneNode(true) as Element
-  clone.querySelectorAll('.gcal-action__off').forEach((n) => n.remove())
+  clone.querySelectorAll('.gcal-action__off, .gcal-hero__copy-reserve').forEach((n) => n.remove())
   return (clone.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
 
@@ -318,7 +318,9 @@ describe('GoogleCalendarPage', () => {
     await button(wrapper, 'Sincronizar ahora').trigger('click')
     await button(wrapper, 'Sincronizando…').trigger('click')
     expect(syncMock).toHaveBeenCalledTimes(1)
-    expect(button(wrapper, 'Desconectar').attributes('disabled')).toBeDefined()
+    // En espera con aria-disabled, sin el atributo nativo (#840 r2).
+    expect(button(wrapper, 'Desconectar').attributes('aria-disabled')).toBe('true')
+    expect(button(wrapper, 'Desconectar').attributes('disabled')).toBeUndefined()
 
     finish({ kind: 'success', pendingSyncJobs: 2, failedSyncJobs: 0 })
     await flushPromises()
@@ -326,6 +328,94 @@ describe('GoogleCalendarPage', () => {
       toastState.items.some((t) => t.title.includes('Sincronizando con Google Calendar')),
     ).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(2) // recarga el estado
+  })
+
+  describe('la espera de «Sincronizar ahora» (#840 r2)', () => {
+    const actions = (wrapper: VueWrapper) =>
+      wrapper.findAll('.gcal-hero__actions button').map((b) => ({
+        text: visibleText(b.element),
+        variant: b.classes().find((c) => /^base-button--(primary|secondary)$/.test(c)),
+        waiting: b.attributes('aria-disabled') === 'true',
+        native: b.attributes('disabled') !== undefined,
+      }))
+
+    it.each([
+      ['conectado', connected, connected],
+      ['error', { ...connected, failedSyncJobs: 1 }, { ...connected, failedSyncJobs: 1 }],
+      ['error', { ...connected, failedSyncJobs: 1 }, connected],
+    ])(
+      'desde %s conserva los botones de origen en espera hasta el resultado y cambia una sola vez',
+      async (_name, origin, result) => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+        try {
+          const wrapper = await mountWith(origin)
+          const before = actions(wrapper)
+          syncMock.mockResolvedValue({ kind: 'success', pendingSyncJobs: 2, failedSyncJobs: 0 })
+          fetchMock.mockResolvedValue({
+            kind: 'success',
+            connection: { ...connected, pendingSyncJobs: 2 },
+          })
+          await button(wrapper, 'Sincronizar ahora').trigger('click')
+          await flushPromises()
+
+          // Publicando: el estado lo dice, pero la fila es la de origen, en espera.
+          expect(wrapper.get('.gcal-status').text()).toContain('Sincronizando')
+          const waiting = actions(wrapper)
+          expect(waiting.map(({ text, variant }) => ({ text, variant }))).toEqual(
+            before.map(({ text, variant }) => ({
+              text: text === 'Sincronizar ahora' ? 'Sincronizando…' : text,
+              variant,
+            })),
+          )
+          expect(waiting.every((b) => b.waiting && !b.native)).toBe(true)
+
+          // El sondeo encuentra la cola vacía: un solo cambio, al estado nuevo.
+          fetchMock.mockResolvedValue({ kind: 'success', connection: result })
+          await vi.advanceTimersByTimeAsync(5000)
+          await flushPromises()
+          const after = actions(wrapper)
+          expect(after.some((b) => b.waiting || b.native)).toBe(false)
+          expect(after.map((b) => b.text)).toContain('Sincronizar ahora')
+          expect(after.some((b) => b.text === 'Volver a conectar')).toBe(result.failedSyncJobs > 0)
+        } finally {
+          vi.useRealTimers()
+        }
+      },
+    )
+
+    it('deja el foco en «Sincronizar ahora» mientras espera', async () => {
+      const wrapper = await mountWith({ ...connected, failedSyncJobs: 1 })
+      wrapper.unmount()
+      fetchMock.mockResolvedValue({
+        kind: 'success',
+        connection: { ...connected, failedSyncJobs: 1 },
+      })
+      const attached = mount(GoogleCalendarPage, {
+        attachTo: document.body,
+        global: {
+          stubs: { teleport: true, transition: true, RouterLink: { template: '<a><slot /></a>' } },
+        },
+      })
+      await flushPromises()
+      let finish: (value: unknown) => void = () => {}
+      syncMock.mockReturnValue(new Promise((r) => (finish = r)))
+      const sync = button(attached, 'Sincronizar ahora')
+      ;(sync.element as HTMLButtonElement).focus()
+      await sync.trigger('click')
+      await flushPromises()
+      expect(document.activeElement).toBe(sync.element)
+      // Un segundo clic o Enter durante la espera no envía otra vez.
+      await sync.trigger('click')
+      expect(syncMock).toHaveBeenCalledTimes(1)
+      finish({ kind: 'success', pendingSyncJobs: 2, failedSyncJobs: 0 })
+      fetchMock.mockResolvedValue({
+        kind: 'success',
+        connection: { ...connected, pendingSyncJobs: 2 },
+      })
+      await flushPromises()
+      expect(document.activeElement).toBe(sync.element)
+      attached.unmount()
+    })
   })
 
   it('keeps the screen usable when syncing fails', async () => {
@@ -478,6 +568,50 @@ describe('GoogleCalendarPage', () => {
         expect(filled(wrapper)).toEqual(expected)
       },
     )
+
+    it.each([
+      [
+        'conectado al día',
+        connected,
+        'Tu agenda ya está en Google Calendar',
+        ['Publicando tus cambios', 'Algunos cambios no llegaron a Google'],
+      ],
+      [
+        'sincronizando',
+        { ...connected, pendingSyncJobs: 2 },
+        'Publicando tus cambios',
+        ['Tu agenda ya está en Google Calendar', 'Algunos cambios no llegaron a Google'],
+      ],
+      [
+        'error de sincronización',
+        { ...connected, failedSyncJobs: 1 },
+        'Algunos cambios no llegaron a Google',
+        ['Tu agenda ya está en Google Calendar', 'Publicando tus cambios'],
+      ],
+    ])(
+      'reserva en «%s» el alto de los textos que alternan al sincronizar, sin anunciarlos (#840 r1, C1)',
+      async (_name, connection, current, reserved) => {
+        const wrapper = await mountWith(connection)
+        const copy = wrapper.get('.gcal-hero__copy')
+        // Un solo titular real y un solo texto vivo: los del estado actual.
+        expect(copy.findAll('h2')).toHaveLength(1)
+        expect(copy.get('h2').text()).toBe(current)
+        expect(copy.findAll('[aria-live]')).toHaveLength(1)
+        expect(copy.get('[aria-live]').element.closest('.gcal-hero__copy-reserve')).toBeNull()
+        // Los otros dos, apilados en la misma celda, invisibles y fuera del árbol accesible.
+        const titles = copy.findAll('.gcal-hero__title.gcal-hero__copy-reserve')
+        expect(titles.map((r) => r.text())).toEqual(reserved)
+        expect(copy.findAll('.gcal-copy.gcal-hero__copy-reserve')).toHaveLength(2)
+        for (const r of copy.findAll('.gcal-hero__copy-reserve')) {
+          expect(r.attributes('aria-hidden')).toBe('true')
+        }
+      },
+    )
+
+    it('no reserva textos ajenos fuera de conectado, sincronizando y error', async () => {
+      const wrapper = await mountWith(base)
+      expect(wrapper.findAll('.gcal-hero__copy-reserve')).toHaveLength(0)
+    })
 
     it('deja «Desconectar» en secundario; el rojo lleno queda en el diálogo', async () => {
       const wrapper = await mountWith(connected)
