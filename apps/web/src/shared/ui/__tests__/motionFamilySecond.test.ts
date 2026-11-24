@@ -62,7 +62,7 @@ describe('movimiento de la familia, 2.ª entrega (#743)', () => {
       /\.toast-region--host \{\s*position: absolute;\s*top: auto;\s*bottom: var\(--space-3\);/,
     )
     expect(shell).toMatch(
-      /<div class="private-shell__viewport">\s*<main class="private-shell__content">[\s\S]*?<ToastRegion placement="host" \/>\s*<\/div>/,
+      /<div class="private-shell__viewport">\s*<main class="private-shell__content"[^>]*>[\s\S]*?<ToastRegion placement="host" \/>\s*<\/div>/,
     )
   })
 

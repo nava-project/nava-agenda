@@ -7,6 +7,7 @@
 // de extensión para las pantallas que las historias siguientes agreguen
 // como hijas de esta misma ruta.
 import { onBeforeUnmount } from 'vue'
+import { keepFocusInView } from '@/shared/composables'
 import { attachWorkspaceTheme } from '@/shared/model'
 import { BaseAlert, BaseButton, DiamondLoader, ToastRegion } from '@/shared/ui'
 import type { NavItem } from '@/shared/navigation/navItem'
@@ -55,9 +56,11 @@ function onRetry() {
         <AppNav :extra-items="extraNavItems" />
         <!-- El visor es la fila del contenido, sin la barra: ancla la región de
              avisos para que, abajo en el teléfono (#743), quede sobre la barra
-             y no encima de ella. -->
+             y no encima de ella. El contenido trae entero a la vista el control
+             enfocado por teclado, también en las listas con desplazamiento
+             propio: nunca queda cortado contra el dock (#804). -->
         <div class="private-shell__viewport">
-          <main class="private-shell__content">
+          <main class="private-shell__content" @focusin="keepFocusInView">
             <RouterView />
           </main>
           <ToastRegion placement="host" />
@@ -129,6 +132,13 @@ function onRetry() {
   /* Barra de scroll fina y neutra (v2: sin latón). */
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-text-primary) 28%, transparent) transparent;
+}
+
+/* Aire del control enfocado al traerlo a la vista: su anillo (2 + 2 px) y un
+   respiro, en cualquier zona con desplazamiento del contenido (#804). Igual a
+   FOCUS_VIEW_MARGIN_PX. */
+.private-shell__content :deep(:focus-visible) {
+  scroll-margin-block: var(--space-2);
 }
 
 .private-shell__content::-webkit-scrollbar {
