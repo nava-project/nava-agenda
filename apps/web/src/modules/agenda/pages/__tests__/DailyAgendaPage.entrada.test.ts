@@ -9,6 +9,14 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 const businessId = vi.hoisted(() => ({ current: null as unknown as { value: string | null } }))
+// La gracia del cargador mide el tiempo real: aquí la red simulada responde al
+// instante y la gracia lo trata así; las pruebas que la miden usan fake timers (#834).
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
+
 vi.mock('@/modules/auth', async () => {
   const { ref: vueRef } = await import('vue')
   businessId.current = vueRef<string | null>('negocio-a')
@@ -99,17 +107,20 @@ describe('DailyAgendaPage: la entrada (#822)', () => {
   })
 
   it('uncovers once the day is in, without a second, different wait', async () => {
+    // Con el reloj bajo control: el día llega a los 150 ms, antes de que el
+    // cargador pueda asomar, así que la tapa se va sin retenerse (#834).
+    vi.useFakeTimers()
     fetchProfessionalSummariesMock.mockResolvedValue({ kind: 'success', items: TWO })
     fetchBusinessTimezoneMock.mockResolvedValue(TIMEZONE)
     let resolveDay: (v: unknown) => void = () => {}
     fetchDailyAgendaMock.mockReturnValueOnce(new Promise((ok) => (resolveDay = ok)))
     const wrapper = await mountPage()
-    await flushPromises()
+    await vi.advanceTimersByTimeAsync(150)
     // Ya hay profesionales, falta el día: la misma tapa sigue, ya sin hablar de profesionales.
     expect(cover(wrapper).exists()).toBe(true)
     expect(cover(wrapper).text()).toContain('Cargando la agenda…')
     resolveDay({ kind: 'success', items: [] })
-    await flushPromises()
+    await vi.advanceTimersByTimeAsync(0)
     expect(cover(wrapper).exists()).toBe(false)
     expect(wrapper.find('#daily-agenda-professional-select').exists()).toBe(true)
   })
