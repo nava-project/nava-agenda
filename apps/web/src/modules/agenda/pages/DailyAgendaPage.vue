@@ -387,7 +387,7 @@ function entryTimeRange(entry: DailyAgendaEntry): string {
   return `${start} – ${end}`
 }
 
-// Margen de la libreta (G3, #802): el inicio en grande y en serif, con su
+// Margen de la libreta (G3, #802): el inicio en grande, con su
 // periodo en pequeño si no lo comparte con el fin, y el fin debajo. El texto
 // concatenado es el mismo de `entryTimeRange`, así el nombre accesible del
 // enlace no cambia.
@@ -906,10 +906,22 @@ const dayRuler = computed(() => {
   const last = Math.max(...marks.map((m) => m.end))
   const from = Math.max(0, Math.floor((first - 30) / 60) * 60)
   const to = Math.min(24 * 60, Math.ceil((last + 30) / 60) * 60)
+  // La lectura cuenta los turnos que siguen en pie y nombra aparte los
+  // cancelados, que también tienen su rombo. Va del primer inicio al fin más
+  // tardío: un turno largo puede terminar después de que empiece el último.
   const items = entries.value
-  const count = items.length === 1 ? '1 turno' : `${items.length} turnos`
+  const cancelled = items.filter(isEntryCancelled).length
+  const active = items.length - cancelled
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  const count = [
+    active > 0 || cancelled === 0 ? plural(active, 'turno', 'turnos') : '',
+    cancelled > 0 ? plural(cancelled, 'cancelado', 'cancelados') : '',
+  ]
+    .filter(Boolean)
+    .join(' y ')
   const firstStart = formatAgendaTime(items[0]!.startsAt)
-  const lastEnd = formatAgendaTime(items[items.length - 1]!.endsAt)
+  const latestEnd = items.reduce((a, b) => (Date.parse(b.endsAt) > Date.parse(a.endsAt) ? b : a))
+  const lastEnd = formatAgendaTime(latestEnd.endsAt)
   return {
     from,
     to,
@@ -1430,9 +1442,12 @@ const dayChangeMarkerPercent = computed(() => {
                           ` ${listTimes.get(entry.id)?.startPeriod}`
                         }}</small></span
                       ><span class="daily-agenda-page__item-end"
-                        >{{ ` – ${listTimes.get(entry.id)?.end}`
+                        ><span class="daily-agenda-page__item-until">{{
+                          ` – ${listTimes.get(entry.id)?.end}`
+                        }}</span
+                        >{{ ' '
                         }}<span class="daily-agenda-page__item-period">{{
-                          ` ${listTimes.get(entry.id)?.endPeriod}`
+                          listTimes.get(entry.id)?.endPeriod
                         }}</span></span
                       ></span
                     >
@@ -1941,14 +1956,19 @@ const dayChangeMarkerPercent = computed(() => {
   color: var(--color-text-primary);
 }
 
-/* La hora del margen en la serif de la familia: a 26 px (22 px en el teléfono)
-   ya no ensucia el 1 (#726). Su periodo, si no lo comparte con el fin, va en
-   pequeño y en la sans. */
+/* La hora del margen, grande y en la sans tabular: es el dato que más importa
+   leer bien. En la serif (que no trae un 1 alternativo) «11:00» se leía
+   «ll:00» aun a 26 px; la sans distingue el 1 y alinea las cifras de renglón a
+   renglón. Su periodo, si no lo comparte con el fin, va en pequeño. */
 .daily-agenda-page__item-start {
-  font-family: var(--font-display);
-  font-size: 26px;
+  font-family: var(--font-sans);
+  font-size: 24px;
   font-weight: 400;
-  line-height: 28px;
+  font-variant-numeric: tabular-nums;
+  /* 26 + 18 = 44 px, lo mismo que nombre y servicio: el renglón mide lo que
+     medía antes de la libreta y el día corto sigue cabiendo a 1440×900. */
+  line-height: 26px;
+  letter-spacing: -0.01em;
 }
 
 .daily-agenda-page__item-start small,
@@ -1969,7 +1989,10 @@ const dayChangeMarkerPercent = computed(() => {
 }
 
 /* En el margen estrecho del teléfono el periodo baja entero, nunca «p.» y «m.»
-   en líneas distintas. */
+   en líneas distintas, y el guion no se queda solo: tras «–» se puede cortar
+   aunque siga un espacio duro (UAX #14), así que «– 10:45» va en un tramo. El
+   espacio entre los dos tramos queda fuera de ambos: es el único corte. */
+.daily-agenda-page__item-until,
 .daily-agenda-page__item-period {
   white-space: nowrap;
 }
@@ -2139,8 +2162,8 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   .daily-agenda-page__item-start {
-    font-size: 22px;
-    line-height: 26px;
+    font-size: 20px;
+    line-height: 24px;
   }
 
   /* «11:30 a. m.» no cabe en el margen: el periodo baja bajo las cifras. */
@@ -2207,12 +2230,19 @@ const dayChangeMarkerPercent = computed(() => {
     gap: var(--space-6);
     /* Aire entre los rombos de la regla y las horas del carril: son dos escalas
        distintas (la jornada y el tramo ampliado) y no deben leerse como una. */
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
   }
 
   .daily-agenda-page__ruler {
     flex: 1 1 auto;
     min-width: 0;
+  }
+
+  /* Los numerales de la regla asoman unos px sobre su caja, hacia el hueco que
+     ya hay bajo los controles: así la fila no le quita a la lista el alto de un
+     renglón y el día corto (4 turnos) cabe entero sobre el dock a 1440×900. */
+  .daily-agenda-page__timeline-head .daily-agenda-page__ruler {
+    padding-top: 17px;
   }
 
   .daily-agenda-page__timeline-zoom {

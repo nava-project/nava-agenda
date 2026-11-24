@@ -715,7 +715,7 @@ describe('DailyAgendaPage', () => {
       expect(wrapper.get('.daily-agenda-page__item-time').text()).toBe('2:30 – 3:00 p. m.')
     })
 
-    it('writes the time in the notebook margin: start in serif, end below, same link text (G3, #802)', async () => {
+    it('writes the time in the notebook margin: start large, end below, same link text (G3, #802)', async () => {
       // 11:30 a. m. – 12:15 p. m. en Bogotá: el inicio no comparte periodo.
       const entry = [
         { ...oneEntry[0]!, startsAt: '2026-08-28T16:30:00Z', endsAt: '2026-08-28T17:15:00Z' },
@@ -726,6 +726,8 @@ describe('DailyAgendaPage', () => {
       expect(time.get('.daily-agenda-page__item-start').text()).toBe('11:30 a. m.')
       expect(time.get('.daily-agenda-page__item-start small').text()).toBe('a. m.')
       expect(time.get('.daily-agenda-page__item-end').text()).toBe('– 12:15 p. m.')
+      // El guion no se queda solo en su línea: «– 12:15» va en un tramo.
+      expect(time.get('.daily-agenda-page__item-until').text()).toBe('– 12:15')
       // El periodo del fin baja entero en el margen estrecho del teléfono.
       expect(time.get('.daily-agenda-page__item-period').text()).toBe('p. m.')
     })
@@ -767,10 +769,47 @@ describe('DailyAgendaPage', () => {
       ).toBe(true)
     })
 
+    it('the ruler reading names the cancelled apart and ends at the latest end (G3, #802)', async () => {
+      // Bogotá: 8:00 a. m.–2:00 p. m. (largo), 10:00–10:30 cancelado, 11:00–11:30.
+      const entries = [
+        {
+          ...oneEntry[0]!,
+          id: 'l-1',
+          startsAt: '2026-08-28T13:00:00Z',
+          endsAt: '2026-08-28T19:00:00Z',
+        },
+        {
+          ...oneEntry[0]!,
+          id: 'l-2',
+          startsAt: '2026-08-28T15:00:00Z',
+          endsAt: '2026-08-28T15:30:00Z',
+          status: 'cancelled_by_customer',
+        },
+        {
+          ...oneEntry[0]!,
+          id: 'l-3',
+          startsAt: '2026-08-28T16:00:00Z',
+          endsAt: '2026-08-28T16:30:00Z',
+        },
+      ]
+      const { wrapper } = await mountWithFixedDate(entries)
+      expect(wrapper.get('.daily-agenda-page__ruler').attributes('aria-label')).toBe(
+        'Regla del día: 2 turnos y 1 cancelado, de 8:00 a. m. a 2:00 p. m.',
+      )
+      expect(wrapper.getComponent(DayRuler).props('marks')).toHaveLength(3)
+    })
+
     it('an empty day has no ruler', async () => {
       const { wrapper } = await mountWithFixedDate([])
       expect(wrapper.findComponent(DayRuler).exists()).toBe(false)
       expect(wrapper.find('.daily-agenda-page__timeline-head').exists()).toBe(false)
+    })
+
+    it('keeps the margin time in the tabular sans: the serif 1 reads as «l» (G3, #802)', () => {
+      const rule = /\.daily-agenda-page__item-start \{([^}]*)\}/.exec(pageSource)?.[1] ?? ''
+      expect(rule).toContain('font-family: var(--font-sans)')
+      expect(rule).toContain('font-variant-numeric: tabular-nums')
+      expect(rule).not.toContain('--font-display')
     })
 
     it('on desktop drops the 31 px gap under the last shift and keeps the dock reserve (G3, #802)', () => {
