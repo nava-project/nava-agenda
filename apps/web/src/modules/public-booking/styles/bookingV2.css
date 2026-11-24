@@ -1483,17 +1483,20 @@
 }
 
 /* «Tus datos» en escritorio (#747): el formulario y, a su derecha, «Tu cita»
-   fija mientras se baja. En el resumen y la confirmación, una sola columna. */
+   fija mientras se baja. En el resumen y la confirmación, una sola columna.
+   Ocupa el ancho de la reserva con la misma rejilla que «Día y hora» (#805):
+   el título arranca en el borde de la barra y el pase no cambia de ancho ni de
+   sitio al avanzar de paso. */
 @media (min-width: 1024px) {
   .bk-details:has(> .bk-details__pase) {
     display: grid;
     /* Título, hoja y lo demás; el 1fr del final absorbe el alto del riel para
        que no abra un hueco bajo el título. */
     grid-template-rows: auto auto 1fr;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    column-gap: var(--space-10);
+    grid-template-columns: minmax(0, 1fr) 340px;
+    column-gap: var(--space-12);
     align-items: start;
-    max-width: 1040px;
+    max-width: var(--bk-max);
   }
 
   .bk-details:has(> .bk-details__pase) > :not(.bk-details__pase) {

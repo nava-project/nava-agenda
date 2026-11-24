@@ -74,6 +74,21 @@ describe('finalizar la cita (#747)', () => {
     expect(css).toMatch(/\.bk-details__pase-card \{\s*display: none;/)
   })
 
+  it('alinea «Tus datos» con la barra y con la rejilla de «Día y hora» (#805)', () => {
+    const rule = (selector: string) => {
+      const start = css.indexOf(`${selector} {`)
+      return css.slice(start, css.indexOf('}', start))
+    }
+    const columns = (block: string) => block.match(/grid-template-columns: ([^;]+);/)?.[1]
+    const gap = (block: string) => block.match(/(?:column-)?gap: ([^;]+);/g)?.pop()
+    const detailsGrid = rule('  .bk-details:has(> .bk-details__pase)')
+    const daytimeGrid = rule('  .bk-daytime__grid')
+    // El mismo ancho que la barra superior: sin él, 40 px de desvío a 1440.
+    expect(detailsGrid).toMatch(/max-width: var\(--bk-max\);/)
+    expect(columns(detailsGrid)).toBe(columns(daytimeGrid))
+    expect(gap(detailsGrid)?.split(': ')[1]).toBe(gap(daytimeGrid)?.split(': ')[1])
+  })
+
   it('deja la acción secundaria del mismo alto, sin relleno', () => {
     expect(css).toMatch(/\.bk-cta--secondary \{[^}]*background-color: transparent;/)
   })
