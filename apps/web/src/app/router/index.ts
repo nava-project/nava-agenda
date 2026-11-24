@@ -8,7 +8,7 @@ import {
 import { catalogNavItems, catalogPrivateShellChildRoutes } from '@/modules/catalog'
 import { integrationsPrivateShellChildRoutes } from '@/modules/integrations'
 import { customerAccessRoutes } from '@/modules/customer-access'
-import { publicBookingRoutes } from '@/modules/public-booking'
+import { publicBookingRoutes, restoreWhenStepReady } from '@/modules/public-booking'
 import { schedulesNavItems, schedulesPrivateShellChildRoutes } from '@/modules/schedules'
 import { settingsNavItems, settingsPrivateShellChildRoutes } from '@/modules/settings'
 import { staffNavItems, staffPrivateShellChildRoutes } from '@/modules/staff'
@@ -101,7 +101,12 @@ export const router = createRouter({
   // un ancla se alcanza con desplazamiento suave (salvo si la persona pidió
   // menos movimiento). Atrás/adelante restauran la posición.
   scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) return savedPosition
+    if (savedPosition) {
+      // Un paso de la reserva llega con su esqueleto, más corto que su
+      // contenido: la posición se vuelve a aplicar cuando se destapa (H7, #824).
+      if (to.meta.bookingStep) restoreWhenStepReady(savedPosition)
+      return savedPosition
+    }
     if (to.hash) {
       const reduced =
         typeof window.matchMedia === 'function' &&

@@ -345,4 +345,14 @@ describe('PublicBookingLayout · cambio de paso (#820)', () => {
       /\.bk \*:not\(\.diamond-loader\),\s*\.bk-skel \{\s*transition: none !important;\s*animation: none !important;/,
     )
   })
+  // H7 (#824): el pie no ancla el desplazamiento y no se ve mientras el paso
+  // muestra su esqueleto, más corto que el contenido.
+  it('never anchors scrolling on the footer and keeps it unseen while the step loads', () => {
+    const css = readFileSync(resolve(__dirname, '../../styles/bookingV2.css'), 'utf8')
+    const foot = css.slice(css.indexOf('.bk-foot {'), css.indexOf('.bk-foot__firm {'))
+    expect(foot).toMatch(/overflow-anchor: none;/)
+    expect(css).toMatch(
+      /\.bk:has\(> main\[aria-busy='true'\]\) > \.bk-foot \{\s*visibility: hidden;\s*\}/,
+    )
+  })
 })

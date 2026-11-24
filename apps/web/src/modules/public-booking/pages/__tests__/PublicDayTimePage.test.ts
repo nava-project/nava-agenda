@@ -35,6 +35,8 @@ vi.mock('../../components/ProfessionalReviews.vue', () => ({
 }))
 
 const { default: PublicDayTimePage } = await import('../PublicDayTimePage.vue')
+const { chosenStartFor, rememberChosenStart, resetChosenStarts } =
+  await import('../../model/chosenStart')
 
 const ANA = {
   id: 'pro-ana',
@@ -108,6 +110,7 @@ beforeEach(() => {
   listProfessionalsMock.mockReset()
   availabilityMock.mockReset()
   servicesMock.mockReset()
+  resetChosenStarts()
   document.body.innerHTML = ''
 })
 
@@ -355,5 +358,57 @@ describe('PublicDayTimePage', () => {
     await flushPromises()
     await hours(wrapper)[0]!.trigger('click')
     expect(await axe(wrapper.element)).toHaveNoViolations()
+  })
+
+  // H7 (#824): al volver de «Tus datos», la hora elegida vuelve marcada.
+  describe('coming back from «Tus datos»', () => {
+    const checkedHour = (w: VueWrapper) =>
+      hours(w).find((h) => h.attributes('aria-checked') === 'true')
+
+    it('remembers the chosen hour and brings it back marked, on its day, with the pase ready', async () => {
+      respond()
+      const first = mountPage('pro-ana')
+      await flushPromises()
+      await days(first)[1]!.trigger('click')
+      await hours(first)[0]!.trigger('click')
+      expect(chosenStartFor('barberia', 'svc')).toBe('2030-01-15T18:30:00-05:00')
+      first.unmount()
+
+      const back = mountPage('pro-ana')
+      await flushPromises()
+      expect(days(back)[1]!.attributes('aria-checked')).toBe('true')
+      expect(checkedHour(back)?.attributes('aria-label')).toMatch(/6:30\s?p\.\s?m\./)
+      expect(back.get('a.bk-cta').text()).toContain('Seguir con tus datos')
+      expect(back.find('.bk-daytime__lost').exists()).toBe(false)
+    })
+
+    it('forgets an hour that is no longer free and says so without a dialog', async () => {
+      rememberChosenStart('barberia', 'svc', '2030-01-14T14:00:00-05:00')
+      respond(
+        [ANA, BETO],
+        slots.filter((s) => s.startsAt !== '2030-01-14T14:00:00-05:00'),
+      )
+      const wrapper = mountPage()
+      await flushPromises()
+      expect(checkedHour(wrapper)).toBeUndefined()
+      expect(wrapper.find('a.bk-cta').exists()).toBe(false)
+      const notice = wrapper.get('.bk-daytime__lost')
+      expect(notice.attributes('role')).toBe('status')
+      expect(notice.text()).toBe('La hora que habías elegido ya no está libre. Elige otra.')
+      expect(wrapper.find('[role="dialog"], [role="alertdialog"]').exists()).toBe(false)
+      expect(chosenStartFor('barberia', 'svc')).toBeNull()
+
+      await hours(wrapper)[0]!.trigger('click')
+      expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
+    })
+
+    it('does not bring back an hour of another service', async () => {
+      rememberChosenStart('barberia', 'otro', '2030-01-14T09:00:00-05:00')
+      respond()
+      const wrapper = mountPage()
+      await flushPromises()
+      expect(checkedHour(wrapper)).toBeUndefined()
+      expect(wrapper.find('.bk-daytime__lost').exists()).toBe(false)
+    })
   })
 })

@@ -38,6 +38,7 @@ import {
 import { loadPublicProfile, publicProfileFor } from '../model/publicProfile'
 import type { PublicProfessional } from '../model/publicProfessionalListOutcome'
 import { rememberPublicProfessionals } from '../model/publicProfessionals'
+import { chosenStartFor, forgetChosenStart, rememberChosenStart } from '../model/chosenStart'
 import { publicProfessionalPhotoUrl } from '../model/publicProfessionalPhotoUrl'
 import type { PublicServiceSlot } from '../model/publicServiceAvailabilityOutcome'
 import type { PublicService } from '../model/publicServiceListOutcome'
@@ -78,6 +79,8 @@ const screenState = ref<ScreenState>({ status: 'loading' })
 const chosenProfessionalId = ref<string | null>(props.professionalId)
 const activeDate = ref<string | null>(null)
 const selected = ref<DaylightSlot | null>(null)
+// La hora elegida antes de ir a «Tus datos» ya no está libre al volver (#824).
+const lostChoice = ref(false)
 
 let requestToken = 0
 // «Cargando las horas libres…» o no asoma o se queda a la vista (#820).
@@ -89,6 +92,7 @@ async function load() {
   loaderGrace.start()
   selected.value = null
   activeDate.value = null
+  lostChoice.value = false
 
   const [services, professionals, availability] = await Promise.all([
     loadPublicServices(props.slug),
@@ -127,6 +131,23 @@ async function load() {
     slotGridMinutes: availability.availability.slotGridMinutes,
     timezone: availability.availability.timezone,
   }
+  restoreChosen()
+}
+
+// Al volver de «Tus datos», la hora elegida vuelve marcada, en su día, si sigue
+// libre; si no, se olvida y se avisa sin diálogo (#824).
+function restoreChosen() {
+  const startsAt = chosenStartFor(props.slug, props.serviceId)
+  if (!startsAt) return
+  const day = days.value.find((d) => d.slots.some((s) => s.startsAt === startsAt))
+  const slot = day?.slots.find((s) => s.startsAt === startsAt)
+  if (!day || !slot) {
+    forgetChosenStart(props.slug, props.serviceId)
+    lostChoice.value = true
+    return
+  }
+  activeDate.value = day.civilDate
+  selected.value = slot
 }
 
 watch(() => [props.slug, props.serviceId], load, { immediate: true })
@@ -234,6 +255,8 @@ watch(days, (next) => {
 // Elegir una hora; el selector ya ignora lo que no se puede elegir.
 function selectSlot(slot: DaylightSlot) {
   selected.value = slot
+  lostChoice.value = false
+  rememberChosenStart(props.slug, props.serviceId, slot.startsAt)
 }
 
 // ── Pase ──────────────────────────────────────────────────────────────────
@@ -334,6 +357,9 @@ const failedRequestId = computed(() =>
           <template v-else>Tu servicio</template>
         </p>
         <h1 class="bk-title">Elige día y hora</h1>
+        <p v-if="lostChoice" class="bk-daytime__lost" role="status">
+          La hora que habías elegido ya no está libre. Elige otra.
+        </p>
 
         <!-- Sin profesionales no hay nada que elegir. -->
         <div v-if="professionals.length === 0" class="bk-empty">
