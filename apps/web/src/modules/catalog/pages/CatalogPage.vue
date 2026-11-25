@@ -2196,8 +2196,8 @@ async function reloadAfterConflict(serviceId: string) {
 
 /* «Animaciones reducidas» de Configuración (DEC-110): el esqueleto queda
    quieto igual que con la preferencia del sistema. */
-:global(:root[data-motion='reduced']) .catalog-page__skeleton-icon,
-:global(:root[data-motion='reduced']) .catalog-page__skeleton-bar {
+:root[data-motion='reduced'] .catalog-page__skeleton-icon,
+:root[data-motion='reduced'] .catalog-page__skeleton-bar {
   animation: none;
   opacity: 0.8;
 }

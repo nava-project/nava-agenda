@@ -2223,8 +2223,8 @@ async function onSubmitRename() {
 
 /* «Animaciones reducidas» de Configuración (DEC-110): el esqueleto queda
    quieto igual que con la preferencia del sistema. */
-:global(:root[data-motion='reduced']) .staff-page__skeleton-portrait,
-:global(:root[data-motion='reduced']) .staff-page__skeleton-bar {
+:root[data-motion='reduced'] .staff-page__skeleton-portrait,
+:root[data-motion='reduced'] .staff-page__skeleton-bar {
   animation: none;
   opacity: 0.8;
 }
