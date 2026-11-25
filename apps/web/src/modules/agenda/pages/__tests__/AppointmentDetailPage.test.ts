@@ -1666,6 +1666,171 @@ describe('AppointmentDetailPage', () => {
   })
 })
 
+// #869 (estandar-diseno-visual §6.3): mientras guarda, el botón de confirmar espera con
+// aria-disabled y no con `disabled` nativo. Un botón deshabilitado suelta el foco en <body>
+// (en el navegador; jsdom no lo hace, por eso se mira el atributo), y si la escritura falla
+// el foco ya no está en el diálogo. Aquí se monta adjunto al documento para que haya foco.
+describe('AppointmentDetailPage · el foco tras una escritura fallida (#869)', () => {
+  const mounted: VueWrapper[] = []
+  afterEach(() => {
+    while (mounted.length) mounted.pop()!.unmount()
+  })
+
+  async function mountAttached(detail: typeof readyDetail) {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail })
+    const router = buildRouter()
+    await router.push({
+      name: 'agenda-detalle-turno',
+      params: { appointmentId: 'a-1' },
+      query: { date: '2026-08-28', professionalId: 'b-1' },
+    })
+    await router.isReady()
+    const wrapper = mount(AppointmentDetailPage, {
+      attachTo: document.body,
+      global: { plugins: [router], stubs: { teleport: true } },
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    return wrapper
+  }
+
+  function dialogButton(wrapper: VueWrapper, text: string): HTMLButtonElement {
+    const button = [...openDialogElement(wrapper).querySelectorAll('button')].find(
+      (b) => b.textContent?.trim() === text,
+    )
+    if (!button) throw new Error(`dialog button ${JSON.stringify(text)} not found`)
+    return button
+  }
+
+  type Pending = { resolve: (outcome: { kind: string }) => void }
+  function pendingWrite(mock: ReturnType<typeof vi.fn>): Pending {
+    const pending: Pending = { resolve: () => {} }
+    mock.mockReturnValueOnce(new Promise((r) => (pending.resolve = r)))
+    return pending
+  }
+
+  const CASES = [
+    {
+      name: 'Reprogramar turno',
+      detail: rescheduleDetail,
+      mock: rescheduleAppointmentMock,
+      confirm: 'Confirmar',
+      prepare: async (wrapper: VueWrapper) => {
+        await openRescheduleDialog(wrapper)
+        await chooseRescheduleStart(wrapper, '9', ':00')
+      },
+    },
+    {
+      name: 'Cancelar turno',
+      detail: readyDetail,
+      mock: cancelAppointmentByProfessionalMock,
+      confirm: 'Sí, cancelar turno',
+      prepare: openCancelDialog,
+    },
+    {
+      name: 'Marcar como atendido',
+      detail: readyDetail,
+      mock: completeAppointmentMock,
+      confirm: 'Sí, marcar como atendido',
+      prepare: openCompleteDialog,
+    },
+    {
+      name: 'Marcar que no asistió',
+      detail: readyDetail,
+      mock: markAppointmentNoShowMock,
+      confirm: 'Sí, marcar que no asistió',
+      prepare: openNoShowDialog,
+    },
+    {
+      name: 'Corregir resultado',
+      detail: { ...readyDetail, status: 'completed' },
+      mock: correctAppointmentStatusMock,
+      confirm: 'Confirmar corrección',
+      prepare: async (wrapper: VueWrapper) => {
+        await openCorrectDialog(wrapper)
+        await fillCorrectForm(wrapper, 'no_show', 'motivo de prueba')
+      },
+    },
+  ]
+
+  it.each(CASES)(
+    '$name: confirming keeps the focus on the button while it waits and after a network failure',
+    async ({ detail, mock, confirm, prepare }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      const write = pendingWrite(mock)
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      // Espera sin soltar el foco y sin admitir un segundo envío.
+      expect(mock).toHaveBeenCalledTimes(1)
+      expect(button.disabled).toBe(false)
+      expect(button.getAttribute('aria-disabled')).toBe('true')
+      expect(button.getAttribute('aria-busy')).toBe('true')
+      expect(document.activeElement).toBe(button)
+      button.click()
+      await flushPromises()
+      expect(mock).toHaveBeenCalledTimes(1)
+
+      write.resolve({ kind: 'network-error' })
+      await flushPromises()
+
+      expect(openDialogElement(wrapper).querySelector('[role="alert"]')?.textContent).toContain(
+        'No pudimos conectar',
+      )
+      expect(document.activeElement).toBe(button)
+      expect(button.getAttribute('aria-disabled')).toBe('false')
+    },
+  )
+
+  it.each(CASES)(
+    '$name: after an unexpected error the focus stays on confirm, which retries',
+    async ({ detail, mock, confirm, prepare }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      mock.mockResolvedValueOnce({ kind: 'unexpected-error' })
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      expect(openDialogElement(wrapper).querySelector('[role="alert"]')).toBeTruthy()
+      expect(document.activeElement).toBe(button)
+    },
+  )
+
+  // Cuando la alerta solo ofrece «Recargar», confirmar otra vez fallaría igual: el foco va
+  // a «Recargar», que es lo que resuelve el error (mismo criterio que #853 y #856).
+  const RELOAD_CASES = CASES.flatMap((c) =>
+    ['version-conflict', 'invalid-state'].map((kind) => ({ ...c, kind, outcome: { kind } })),
+  ).concat([
+    {
+      ...CASES.find((c) => c.name === 'Marcar como atendido')!,
+      kind: 'validation-error',
+      outcome: { kind: 'validation-error', detail: 'El turno empieza más tarde.' },
+    } as (typeof CASES)[number] & { kind: string; outcome: { kind: string } },
+  ])
+
+  it.each(RELOAD_CASES)(
+    '$name, $kind: the focus goes to «Recargar» in the alert',
+    async ({ detail, mock, confirm, prepare, outcome }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      mock.mockResolvedValueOnce(outcome)
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      const reload = openDialogElement(wrapper).querySelector('[role="alert"] button')
+      expect(reload?.textContent?.trim()).toBe('Recargar')
+      expect(document.activeElement).toBe(reload)
+    },
+  )
+})
+
 // DEC-193 (#854): un «No vino» ocupa la agenda solo hasta el minuto de la marca. El
 // detalle lo dice en texto a partir del `occupiedUntil` del servidor; la confirmación
 // y la corrección anticipan la consecuencia, y el 409 de T8 se muestra entero.

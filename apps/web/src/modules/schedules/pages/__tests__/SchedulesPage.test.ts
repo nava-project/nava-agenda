@@ -471,6 +471,58 @@ describe('SchedulesPage', () => {
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo actualizado'])
   })
 
+  // #869 (estandar-diseno-visual §6.3): mientras guarda, «Guardar» espera con aria-disabled
+  // y no con `disabled` nativo, que en el navegador suelta el foco en <body> (jsdom no lo
+  // hace, por eso se mira el atributo). Si falla, el foco sigue en «Guardar», que reintenta.
+  it('editing a tramo: «Guardar» keeps the focus while it waits and after a network failure (#869)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchWorkingHoursMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: { items: [mondayMorning], nextCursor: null },
+    })
+    const wrapper = mount(SchedulesPage, {
+      attachTo: document.body,
+      global: { stubs: { teleport: true } },
+    })
+    try {
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .filter((b) => b.text() === 'Editar')[0]!
+        .trigger('click')
+      await flushPromises()
+      await setTime(editForm(wrapper), '09:00', 0)
+      await setTime(editForm(wrapper), '13:00', 1)
+
+      let resolveWrite: (outcome: { kind: string }) => void = () => {}
+      updateWorkingHourMock.mockReturnValueOnce(new Promise((r) => (resolveWrite = r)))
+      const save = editForm(wrapper).get('button[type="submit"]').element as HTMLButtonElement
+      save.focus()
+      save.click()
+      await flushPromises()
+
+      expect(updateWorkingHourMock).toHaveBeenCalledTimes(1)
+      expect(save.disabled).toBe(false)
+      expect(save.getAttribute('aria-disabled')).toBe('true')
+      expect(document.activeElement).toBe(save)
+      save.click()
+      await flushPromises()
+      expect(updateWorkingHourMock).toHaveBeenCalledTimes(1)
+
+      resolveWrite({ kind: 'network-error' })
+      await flushPromises()
+
+      expect(editForm(wrapper).find('[role="alert"]').exists()).toBe(true)
+      expect(document.activeElement).toBe(save)
+      expect(save.getAttribute('aria-disabled')).toBe('false')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   // #782: sin cambios, «Guardar» espera en reposo (punteado de latón) y sigue
   // activo; al cambiar algo vuelve a ser la acción principal.
   it('rests the edit dialog save button until the tramo changes', async () => {

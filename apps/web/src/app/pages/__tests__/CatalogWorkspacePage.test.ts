@@ -70,6 +70,9 @@ const assignmentsOf = (...ids: string[]) => ({
 // carga DEFAULT_MIN_HOLD_MS con setTimeout y Date.now(). Con una espera real en la
 // prueba, un CI cargado la reordenaba frente a la del componente. setImmediate sigue
 // real porque lo usa flushPromises; vi.waitFor avanza el reloj simulado en cada intento.
+// Ese vi.waitFor del montaje avanza hasta 1 s y absorbe una mínima más larga de lo
+// previsto: el valor exacto de la mínima del catálogo lo vigila CatalogPage.test.ts,
+// no este archivo (revisión de #870).
 const COMPONENT_WAITS = {
   // useMinHoldLoading: el rombo de la carga, con margen.
   loadHold: DEFAULT_MIN_HOLD_MS + 50,

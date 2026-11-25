@@ -27,6 +27,11 @@ interface Props {
   /** Lo que se espera, en gerundio («Confirmando…»): con `loading`, va junto al
    * diamante en el sol en lugar del texto. Sin él, solo el diamante. */
   loadingLabel?: string
+  /** Con `loading`, espera con `aria-disabled` y sin `disabled` nativo: un botón
+   * deshabilitado suelta el foco en <body>, y en un diálogo, si guardar falla, el
+   * foco debe seguir ahí (estandar-diseno-visual.md §6.3, #869). El clic y la
+   * tecla siguen bloqueados por handleClick. */
+  keepFocusWhileLoading?: boolean
   /** Solo para un botón interruptor: su estado (`aria-pressed`). Sin la prop, el
    * botón es una acción y no lleva `aria-pressed`: un «false» por defecto haría
    * que el lector anunciara cada botón como un interruptor sin presionar. */
@@ -41,6 +46,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   loading: false,
   loadingLabel: undefined,
+  keepFocusWhileLoading: false,
   pressed: undefined,
   type: 'button',
 })
@@ -65,7 +71,8 @@ const classes = computed(() => {
 
 // El atributo nativo `disabled` ya impide el click y la activación por
 // teclado del navegador mientras disabled o loading estén activos; este
-// guardia es una defensa adicional explícita, no la única barrera real.
+// guardia es una defensa adicional explícita. Con keepFocusWhileLoading es la
+// barrera mientras carga: preventDefault también frena el envío de un submit.
 const handleClick = (event: MouseEvent) => {
   if (props.disabled || props.loading) {
     event.preventDefault()
@@ -80,7 +87,7 @@ const handleClick = (event: MouseEvent) => {
   <button
     :class="classes"
     :type="type"
-    :disabled="disabled || loading"
+    :disabled="disabled || (loading && !keepFocusWhileLoading)"
     :aria-disabled="disabled || loading"
     :aria-pressed="pressed"
     :aria-busy="loading"
@@ -310,7 +317,8 @@ const handleClick = (event: MouseEvent) => {
   position: relative;
 }
 
-.base-button--loading:disabled {
+.base-button--loading:disabled,
+.base-button--loading[aria-disabled='true'] {
   opacity: 1;
   cursor: progress;
 }

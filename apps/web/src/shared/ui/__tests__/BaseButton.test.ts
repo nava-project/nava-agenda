@@ -4,7 +4,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import BaseButton from '../BaseButton.vue'
@@ -169,8 +169,60 @@ describe('BaseButton', () => {
 
     it('does not look disabled while it waits', () => {
       const css = readFileSync(resolve(__dirname, '../BaseButton.vue'), 'utf-8')
-      expect(css).toMatch(/\.base-button--loading:disabled \{\s*opacity: 1;/)
+      expect(css).toMatch(
+        /\.base-button--loading:disabled,\s*\.base-button--loading\[aria-disabled='true'\] \{\s*opacity: 1;/,
+      )
       expect(css).toMatch(/\.base-button__content--waiting \{\s*opacity: 0;/)
+    })
+  })
+
+  // #869: un diálogo que guarda no puede soltar el foco en <body> (§6.3).
+  describe('keepFocusWhileLoading', () => {
+    it('waits with aria-disabled instead of the native disabled, and ignores clicks', async () => {
+      const wrapper = mount(BaseButton, {
+        props: { loading: true, keepFocusWhileLoading: true },
+        slots: { default: 'Confirmar' },
+      })
+      const button = wrapper.get('button')
+      expect(button.attributes('disabled')).toBeUndefined()
+      expect(button.attributes('aria-disabled')).toBe('true')
+      expect(button.attributes('aria-busy')).toBe('true')
+      expect(button.classes()).toContain('base-button--loading')
+      expect(button.classes()).not.toContain('base-button--disabled')
+      await button.trigger('click')
+      expect(wrapper.emitted('click')).toBeUndefined()
+    })
+
+    it('does not submit its form while it waits', async () => {
+      const onSubmit = vi.fn((e: Event) => e.preventDefault())
+      const wrapper = mount(
+        {
+          components: { BaseButton },
+          setup: () => ({ onSubmit }),
+          template:
+            '<form @submit="onSubmit"><BaseButton type="submit" loading keep-focus-while-loading>Guardar</BaseButton></form>',
+        },
+        { attachTo: document.body },
+      )
+      wrapper.get('button').element.click()
+      expect(onSubmit).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('still uses the native disabled when it is disabled for another reason', () => {
+      const wrapper = mount(BaseButton, {
+        props: { disabled: true, keepFocusWhileLoading: true },
+        slots: { default: 'Confirmar' },
+      })
+      expect(wrapper.get('button').attributes('disabled')).toBeDefined()
+    })
+
+    it('without the prop, loading keeps the native disabled', () => {
+      const wrapper = mount(BaseButton, {
+        props: { loading: true },
+        slots: { default: 'Confirmar' },
+      })
+      expect(wrapper.get('button').attributes('disabled')).toBeDefined()
     })
   })
 

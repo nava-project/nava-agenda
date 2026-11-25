@@ -1798,7 +1798,7 @@ const editPreview = computed(() =>
             :class="{ 'schedules-page__save--rest': editPristine }"
             :loading="editStatus === 'saving'"
             loading-label="Guardando…"
-            :disabled="editStatus === 'saving'"
+            keep-focus-while-loading
           >
             Guardar
           </BaseButton>
