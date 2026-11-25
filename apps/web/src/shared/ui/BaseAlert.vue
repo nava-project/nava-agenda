@@ -20,7 +20,8 @@
  * la que cumple "icono, texto y estructura además del color" (WCAG 2.2 AA
  * 1.4.1): ya no hay un glifo circular genérico.
  */
-import { computed, ref, useSlots } from 'vue'
+import { computed, inject, ref, useSlots } from 'vue'
+import { surroundingHeadingLevelKey } from './headingLevel'
 
 interface Props {
   /** Variante semántica de la alerta */
@@ -43,6 +44,11 @@ const emit = defineEmits<{
   dismiss: []
   action: [event: MouseEvent]
 }>()
+
+// Un nivel por debajo del encabezado que la envuelve (h3 dentro de un
+// BaseDialog); sin proveedor, el h4 de siempre (#862).
+const surroundingLevel = inject(surroundingHeadingLevelKey, null)
+const titleTag = computed(() => `h${Math.min(6, (surroundingLevel?.value ?? 3) + 1)}`)
 
 const isVisible = ref(true)
 const alertRef = ref<HTMLDivElement | null>(null)
@@ -132,7 +138,9 @@ const style = computed(() => ({
     <div class="base-alert__content">
       <div v-if="statusWord || title || slots.default" class="base-alert__text">
         <p v-if="statusWord" class="base-alert__status">{{ statusWord }}</p>
-        <h4 v-if="title && !isPlain" class="base-alert__title">{{ title }}</h4>
+        <component :is="titleTag" v-if="title && !isPlain" class="base-alert__title">
+          {{ title }}
+        </component>
         <p v-else-if="title && isPlain" class="base-alert__title base-alert__title--plain">
           {{ title }}
         </p>

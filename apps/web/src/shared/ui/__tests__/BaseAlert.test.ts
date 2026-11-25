@@ -4,8 +4,10 @@
  */
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { h } from 'vue'
 import { axe } from 'vitest-axe'
 import BaseAlert from '../BaseAlert.vue'
+import BaseDialog from '../BaseDialog.vue'
 
 // Ver BaseButton.test.ts: color-contrast se desactiva por la ausencia de
 // Canvas2D en jsdom; el contraste ya está verificado en la tabla aprobada
@@ -61,6 +63,30 @@ describe('BaseAlert', () => {
     // La variante sin relleno (caja de requisitos de contraseña) compone el
     // título como versalita única, sin repetirlo también como titular en
     // negrita (trabajo requerido §4 del issue #212).
+    // #862: bajo el h2 de un diálogo, un h4 salta un nivel (axe: heading-order).
+    it('titles with an h4 on its own, and one level below a titled dialog (h3)', async () => {
+      const alone = mount(BaseAlert, { props: { title: 'Aviso' } })
+      expect(alone.find('.base-alert__title').element.tagName).toBe('H4')
+
+      const inDialog = mount(BaseDialog, {
+        props: { modelValue: true, title: 'Corregir resultado' },
+        slots: { default: () => h(BaseAlert, { variant: 'danger', title: 'No pudimos corregir' }) },
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      expect(inDialog.find('.base-dialog__title').element.tagName).toBe('H2')
+      expect(inDialog.find('.base-alert__title').element.tagName).toBe('H3')
+      inDialog.unmount()
+
+      // Sin título el diálogo no pinta su h2: la alerta conserva el h4.
+      const untitled = mount(BaseDialog, {
+        props: { modelValue: true },
+        slots: { default: () => h(BaseAlert, { title: 'Aviso' }) },
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      expect(untitled.find('.base-alert__title').element.tagName).toBe('H4')
+      untitled.unmount()
+    })
+
     it('plain variant renders the title as a single brass caption, not a bold heading', () => {
       const wrapper = mount(BaseAlert, {
         props: { variant: 'plain', title: 'Requisitos de la contraseña' },

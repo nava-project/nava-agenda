@@ -17,7 +17,8 @@ export const openDialogStack: string[] = []
  * Accesibilidad: role="dialog", aria-modal="true", aria-labelledby,
  * focus trap, focus restoration, focus-visible en elementos interactivos
  */
-import { computed, ref, useId, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { computed, ref, useId, onMounted, onUnmounted, watch, nextTick, provide } from 'vue'
+import { surroundingHeadingLevelKey } from './headingLevel'
 
 interface Props {
   /** Si el diálogo está abierto (v-model) */
@@ -53,6 +54,12 @@ const props = withDefaults(defineProps<Props>(), {
   closeOnEscape: true,
   showClose: true,
 })
+
+// El título del diálogo es un h2: las alertas de dentro titulan con h3 (#862).
+provide(
+  surroundingHeadingLevelKey,
+  computed(() => (props.title ? 2 : null)),
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -498,6 +505,10 @@ onUnmounted(() => {
 .base-dialog {
   display: flex;
   flex-direction: column;
+  /* Ítem flex del velo: sin esto, su ancho mínimo es el min-content del contenido
+     (botones sin partir más la barra de desplazamiento) y a 320 px la ventana
+     salía del viewport por los dos lados (#862). */
+  min-width: 0;
   max-height: calc(100vh / var(--ui-zoom, 1) - var(--space-4) * 2);
   background-color: var(--color-surface);
   border-radius: var(--radius-lg);

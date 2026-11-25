@@ -1561,6 +1561,45 @@ describe('AppointmentDetailPage', () => {
     expect(wrapper.element.querySelector('.base-dialog--open')).toBeTruthy()
   })
 
+  // #862: la alerta del 409 titulaba con un h4 bajo el h2 del diálogo (axe:
+  // heading-order) y, a 320 px, ensanchaba el diálogo hasta 341 px, fuera del
+  // viewport por los dos lados.
+  it('after a conflict, the dialog headings go h2 → h3 and the dialog can shrink to the phone', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, status: 'cancelled_by_professional' },
+    })
+    const { wrapper } = await mountPage()
+    await openCorrectDialog(wrapper)
+    await fillCorrectForm(wrapper, 'completed', 'motivo de prueba')
+    correctAppointmentStatusMock.mockResolvedValueOnce({
+      kind: 'conflict',
+      detail: 'otro turno ya ocupa parte de esta franja; corrige primero ese turno',
+    })
+    submitCorrectDialog(wrapper)
+    await flushPromises()
+
+    const dialog = wrapper.element.querySelector('.base-dialog--open')!
+    const headings = [...dialog.querySelectorAll('h1, h2, h3, h4, h5, h6')].map((h) => h.tagName)
+    expect(headings).toEqual(['H2', 'H3'])
+
+    // CSS, no layout: jsdom no maqueta. El diálogo puede encogerse por debajo del
+    // min-content de su contenido, y en el teléfono los botones se apilan cuando
+    // no caben uno junto al otro.
+    const dialogSource = readFileSync(
+      join(__dirname, '../../../../shared/ui/BaseDialog.vue'),
+      'utf8',
+    )
+    expect(dialogSource).toMatch(/\n\.base-dialog \{[^}]*min-width: 0;/)
+    const source = readFileSync(join(__dirname, '../AppointmentDetailPage.vue'), 'utf8')
+    expect(source).toMatch(
+      /\.appointment-detail-page__dialog-actions > \* \{\s*flex: 1 1 0;\s*min-width: max-content;/,
+    )
+    expect(source).not.toMatch(
+      /dialog-actions \{\s*display: grid;\s*grid-template-columns: 1fr 1fr/,
+    )
+  })
+
   it('on a validation error, shows the server message', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({
       kind: 'success',

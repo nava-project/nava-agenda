@@ -3358,9 +3358,12 @@ function occurredAtLabel(entry: HistoryEntry): string {
     padding: var(--space-4);
   }
 
-  .appointment-detail-page__dialog-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  /* Dos botones del mismo ancho cuando caben; si no, uno bajo el otro. Con una
+     rejilla 1fr 1fr, «Confirmar corrección» no se parte y, a 320 px o con la barra
+     de desplazamiento que trae una alerta, empujaba «Volver» fuera del diálogo (#862). */
+  .appointment-detail-page__dialog-actions > * {
+    flex: 1 1 0;
+    min-width: max-content;
   }
 
   :global(.appointment-detail-page__ink-dialog .base-dialog__container) {

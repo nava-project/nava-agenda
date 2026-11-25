@@ -34,6 +34,7 @@ vi.mock('../../api/appointmentsApi', () => ({
 
 const { default: DailyAgendaPage } = await import('../DailyAgendaPage.vue')
 const { default: DayRuler } = await import('@/shared/ui/DayRuler.vue')
+const { DaylightStrip } = await import('@/modules/public-booking')
 const pageSource = readFileSync(join(__dirname, '../DailyAgendaPage.vue'), 'utf8')
 
 const twoProfessionals = [
@@ -911,6 +912,27 @@ describe('DailyAgendaPage', () => {
       expect(slip.text()).not.toContain('Juan')
     })
 
+    // #865: a 44 px, «2:30 p. m.» se partía en tres líneas sobre la ficha vecina.
+    // La ficha estrecha muestra solo «2:30»; el periodo sigue en el texto, oculto a
+    // la vista, y vuelve al ensancharla.
+    it('a slip narrower than the time with its period shows only the clock, period kept in the text', async () => {
+      const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T19:35:00Z' }]
+      const { wrapper } = await mountWithFixedDate(entry)
+      const slip = wrapper.get('.daily-agenda-page__timeline-slip')
+      expect(slip.classes()).toContain('daily-agenda-page__timeline-slip--narrow')
+      const time = slip.get('.daily-agenda-page__timeline-slip-time')
+      expect(time.text().replace(/\s+/g, ' ')).toBe('2:30 p. m.')
+      expect(time.get('.daily-agenda-page__timeline-slip-period').text()).toBe('p. m.')
+    })
+
+    it('a slip wide enough for the time with its period is not narrow', async () => {
+      const entry = [{ ...oneEntry[0]!, endsAt: '2026-08-28T20:15:00Z' }]
+      const { wrapper } = await mountWithFixedDate(entry)
+      expect(wrapper.get('.daily-agenda-page__timeline-slip').classes()).not.toContain(
+        'daily-agenda-page__timeline-slip--narrow',
+      )
+    })
+
     it('con el dedo, el primer toque ensancha la ficha con horario y servicio y el segundo abre el detalle', async () => {
       const { wrapper, router } = await mountWithFixedDate()
       const slip = wrapper.get('.daily-agenda-page__timeline-slip')
@@ -1261,6 +1283,21 @@ describe('DailyAgendaPage · «No vino» que liberó su franja (DEC-193)', () =>
 
     expect(wrapper.find('.daily-agenda-page__item-freed').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('Libre desde')
+  })
+
+  // #865: la franja del teléfono y la regla del día terminan el «No vino» en el
+  // corte, como el carril; antes lo dibujaban hasta `endsAt`.
+  it('draws the freed «No vino» on the day strip only up to the cut', async () => {
+    fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [noShow] })
+    const { wrapper } = await mountReady()
+
+    const marks = wrapper.findComponent(DaylightStrip).props('marks') as {
+      start: number
+      end: number
+    }[]
+    // De las 2:30 p. m. al corte de las 2:40 p. m.: 10 min, no los 30 de la franja.
+    expect(marks).toHaveLength(1)
+    expect(marks[0]!.end - marks[0]!.start).toBe(10)
   })
 
   it('has no detectable axe violations with a freed «No vino»', async () => {
