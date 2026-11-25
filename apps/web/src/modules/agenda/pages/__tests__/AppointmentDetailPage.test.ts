@@ -624,6 +624,33 @@ describe('AppointmentDetailPage', () => {
     expect(confirmButton(wrapper).disabled).toBe(true)
   })
 
+  it('rereads the free starts every time Reprogramar opens, not only when the page loads (#845)', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
+    const { wrapper } = await mountPage()
+    // Con el diálogo cerrado no lee: la página pudo quedarse abierta un buen rato.
+    expect(fetchManualAvailabilityMock).not.toHaveBeenCalled()
+
+    await openRescheduleDialog(wrapper)
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledTimes(1)
+
+    const close = Array.from(openDialogElement(wrapper).querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Cancelar',
+    )!
+    close.click()
+    await flushPromises()
+    expect(wrapper.element.querySelector('.base-dialog--open')).toBeNull()
+
+    await openRescheduleDialog(wrapper)
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledTimes(2)
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'b-1',
+      's-1',
+      today,
+      shiftCivilDate(today, 13),
+      'a-1',
+    )
+  })
+
   it('choosing a free start fills the ticket in 12 h and enables Confirmar', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: rescheduleDetail })
     const { wrapper } = await mountPage()
