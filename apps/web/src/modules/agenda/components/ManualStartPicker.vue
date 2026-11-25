@@ -281,8 +281,8 @@ watch(status, (value) => {
         v-else-if="status === 'loading'"
         class="manual-start__skeleton"
         role="status"
-        @animationstart.self="onSkeletonAppear"
         aria-live="polite"
+        @animationstart.self="onSkeletonAppear"
       >
         <DiamondLoader label="Cargando las horas libres…" layout="column" />
         <div class="manual-start__skeleton-days" aria-hidden="true">
