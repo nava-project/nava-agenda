@@ -11,7 +11,15 @@
 // siendo la propia lista, y los errores siguen dentro del diálogo, junto al
 // formulario que conservan.
 import { computed, onMounted, onUnmounted, ref, useSlots, watch } from 'vue'
-import { PAGE_MIN_HOLD_MS, useMinHoldLoading, useToast, useVocabulary } from '@/shared/composables'
+import {
+  LOADER_FADE_MS,
+  LOADER_MIN_VISIBLE_MS,
+  PAGE_MIN_HOLD_MS,
+  useLoaderGrace,
+  useMinHoldLoading,
+  useToast,
+  useVocabulary,
+} from '@/shared/composables'
 import {
   BaseAlert,
   BaseBadge,
@@ -24,6 +32,7 @@ import {
   DiamondLoader,
   EmptyScene,
   ContentReveal,
+  SunDiamond,
 } from '@/shared/ui'
 import {
   createService,
@@ -663,6 +672,8 @@ const editAttempted = ref(false)
 // cuántos son (cargando o falló la consulta): la casilla se ofrece igual, sin el número.
 const editApplyToUpcoming = ref(false)
 const editUpcomingCount = ref<number | null>(null)
+// Mientras llega el número, la frase que lo lleva reserva su alto (#843, CA-19).
+const editUpcomingPending = ref(false)
 let editImpactSeq = 0
 
 const editPriceChanged = computed(() => {
@@ -680,9 +691,11 @@ const showApplyToUpcoming = computed(
 
 async function loadUpcomingCount(serviceId: string) {
   const seq = ++editImpactSeq
+  editUpcomingPending.value = true
   const outcome = await previewDeactivation(serviceId)
   // Una respuesta de un diálogo anterior no pisa la del servicio que se edita ahora.
   if (seq !== editImpactSeq) return
+  editUpcomingPending.value = false
   editUpcomingCount.value = outcome.kind === 'success' ? outcome.affectedAppointments : null
 }
 
@@ -832,11 +845,20 @@ async function openDeactivateDialog(service: Service) {
 // CA-024-01: la advertencia solo muestra impacto respaldado por el
 // servidor, nunca un valor por defecto asumido en el cliente. Se reutiliza al
 // volver a "desactivar" dentro del mismo diálogo tras una reactivación.
+//
+// La espera (#843, CA-2): con la gracia del cargador, «Consultando el impacto
+// real…» no asoma si la respuesta es rápida y, si asomó, se queda lo bastante.
+const impactGrace = useLoaderGrace({ minVisibleMs: LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS })
+const impactSlotRef = ref<HTMLElement | null>(null)
+
 async function loadDeactivationImpact(service: Service) {
   impactStatus.value = 'loading'
   affectedAppointments.value = 0
+  impactGrace.start()
 
   const outcome = await previewDeactivation(service.id)
+  if (lifecycleIntent.value !== 'deactivate' || lifecycleTarget.value?.id !== service.id) return
+  await impactGrace.settled()
   if (lifecycleIntent.value !== 'deactivate' || lifecycleTarget.value?.id !== service.id) return
 
   if (outcome.kind === 'success') {
@@ -1006,7 +1028,25 @@ async function onConfirmReactivate() {
   }
 }
 
+// «Reintentar» desaparece al empezar la consulta: el foco pasa antes al hueco del
+// impacto, que sigue ahí (#843, CA-13).
+function retryImpact() {
+  const target = lifecycleTarget.value
+  if (!target) return
+  impactSlotRef.value?.focus()
+  void loadDeactivationImpact(target)
+}
+
+// Mientras guarda o consulta el impacto, el interruptor espera con aria-disabled
+// (no `disabled`): conserva el foco y el segundo clic se ignora aquí (#843, CA-15).
+const lifecycleSwitchWaiting = computed(
+  () =>
+    lifecycleStatus.value === 'saving' ||
+    (lifecycleIntent.value === 'deactivate' && impactStatus.value === 'loading'),
+)
+
 function onConfirmLifecycle() {
+  if (lifecycleSwitchWaiting.value) return
   if (lifecycleIntent.value === 'deactivate') void onConfirmDeactivate()
   else if (lifecycleIntent.value === 'reactivate') void onConfirmReactivate()
 }
@@ -1638,12 +1678,19 @@ async function reloadAfterConflict(serviceId: string) {
           />
           <span>
             <strong>Aplicar el precio nuevo a los turnos ya agendados</strong>
-            <small>
-              {{
-                editUpcomingCount === null
-                  ? 'Si no la marcas, los turnos futuros conservan el precio con el que se agendaron.'
-                  : `Hay ${editUpcomingCount} ${editUpcomingCount === 1 ? 'turno futuro' : 'turnos futuros'} de este servicio. Si no la marcas, conservan el precio con el que se agendaron.`
-              }}
+            <!-- Las dos frases comparten celda: la que lleva el número llega
+                 después y ya tiene su alto reservado (#843, CA-19). -->
+            <small class="catalog-page__apply-upcoming-copy">
+              <span v-if="editUpcomingCount === null">{{
+                'Si no la marcas, los turnos futuros conservan el precio con el que se agendaron.'
+              }}</span>
+              <span
+                v-if="editUpcomingCount !== null || editUpcomingPending"
+                :aria-hidden="editUpcomingCount === null ? 'true' : undefined"
+                >{{
+                  `Hay ${editUpcomingCount ?? 0} ${editUpcomingCount === 1 ? 'turno futuro' : 'turnos futuros'} de este servicio. Si no la marcas, conservan el precio con el que se agendaron.`
+                }}</span
+              >
             </small>
           </span>
         </label>
@@ -1733,15 +1780,10 @@ async function reloadAfterConflict(serviceId: string) {
         </BaseAlert>
 
         <template v-if="lifecycleIntent">
-          <p
-            v-if="lifecycleIntent === 'deactivate' && impactStatus === 'loading'"
-            class="catalog-page__lifecycle-lead"
-            role="status"
-            aria-live="polite"
-          >
-            Consultando el impacto real…
-          </p>
-          <p v-else-if="lifecycleIntent === 'deactivate'" class="catalog-page__lifecycle-lead">
+          <!-- El texto de arriba no depende del impacto: está desde el principio.
+               «Consultando el impacto real…» vive en el hueco del impacto, más
+               abajo (#843, CA-2). -->
+          <p v-if="lifecycleIntent === 'deactivate'" class="catalog-page__lifecycle-lead">
             <strong>{{ lifecycleTarget?.name }}</strong> dejará de estar disponible para nuevas
             reservas.
           </p>
@@ -1763,7 +1805,7 @@ async function reloadAfterConflict(serviceId: string) {
             :aria-checked="lifecycleSwitchOn"
             aria-label="Servicio activo"
             :aria-busy="lifecycleStatus === 'saving'"
-            :disabled="lifecycleStatus === 'saving' || impactStatus === 'loading'"
+            :aria-disabled="lifecycleSwitchWaiting ? 'true' : undefined"
             @click="onConfirmLifecycle"
           >
             <span class="catalog-page__lifecycle-state">Inactivo</span>
@@ -1810,8 +1852,47 @@ async function reloadAfterConflict(serviceId: string) {
           </dl>
 
           <template v-if="lifecycleIntent === 'deactivate'">
-            <template v-if="impactStatus === 'ready'">
+            <!-- El hueco del impacto reserva el alto de la caja (una copia oculta
+                 con el texto más largo): al llegar la respuesta nada se mueve
+                 (#843, CA-2). Espera, caja y aviso van en la misma celda. -->
+            <div
+              ref="impactSlotRef"
+              class="catalog-page__lifecycle-impact-slot"
+              tabindex="-1"
+              aria-label="Impacto de desactivar"
+            >
               <div
+                class="catalog-page__lifecycle-impact catalog-page__lifecycle-impact--reserve"
+                aria-hidden="true"
+              >
+                <span class="catalog-page__lifecycle-impact-icon"><span>!</span></span>
+                <p class="catalog-page__lifecycle-impact-text">
+                  <strong>00</strong> citas futuras no se cancelan automáticamente.
+                </p>
+              </div>
+              <p
+                v-if="impactStatus === 'loading'"
+                class="catalog-page__lifecycle-impact-wait"
+                role="status"
+              >
+                <SunDiamond size="sm" aria-hidden="true" />
+                <span>Consultando el impacto real…</span>
+              </p>
+              <BaseAlert
+                v-else-if="impactStatus === 'error' && lifecycleStatus !== 'not-found'"
+                variant="warning"
+                title="No pudimos consultar el impacto"
+                role="alert"
+              >
+                Revisa tu conexión e inténtalo de nuevo.
+                <template #action
+                  ><BaseButton variant="secondary" @click="retryImpact"
+                    >Reintentar</BaseButton
+                  ></template
+                >
+              </BaseAlert>
+              <div
+                v-else-if="impactStatus === 'ready'"
                 class="catalog-page__lifecycle-impact"
                 :class="{ 'catalog-page__lifecycle-impact--warning': affectedAppointments > 0 }"
                 role="status"
@@ -1832,10 +1913,10 @@ async function reloadAfterConflict(serviceId: string) {
                   <template v-else>No hay citas futuras afectadas.</template>
                 </p>
               </div>
-              <p class="catalog-page__lifecycle-note">
-                El historial se conserva; el servicio nunca se elimina.
-              </p>
-            </template>
+            </div>
+            <p class="catalog-page__lifecycle-note">
+              El historial se conserva; el servicio nunca se elimina.
+            </p>
           </template>
           <ul v-else class="catalog-page__lifecycle-checks">
             <li>Vuelve a aparecer para nuevas reservas.</li>
@@ -2479,6 +2560,15 @@ async function reloadAfterConflict(serviceId: string) {
 }
 
 /* HU-029: casilla de «aplicar el precio a los turnos ya agendados». */
+.catalog-page__apply-upcoming-copy {
+  display: grid;
+}
+.catalog-page__apply-upcoming-copy > span {
+  grid-area: 1 / 1;
+}
+.catalog-page__apply-upcoming-copy > span[aria-hidden='true'] {
+  visibility: hidden;
+}
 .catalog-page__apply-upcoming {
   display: flex;
   align-items: flex-start;
@@ -2741,8 +2831,41 @@ async function reloadAfterConflict(serviceId: string) {
     0 0 0 4px var(--color-focus);
 }
 
-.catalog-page__lifecycle-switch:disabled {
+.catalog-page__lifecycle-switch[aria-disabled='true'] {
   cursor: progress;
+}
+
+/* Hueco del impacto (#843, CA-2): la caja oculta reserva el alto; la espera, la
+   caja real y el aviso ocupan la misma celda. */
+.catalog-page__lifecycle-impact-slot {
+  display: grid;
+}
+.catalog-page__lifecycle-impact-slot > * {
+  grid-area: 1 / 1;
+}
+.catalog-page__lifecycle-impact-slot:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.catalog-page__lifecycle-impact--reserve {
+  visibility: hidden;
+}
+/* Asoma a los 300 ms (LOADER_APPEAR_MS), su único retardo: con una respuesta
+   rápida no se ve. */
+.catalog-page__lifecycle-impact-wait {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-on-strong-muted);
+  animation: catalog-impact-wait-in 200ms ease-out 300ms backwards;
+}
+@keyframes catalog-impact-wait-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .catalog-page__lifecycle-state {

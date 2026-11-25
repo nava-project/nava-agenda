@@ -36,6 +36,7 @@ import {
   type DaylightSlot,
 } from '@/modules/public-booking'
 import { BaseButton, BaseDatePicker, BaseTimePicker, DiamondLoader } from '@/shared/ui'
+import { LOADER_FADE_MS, LOADER_MIN_VISIBLE_MS, useLoaderGrace } from '@/shared/composables'
 import {
   formatCivilDateFull,
   formatCivilDateShort,
@@ -115,6 +116,18 @@ function windowDays(starts: string[], timezone: string, from: string): DaylightD
   })
 }
 
+// La espera lleva la gracia del cargador (#843, CA-7): con una respuesta rápida el
+// esqueleto no asoma (aparece a los 300 ms, en CSS) y, si asomó, se queda lo
+// bastante para leerse.
+const loadGrace = useLoaderGrace({ minVisibleMs: LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS })
+
+// El selector puede cargar dentro de un diálogo aún cerrado (Reprogramar lo
+// prepara con la página): el esqueleto empieza a asomar al abrirse, no al montar.
+// Su animación de entrada lo dice (#843).
+function onSkeletonAppear(event: AnimationEvent) {
+  if (event.animationName.includes('manual-start-skeleton-in')) loadGrace.markAppeared()
+}
+
 async function load() {
   const ticket = ++request
   if (!ready.value) {
@@ -123,6 +136,7 @@ async function load() {
     return
   }
   status.value = 'loading'
+  loadGrace.start()
   const from = today.value
   const outcome = await fetchManualAvailability(
     props.professionalId,
@@ -131,6 +145,8 @@ async function load() {
     shiftCivilDate(from, WINDOW_DAYS - 1),
     props.excludeAppointmentId,
   )
+  if (ticket !== request) return
+  await loadGrace.settled()
   if (ticket !== request) return
   if (outcome.kind !== 'success') {
     status.value = outcome.kind === 'not-found' ? 'not-found' : 'error'
@@ -148,6 +164,13 @@ async function load() {
     days.value.find((d) => d.slots.length > 0) ??
     days.value[0])!.civilDate
   status.value = 'ready'
+}
+
+// «Reintentar» desaparece al empezar la carga: el foco pasa antes al selector, que
+// sigue ahí (#843, CA-13).
+function retry() {
+  root.value?.focus()
+  void load()
 }
 
 watch(
@@ -243,7 +266,12 @@ watch(status, (value) => {
 </script>
 
 <template>
-  <div ref="root" class="manual-start" :class="{ 'manual-start--manual': mode === 'manual' }">
+  <div
+    ref="root"
+    class="manual-start"
+    :class="{ 'manual-start--manual': mode === 'manual' }"
+    tabindex="-1"
+  >
     <template v-if="mode === 'grid'">
       <p v-if="status === 'idle'" class="manual-start__hint">
         Elige el profesional y el servicio para ver sus horas libres.
@@ -254,6 +282,7 @@ watch(status, (value) => {
         class="manual-start__skeleton"
         role="status"
         aria-live="polite"
+        @animationstart.self="onSkeletonAppear"
       >
         <DiamondLoader label="Cargando las horas libres…" layout="column" />
         <div class="manual-start__skeleton-days" aria-hidden="true">
@@ -284,7 +313,7 @@ watch(status, (value) => {
       <div v-else-if="status === 'error'" class="manual-start__notice" role="alert">
         <p class="manual-start__notice-text">No pudimos cargar las horas libres.</p>
         <div class="manual-start__actions">
-          <BaseButton variant="secondary" @click="load">Reintentar</BaseButton>
+          <BaseButton variant="secondary" @click="retry">Reintentar</BaseButton>
           <BaseButton variant="ghost" @click="useOtherTime">Otra hora</BaseButton>
         </div>
       </div>
@@ -300,7 +329,7 @@ watch(status, (value) => {
         </p>
         <div class="manual-start__actions">
           <BaseButton variant="secondary" @click="useOtherTime">Otra hora</BaseButton>
-          <BaseButton variant="ghost" @click="load">Reintentar</BaseButton>
+          <BaseButton variant="ghost" @click="retry">Reintentar</BaseButton>
         </div>
       </div>
 
@@ -673,6 +702,28 @@ watch(status, (value) => {
   gap: 12px;
   min-width: 0;
   overflow: hidden;
+  /* Todo el esqueleto asoma junto a los 300 ms (LOADER_APPEAR_MS), un solo
+     retardo; el cargador de dentro no suma el suyo (#843, CA-7). */
+  animation: manual-start-skeleton-in 200ms ease-out 300ms backwards;
+}
+
+.manual-start__skeleton :deep(.diamond-loader) {
+  animation: none;
+}
+
+.manual-start:focus {
+  outline: none;
+}
+
+.manual-start:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+@keyframes manual-start-skeleton-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .manual-start__skeleton-group {

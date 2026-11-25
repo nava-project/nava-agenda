@@ -12,6 +12,7 @@
 // con scroll vertical interno. El estado vive aquí en ambos casos.
 import { computed, nextTick, ref, watch } from 'vue'
 import { BaseButton, DiamondLoader, StarRating } from '@/shared/ui'
+import { LOADER_FADE_MS, LOADER_MIN_VISIBLE_MS, useLoaderGrace } from '@/shared/composables'
 import { listProfessionalReviews, setReviewHidden } from '../api/reviewsApi'
 import type { ProfessionalReview, ProfessionalReviewList } from '../model/review'
 
@@ -41,6 +42,7 @@ type LoadState =
 
 const open = ref(false)
 const toggleRef = ref<HTMLButtonElement | null>(null)
+const bodyRef = ref<HTMLElement | null>(null)
 const state = ref<LoadState>({ status: 'idle' })
 const busyId = ref<string | null>(null)
 const actionError = ref('')
@@ -52,16 +54,40 @@ const shown = computed(() =>
     : { rating: props.rating, count: props.ratingCount },
 )
 
+// La espera lleva la gracia del cargador (#843, CA-6): DiamondLoader asoma solo a
+// los 300 ms (su único retardo) y, si asomó, se queda lo bastante para leerse.
+const loadGrace = useLoaderGrace({ minVisibleMs: LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS })
+
 async function load() {
   const token = ++requestToken
   state.value = { status: 'loading' }
   actionError.value = ''
+  loadGrace.start()
   const outcome = await listProfessionalReviews(props.professionalId)
+  if (token !== requestToken) return
+  await loadGrace.settled()
   if (token !== requestToken) return
   state.value =
     outcome.kind === 'success'
       ? { status: 'success', reviews: outcome.reviews }
       : { status: 'error' }
+}
+
+// Después de ocultar o mostrar una reseña, la lista se vuelve a leer sin dejar de
+// verse: cambiarla por el cargador y de vuelta era un destello (#843).
+async function refresh(): Promise<boolean> {
+  const token = ++requestToken
+  const outcome = await listProfessionalReviews(props.professionalId)
+  if (token !== requestToken || outcome.kind !== 'success') return false
+  state.value = { status: 'success', reviews: outcome.reviews }
+  return true
+}
+
+// «Reintentar» desaparece al empezar la carga: el foco pasa antes a la lista (en el
+// cuadro lateral) o al botón de las reseñas, que siguen ahí (#843, CA-13).
+function retry() {
+  ;(bodyRef.value?.tabIndex === 0 ? bodyRef.value : toggleRef.value)?.focus()
+  void load()
 }
 
 function setOpen(value: boolean) {
@@ -93,7 +119,10 @@ async function toggleHidden(review: ProfessionalReview) {
     return
   }
   // El promedio lo calcula el servidor: se vuelve a leer la lista completa.
-  await load()
+  if (!(await refresh())) {
+    actionError.value = 'Cambiamos la reseña, pero no pudimos recargar la lista.'
+    return
+  }
   if (state.value.status === 'success') {
     emit('changed', {
       rating: state.value.reviews.rating,
@@ -177,6 +206,7 @@ function formatDate(iso: string): string {
         </header>
 
         <div
+          ref="bodyRef"
           class="professional-reviews__body"
           :class="{ 'professional-reviews__body--scroll': asideTo }"
           :tabindex="asideTo ? 0 : undefined"
@@ -193,13 +223,16 @@ function formatDate(iso: string): string {
           />
           <p v-else-if="state.status === 'error'" class="professional-reviews__note" role="alert">
             No pudimos cargar las reseñas.
-            <BaseButton type="button" variant="secondary" @click="load">Reintentar</BaseButton>
+            <BaseButton type="button" variant="secondary" @click="retry">Reintentar</BaseButton>
           </p>
           <template v-else-if="state.status === 'success'">
             <p v-if="actionError" class="professional-reviews__error" role="alert">
               {{ actionError }}
             </p>
-            <p v-if="state.reviews.items.length === 0" class="professional-reviews__note">
+            <p
+              v-if="state.reviews.items.length === 0"
+              class="professional-reviews__note professional-reviews__note--empty"
+            >
               Todavía no hay reseñas.
             </p>
             <ul v-else class="professional-reviews__list">
@@ -417,6 +450,19 @@ function formatDate(iso: string): string {
 
 .professional-reviews__error {
   color: var(--color-danger-text, currentColor);
+}
+
+/* «Todavía no hay reseñas.» y el aviso de error ocupan al menos lo que el
+   cargador en línea (sol md de 36 px + su relleno): al llegar, la ficha no se
+   encoge bajo la mano (#843). */
+.professional-reviews__note--empty,
+.professional-reviews__body > .professional-reviews__note[role='alert'] {
+  min-height: calc(36px + 2 * var(--space-2));
+}
+
+.professional-reviews__note--empty {
+  display: flex;
+  align-items: center;
 }
 
 .professional-reviews__list {

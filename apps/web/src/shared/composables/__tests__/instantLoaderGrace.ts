@@ -25,9 +25,9 @@ import type * as LoaderGraceModule from '../useLoaderGrace'
 export function instantLoaderGrace(real: typeof LoaderGraceModule): typeof LoaderGraceModule {
   return {
     ...real,
-    useLoaderGrace: () =>
+    useLoaderGrace: (options) =>
       vi.isFakeTimers()
-        ? real.useLoaderGrace()
-        : { start: () => {}, settled: () => Promise.resolve() },
+        ? real.useLoaderGrace(options)
+        : { start: () => {}, markAppeared: () => {}, settled: () => Promise.resolve() },
   }
 }

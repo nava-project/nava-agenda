@@ -21,6 +21,11 @@ const previewDeactivationMock = vi.hoisted(() => vi.fn())
 const deactivateMock = vi.hoisted(() => vi.fn())
 const reactivateMock = vi.hoisted(() => vi.fn())
 
+vi.mock('@/shared/composables/useLoaderGrace', async (original) =>
+  (await import('@/shared/composables/__tests__/instantLoaderGrace')).instantLoaderGrace(
+    await original(),
+  ),
+)
 vi.mock('../../api/catalogApi', () => ({
   fetchServices: fetchMock,
   createService: createMock,
@@ -1259,6 +1264,127 @@ describe('CatalogPage', () => {
       await flushPromises()
 
       expect(wrapper.emitted('service-created')).toBeUndefined()
+    })
+  })
+
+  describe('la espera de los diálogos sin saltos (#843)', () => {
+    type Outcome = Record<string, unknown>
+    function deferred() {
+      let resolve!: (value: Outcome) => void
+      const promise = new Promise<Outcome>((r) => (resolve = r))
+      return { promise, resolve }
+    }
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // El reloj falso va antes de montar: así la pantalla usa la gracia de verdad.
+    async function openLifecyclePending() {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      const mounting = mountReady()
+      await vi.advanceTimersByTimeAsync(DEFAULT_MIN_HOLD_MS + 100)
+      const wrapper = await mounting
+      const impact = deferred()
+      previewDeactivationMock.mockReturnValueOnce(impact.promise)
+      await findButtonByText(wrapper, 'Cambiar estado').trigger('click')
+      await flushPromises()
+      return { wrapper, impact }
+    }
+
+    it('«Estado del servicio» keeps its lead text and reserves the impact box while it asks', async () => {
+      const { wrapper, impact } = await openLifecyclePending()
+      const dialog = openDialogElement(wrapper)
+      // El texto de arriba está desde el principio; la espera va en el hueco del impacto.
+      expect(dialog.querySelector('.catalog-page__lifecycle-lead')?.textContent).toContain(
+        'dejará de estar disponible',
+      )
+      const slot = dialog.querySelector('.catalog-page__lifecycle-impact-slot')!
+      expect(slot.querySelector('.catalog-page__lifecycle-impact--reserve')).not.toBeNull()
+      expect(slot.querySelector('.catalog-page__lifecycle-impact-wait')?.textContent).toContain(
+        'Consultando el impacto real…',
+      )
+
+      await vi.advanceTimersByTimeAsync(350)
+      impact.resolve({ kind: 'success', affectedAppointments: 2 })
+      await flushPromises()
+      // La espera ya pudo verse: se queda su fundido más 300 ms pleno, hasta los 800.
+      expect(slot.querySelector('.catalog-page__lifecycle-impact-wait')).not.toBeNull()
+      await vi.advanceTimersByTimeAsync(440)
+      expect(slot.querySelector('.catalog-page__lifecycle-impact-wait')).not.toBeNull()
+      await vi.advanceTimersByTimeAsync(20)
+      expect(slot.querySelector('.catalog-page__lifecycle-impact-wait')).toBeNull()
+      expect(slot.querySelector('.catalog-page__lifecycle-impact--reserve')).not.toBeNull()
+      expect(slot.textContent).toContain('citas futuras no se cancelan')
+    })
+
+    it('a quick impact answer replaces the wait at once', async () => {
+      const { wrapper, impact } = await openLifecyclePending()
+      await vi.advanceTimersByTimeAsync(100)
+      impact.resolve({ kind: 'success', affectedAppointments: 0 })
+      await flushPromises()
+      const dialog = openDialogElement(wrapper)
+      expect(dialog.querySelector('.catalog-page__lifecycle-impact-wait')).toBeNull()
+      expect(dialog.textContent).toContain('No hay citas futuras afectadas.')
+    })
+
+    it('the switch waits with aria-disabled, keeps the focus and ignores a click meanwhile', async () => {
+      const { wrapper, impact } = await openLifecyclePending()
+      const control =
+        openDialogElement(wrapper).querySelector<HTMLButtonElement>('[role="switch"]')!
+      expect(control.getAttribute('aria-disabled')).toBe('true')
+      expect(control.disabled).toBe(false)
+      control.click()
+      await flushPromises()
+      expect(deactivateMock).not.toHaveBeenCalled()
+
+      impact.resolve({ kind: 'success', affectedAppointments: 0 })
+      await flushPromises()
+      expect(control.getAttribute('aria-disabled')).toBeNull()
+    })
+
+    it('a failed impact query says so inside the dialog and retries with the focus kept', async () => {
+      const { wrapper, impact } = await openLifecyclePending()
+      // El foco solo se mueve dentro del documento.
+      document.body.appendChild(wrapper.element)
+      impact.resolve({ kind: 'network-error' })
+      await flushPromises()
+      const dialog = openDialogElement(wrapper)
+      expect(dialog.textContent).toContain('No pudimos consultar el impacto')
+      const retry = Array.from(dialog.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === 'Reintentar',
+      )!
+      previewDeactivationMock.mockResolvedValueOnce({ kind: 'success', affectedAppointments: 1 })
+      retry.focus()
+      retry.click()
+      expect(document.activeElement).toBe(
+        dialog.querySelector('.catalog-page__lifecycle-impact-slot'),
+      )
+      await flushPromises()
+      expect(dialog.textContent).toContain('cita futura no se cancela')
+      expect(dialog.textContent).not.toContain('No pudimos consultar el impacto')
+      wrapper.unmount()
+    })
+
+    it('«Editar servicio» reserves the line with the number while it is on its way', async () => {
+      const wrapper = await mountReady([service('s-1', 'Corte clásico', { price: '45000.00' })])
+      const count = deferred()
+      previewDeactivationMock.mockReturnValueOnce(count.promise)
+      await findButtonByText(wrapper, 'Editar').trigger('click')
+      setInputValue(openDialogInput(wrapper, 'price'), '50000.00')
+      await flushPromises()
+      const copy = openDialogElement(wrapper).querySelector('.catalog-page__apply-upcoming-copy')!
+      const spans = Array.from(copy.querySelectorAll('span'))
+      expect(spans).toHaveLength(2)
+      // La frase con el número ya ocupa su sitio, oculta para todos.
+      expect(spans[1]!.getAttribute('aria-hidden')).toBe('true')
+
+      count.resolve({ kind: 'success', affectedAppointments: 3 })
+      await flushPromises()
+      const after = Array.from(copy.querySelectorAll('span'))
+      expect(after).toHaveLength(1)
+      expect(after[0]!.textContent).toContain('Hay 3 turnos futuros')
+      expect(after[0]!.getAttribute('aria-hidden')).toBeNull()
     })
   })
 })

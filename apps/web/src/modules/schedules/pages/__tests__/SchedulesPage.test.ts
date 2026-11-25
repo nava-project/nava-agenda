@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
@@ -307,6 +307,79 @@ describe('SchedulesPage', () => {
     expect(wrapper.text()).not.toContain('8:00 a. m.')
   })
 
+  describe('el velo al cambiar de profesional (#843, CA-22)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    // Cambia a Bruno con su horario pendiente; cada prueba decide cuándo llega.
+    async function switchPending() {
+      const wrapper = await mountReady(fourProfessionals, [mondayMorning])
+      let resolve: (value: unknown) => void = () => {}
+      fetchWorkingHoursMock.mockReturnValueOnce(new Promise((r) => (resolve = r)))
+      const options = await openProfessionalList(wrapper)
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+      await options[1]!.trigger('click')
+      await flushPromises()
+      const arrive = () =>
+        resolve({
+          kind: 'success',
+          page: {
+            items: [{ ...mondayMorning, id: 'wh-2', startsTime: '10:00' }],
+            nextCursor: null,
+          },
+        })
+      return { wrapper, arrive }
+    }
+    const veil = (wrapper: VueWrapper) => wrapper.find('.schedules-page__veil').exists()
+    const dimmed = (wrapper: VueWrapper) =>
+      wrapper.find('.schedules-page__board-wrap--busy').exists()
+
+    it('keeps the board inert at once but shows the veil and the dimming only after 300 ms', async () => {
+      const { wrapper, arrive } = await switchPending()
+      expect(wrapper.get('.schedules-page__board').attributes('inert')).toBeDefined()
+      expect(veil(wrapper)).toBe(false)
+      expect(dimmed(wrapper)).toBe(false)
+      expect(wrapper.get('.schedules-page__stats').attributes('inert')).toBeUndefined()
+      await vi.advanceTimersByTimeAsync(300)
+      expect(veil(wrapper)).toBe(true)
+      expect(dimmed(wrapper)).toBe(true)
+      // Las cifras atenuadas son contenido inactivo mientras tanto, como el tablero.
+      expect(wrapper.get('.schedules-page__stats').attributes('inert')).toBeDefined()
+      arrive()
+      await flushPromises()
+      wrapper.unmount()
+    })
+
+    it('a quick answer never shows the veil nor dims the board', async () => {
+      const { wrapper, arrive } = await switchPending()
+      await vi.advanceTimersByTimeAsync(150)
+      arrive()
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(veil(wrapper)).toBe(false)
+      expect(dimmed(wrapper)).toBe(false)
+      expect(wrapper.text()).toContain('10:00 a. m.')
+      wrapper.unmount()
+    })
+
+    it('holds a veil that appeared for its entrance plus the minimum visible time', async () => {
+      const { wrapper, arrive } = await switchPending()
+      await vi.advanceTimersByTimeAsync(350)
+      arrive()
+      await flushPromises()
+      // Asomó a los 300 ms: se queda 180 + 300 ms, hasta los 780.
+      await vi.advanceTimersByTimeAsync(420)
+      expect(veil(wrapper)).toBe(true)
+      expect(wrapper.get('.schedules-page__board').attributes('inert')).toBeDefined()
+      await vi.advanceTimersByTimeAsync(20)
+      expect(veil(wrapper)).toBe(false)
+      expect(dimmed(wrapper)).toBe(false)
+      expect(wrapper.get('.schedules-page__board').attributes('inert')).toBeUndefined()
+      wrapper.unmount()
+    })
+  })
+
   it('creating a tramo succeeds and appends it to its day', async () => {
     const wrapper = await mountReady(oneProfessional, [])
     await openCreateDialog(wrapper)
@@ -319,6 +392,34 @@ describe('SchedulesPage', () => {
     expect(createWorkingHourMock).toHaveBeenCalledWith('b-1', 1, '08:00', 60, expect.any(String))
     expect(wrapper.text()).toContain('8:00 a. m.')
     expect(toastState.items.map((item) => item.title)).toEqual(['Tramo agregado'])
+  })
+
+  it('al reintentar el horario, el foco pasa al selector y no cae al body (#843, CA-13)', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: oneProfessional,
+    })
+    fetchWorkingHoursMock.mockResolvedValueOnce({ kind: 'network-error' })
+    const wrapper = mount(SchedulesPage, {
+      attachTo: document.body,
+      global: { stubs: { teleport: true } },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('No pudimos cargar el horario')
+
+    const retry = wrapper.findAll('button').find((b) => b.text() === 'Reintentar')!
+    ;(retry.element as HTMLElement).focus()
+    fetchWorkingHoursMock.mockResolvedValueOnce({
+      kind: 'success',
+      page: { items: [mondayMorning], nextCursor: null },
+    })
+    await retry.trigger('click')
+
+    expect(document.activeElement?.id).toBe('schedules-professional-select')
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('No pudimos cargar el horario')
+    expect(document.activeElement?.id).toBe('schedules-professional-select')
+    wrapper.unmount()
   })
 
   it('an overlapping tramo (CA-040-04) shows a recoverable message without closing the dialog', async () => {
