@@ -8,7 +8,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
 import { mount, flushPromises } from '@vue/test-utils'
@@ -377,6 +377,55 @@ describe('NewAppointmentPage', () => {
       undefined,
     )
     expect(wrapper.find('.bk-min[aria-checked="true"]').exists()).toBe(true)
+  })
+
+  describe('«Empezó ahora» (#852)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('sends the existing POST with today and the current minute, and a 409 is shown as with a written time (CA-2, CA-4)', async () => {
+      // Las 3:47 p. m. de hoy en Bogotá (UTC−5).
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(`${today}T20:47:35Z`))
+      const wrapper = await mountReady()
+      fetchAssignedServicesMock.mockResolvedValueOnce({ kind: 'success', items: twoServices })
+      await chooseProfessional(wrapper)
+      await wrapper.get<HTMLSelectElement>('#new-appointment-service').setValue('s-1')
+      const inputs = wrapper.findAll('input')
+      const byLabel = (text: string) =>
+        inputs.find((i) => i.element.labels?.[0]?.textContent?.includes(text))!
+      await byLabel('Persona atendida').setValue('Juan Pérez')
+      await byLabel('Nombre del cliente').setValue('Juan Pérez')
+      await flushPromises()
+
+      const button = (text: string) => wrapper.findAll('button').find((b) => b.text() === text)!
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text().startsWith('Otra hora'))!
+        .trigger('click')
+      await flushPromises()
+      await button('Empezó ahora').trigger('click')
+      await flushPromises()
+
+      createManualAppointmentMock.mockResolvedValueOnce({
+        kind: 'conflict',
+        detail: 'el profesional ya tiene una cita en ese intervalo',
+      })
+      await wrapper.get('form').trigger('submit.prevent')
+      await flushPromises()
+
+      expect(createManualAppointmentMock).toHaveBeenCalledWith(
+        expect.objectContaining({ professionalId: 'b-1', startsAt: `${today}T15:47:00` }),
+        expect.any(String),
+      )
+      // Alerta global y el mismo detalle junto al campo, como con la hora escrita.
+      expect(wrapper.text().split('el profesional ya tiene una cita en ese intervalo').length).toBe(
+        3,
+      )
+      expect(byLabel('Nombre del cliente').element.value).toBe('Juan Pérez')
+      expect(button('Empezó ahora')).toBeDefined()
+    })
   })
 
   it('counts the note against the real validateCustomerNote limit (500)', async () => {

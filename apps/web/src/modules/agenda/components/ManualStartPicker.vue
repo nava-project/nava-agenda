@@ -28,6 +28,11 @@
  * - Un `404` de la lectura (el servicio se desactivó o dejó de estar asignado al
  *   profesional después de reservar) dice qué pasó y ofrece «Otra hora»; no cambia
  *   de modo en silencio.
+ * - «Empezó ahora» (#852, solo con `offerStartedNow`): en «Otra hora», escribe hoy
+ *   y el minuto actual en la zona del negocio, para el turno que ya se está
+ *   atendiendo. Es la creación manual de siempre (DEC-006): la rejilla sigue sin
+ *   inicios pasados (DEC-190, punto 4). Reprogramar no lo pasa, porque allí el
+ *   servidor exige un inicio futuro.
  *
  * La página posee la fecha y la hora (`v-model:date`, `v-model:time`, «HH:MM» de
  * 24 h en la zona del negocio); este componente solo propone y emite.
@@ -45,8 +50,10 @@ import {
   formatCivilDateFull,
   formatCivilDateShort,
   getCivilDateInTimezone,
+  minutesIntoCivilDate,
   shiftCivilDate,
 } from '@/shared/time/civilDate'
+import { dateTimeFormat } from '@/shared/time/dateTimeFormat'
 import { fetchManualAvailability } from '../api/appointmentsApi'
 
 const WINDOW_DAYS = 14
@@ -69,6 +76,8 @@ interface Props {
   active?: boolean
   dateLabel?: string
   timeLabel?: string
+  /** Ofrece «Empezó ahora» en «Otra hora» (#852). Solo «Nuevo turno» lo pasa. */
+  offerStartedNow?: boolean
 }
 const props = withDefaults(defineProps<Props>(), {
   error: undefined,
@@ -79,6 +88,7 @@ const props = withDefaults(defineProps<Props>(), {
   active: true,
   dateLabel: 'Fecha del turno',
   timeLabel: 'Hora del turno',
+  offerStartedNow: false,
 })
 const date = defineModel<string>('date', { required: true })
 const time = defineModel<string>('time', { required: true })
@@ -269,6 +279,34 @@ function useOtherTime() {
   void focusIn([`#${dateId.value}`])
 }
 
+// «Empezó ahora» (#852). Solo con profesional, servicio y la zona del negocio
+// (CA-3, CA-9): sin esa zona, la página muestra en la del dispositivo, y un «ahora»
+// en otra zona quedaría horas desplazado.
+const startedNowOffered = computed(() => props.offerStartedNow && ready.value && !!props.timezone)
+const startedNowAnnouncement = ref('')
+
+function startedNow() {
+  const zoneNow = props.timezone
+  if (!zoneNow) return
+  // El inicio queda fijo en el toque, truncado al minuto (CA-5): es «cuándo
+  // empezó», no se recalcula al enviar.
+  const now = new Date()
+  const civilToday = getCivilDateInTimezone(zoneNow, now)
+  date.value = civilToday
+  time.value = clockOf(minutesIntoCivilDate(now.toISOString(), civilToday, zoneNow))
+  // El foco se queda en el botón (CA-6). La región se vacía y se reescribe en el
+  // siguiente tick: dos toques en el mismo minuto dejarían el mismo texto, y el
+  // lector no lo repetiría.
+  const clock = dateTimeFormat('es-CO', {
+    timeZone: zoneNow,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(now)
+  startedNowAnnouncement.value = ''
+  void nextTick(() => (startedNowAnnouncement.value = `Inicio: hoy, ${clock}`))
+}
+
 function useGrid() {
   mode.value = 'grid'
   // Una hora escrita a mano que la rejilla no ofrece no queda elegida a escondidas.
@@ -429,6 +467,20 @@ watch(status, (value) => {
       </div>
       <p v-if="props.error" :id="errorId" class="manual-start__error" role="alert">
         <span class="manual-start__error-mark" aria-hidden="true" />{{ props.error }}
+      </p>
+      <!-- Un enlace de texto como «Otra hora»: la única acción llena sigue siendo
+           «Registrar turno» (diseno-v2). -->
+      <button
+        v-if="startedNowOffered"
+        type="button"
+        class="manual-start__switch manual-start__started-now"
+        :disabled="props.disabled"
+        @click="startedNow"
+      >
+        Empezó ahora
+      </button>
+      <p v-if="startedNowOffered" class="manual-start__sr-only" aria-live="polite">
+        {{ startedNowAnnouncement }}
       </p>
       <button v-if="ready" type="button" class="manual-start__switch" @click="useGrid">
         Ver las horas libres
@@ -673,6 +725,11 @@ watch(status, (value) => {
   text-decoration: underline;
   text-decoration-color: var(--color-brass-line);
   text-underline-offset: 4px;
+}
+
+.manual-start__switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .manual-start__switch-hint {
