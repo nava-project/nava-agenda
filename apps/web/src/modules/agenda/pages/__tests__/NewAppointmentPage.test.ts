@@ -6,6 +6,8 @@
  * accesibilidad. appointmentsApi se sustituye por un doble de prueba; el
  * recorrido real contra el API vive en el E2E de HU-061.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_BRAND, resetBrand, setBrand } from '@/shared/model'
@@ -388,6 +390,70 @@ describe('NewAppointmentPage', () => {
     expect(skeleton.attributes('role')).toBe('status')
     expect(skeleton.text()).toContain('Cargando profesionales')
     expect(wrapper.findAll('.nt-skeleton__band')).toHaveLength(4)
+  })
+
+  it('marks the answer block as docked only while the rail foot is below the view (#839)', async () => {
+    // jsdom no maqueta ni pega: se simula el IntersectionObserver del pie del riel.
+    type Entry = Pick<
+      IntersectionObserverEntry,
+      'isIntersecting' | 'boundingClientRect' | 'rootBounds'
+    >
+    let notify: (entries: Entry[]) => void = () => {}
+    let root: Element | Document | null | undefined
+    class FakeObserver {
+      constructor(cb: (entries: Entry[]) => void, options?: IntersectionObserverInit) {
+        notify = cb
+        root = options?.root
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver)
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    document.body.appendChild(scroller)
+    const entry = (isIntersecting: boolean, top: number): Entry => ({
+      isIntersecting,
+      boundingClientRect: { top } as DOMRectReadOnly,
+      rootBounds: { bottom: 700 } as DOMRectReadOnly,
+    })
+    try {
+      const wrapper = await mountReady(oneProfessional, { attachTo: scroller })
+      const respond = () => wrapper.get('.new-appointment-page__respond').attributes('data-docked')
+      expect(root).toBe(scroller)
+      expect(respond()).toBeUndefined()
+
+      // Al cargar en una vista baja el pie del riel queda debajo: el bloque está pegado.
+      notify([entry(false, 860)])
+      await flushPromises()
+      expect(respond()).toBe('true')
+
+      // Al bajar hasta el final el bloque vuelve a su sitio y deja de leerse como dock.
+      notify([entry(true, 690)])
+      await flushPromises()
+      expect(respond()).toBeUndefined()
+      wrapper.unmount()
+    } finally {
+      scroller.remove()
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('paints the docked block with the panel canvas, never a plate of its own (#839)', () => {
+    const page = readFileSync(join(__dirname, '../NewAppointmentPage.vue'), 'utf8')
+    const shell = readFileSync(join(__dirname, '../../../auth/layouts/PrivateShell.vue'), 'utf8')
+    // El relleno es el lienzo del escenario, con su luz fija a la ventana.
+    expect(page).toMatch(/background: var\(--shell-canvas-fill, var\(--color-surface-strong\)\);/)
+    expect(page).not.toMatch(
+      /linear-gradient\(to bottom, transparent, var\(--color-surface-strong\) 14px\)/,
+    )
+    expect(shell).toMatch(
+      /--shell-canvas-fill:[\s\S]*?no-repeat fixed,\s*var\(--color-surface-strong\);/,
+    )
+    // Filete de latón solo pegado.
+    expect(page).toMatch(
+      /\.new-appointment-page__respond\[data-docked\]::before \{\s*border-top: 1px solid color-mix\(in srgb, var\(--color-brass-line\)/,
+    )
   })
 
   it('keeps Registrar and Cancelar together in the summary rail from the start', async () => {

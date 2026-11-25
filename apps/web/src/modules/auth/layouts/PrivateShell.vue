@@ -100,6 +100,20 @@ function onRetry() {
    fuera de pantalla en vez de quedarse fijos mientras solo el contenido
    se desplaza (reporte en vivo, issue #189). */
 .private-shell__stage {
+  /* El lienzo como relleno para lo que se pega sobre el contenido (el dock de
+     «Nuevo turno», #839): el color del escenario y la luz salvia, fija a la
+     ventana en el mismo sitio que .shell-ambient__glow--sage (el escenario
+     llega a los bordes derecho e inferior de la ventana). La luz de latón
+     vive arriba a la izquierda y nunca alcanza esos bloques. */
+  --shell-canvas-fill:
+    radial-gradient(
+        closest-side,
+        color-mix(in srgb, var(--color-brand-sage) 14%, transparent),
+        transparent
+      )
+      right -26vmax bottom -38vmax / max(70vmax, 520px) max(70vmax, 520px) no-repeat fixed,
+    var(--color-surface-strong);
+
   position: relative;
   background-color: var(--color-surface-strong);
   display: flex;
