@@ -87,19 +87,21 @@ export async function releaseIfConfirmed(page: Page, base: string, id: string): 
 }
 
 /**
- * El recorrido completo. Devuelve los ids creados en `created` a medida que
- * existen, para que quien llama los libere aunque un paso falle.
+ * El recorrido completo. Deja los ids creados en `created` a medida que existen,
+ * para que quien llama los libere aunque un paso falle, y devuelve los nombres
+ * únicos de la corrida.
  */
 export async function noVinoLiberaFranja(
   page: Page,
   base: string,
   professional: NoVinoProfessional,
   created: string[],
-): Promise<void> {
+): Promise<{ nameA: string; nameB: string }> {
   // Nombres únicos por corrida: los turnos no se borran (RN-CIT-04), así que una
   // corrida anterior deja filas con el mismo nombre en la agenda de hoy.
   const run = Date.now().toString(36).slice(-5)
   const nameA = `Persona de prueba 854 A ${run}`
+  const nameB = `Persona de prueba 854 B ${run}`
   // 1. Un turno que empezó ahora, de 30 min.
   const first = await registerStartedNow(page, base, professional, nameA)
   created.push(first)
@@ -107,7 +109,8 @@ export async function noVinoLiberaFranja(
   await markNoShowInsideSlot(page, base, first)
   // 3. «Empezó ahora» otra vez, para el mismo profesional: entra sin 409. Antes de
   //    DEC-193 chocaba con la exclusión, porque el «No vino» ocupaba su franja entera.
-  created.push(await registerStartedNow(page, base, professional, `Persona de prueba 854 B ${run}`))
+  created.push(await registerStartedNow(page, base, professional, nameB))
   // 4. La agenda dice desde cuándo quedó libre la franja del «No vino».
   await expectAgendaFreedFrom(page, base, professional, nameA)
+  return { nameA, nameB }
 }
