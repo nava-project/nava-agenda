@@ -14,6 +14,18 @@ properties:
   endsAt:
     type: string
     format: date-time
+  occupiedUntil:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: "null"
+    description: >
+      Hasta cuándo ocupa de verdad la agenda (`DEC-193`): `endsAt`, salvo un
+      `no_show` marcado dentro de su franja, que la ocupa solo hasta el minuto
+      de la marca; desde ahí el resto de la franja queda libre para otro turno.
+      Igual a `startsAt` si se marcó justo al inicio. `null` si el turno no
+      ocupa agenda (cancelado). `startsAt` y `endsAt` conservan siempre la hora
+      original.
   status:
     type: string
     enum: [confirmed, completed, cancelled_by_customer, cancelled_by_professional, no_show]
@@ -46,6 +58,7 @@ required:
   - attendeeName
   - startsAt
   - endsAt
+  - occupiedUntil
   - status
   - origin
   - serviceName

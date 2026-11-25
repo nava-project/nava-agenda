@@ -48,14 +48,20 @@ type AppointmentDetail struct {
 	// ServiceID es el servicio de la cita (appointment.service_id): con él el
 	// panel pide los inicios libres al reprogramar (#776). El nombre, la
 	// duración y el precio siguen siendo los snapshots.
-	ServiceID                string
-	AttendeeName             string
-	CustomerFullName         string
-	CustomerPhone            *string
-	CustomerEmail            *string
-	CustomerNote             *string
-	StartsAt                 time.Time
-	EndsAt                   time.Time
+	ServiceID        string
+	AttendeeName     string
+	CustomerFullName string
+	CustomerPhone    *string
+	CustomerEmail    *string
+	CustomerNote     *string
+	StartsAt         time.Time
+	EndsAt           time.Time
+	// OccupiedUntil es hasta cuándo ocupa de verdad la agenda (DEC-193):
+	// EndsAt, salvo un `no_show` marcado dentro de su franja, que la ocupa
+	// hasta el minuto de la marca. nil si el turno no ocupa agenda
+	// (cancelado). Lo calcula la base (appointment_occupied_until), con el
+	// mismo criterio que la exclusión.
+	OccupiedUntil            *time.Time
 	Status                   Status
 	Origin                   Origin
 	ServiceNameSnapshot      string

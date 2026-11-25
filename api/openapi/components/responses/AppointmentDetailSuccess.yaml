@@ -22,6 +22,7 @@ content:
           customerNote: Prefiere silla junto a la ventana
           startsAt: "2026-08-28T14:30:00Z"
           endsAt: "2026-08-28T15:00:00Z"
+          occupiedUntil: "2026-08-28T15:00:00Z"
           status: confirmed
           origin: manual
           serviceName: Corte clásico
@@ -45,6 +46,7 @@ content:
           customerNote: null
           startsAt: "2026-08-29T14:30:00Z"
           endsAt: "2026-08-29T15:00:00Z"
+          occupiedUntil: "2026-08-29T15:00:00Z"
           status: confirmed
           origin: public
           serviceName: Corte clásico
@@ -57,3 +59,27 @@ content:
             longitude: -74.0628
           versionToken: 5o0Lr2y3w9qRxAcKu6Zd1Ss7Ii5Tt8Gg2Hh4Ee9Ff3Bb
           createdAt: "2026-08-21T10:00:00Z"
+      noVinoDentroDeLaFranja:
+        summary: Marcado «No vino» a los diez minutos; el resto de la franja quedó libre (DEC-193)
+        value:
+          id: 5b6c7d8e-9f0a-41b2-c3d4-e5f60718293a
+          professionalId: 8f3ac2b1-e4d5-46f6-a7c8-d9e0f1a2b3c4
+          professionalFullName: Ana Gómez
+          serviceId: 3a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+          attendeeName: Carlos Restrepo
+          customerFullName: Carlos Restrepo
+          customerPhone: "+573001234567"
+          customerEmail: null
+          customerNote: null
+          startsAt: "2026-08-30T14:30:00Z"
+          endsAt: "2026-08-30T15:00:00Z"
+          occupiedUntil: "2026-08-30T14:40:00Z"
+          status: no_show
+          origin: manual
+          serviceName: Corte clásico
+          durationMinutes: 30
+          priceAmount: "20000.00"
+          currency: COP
+          homeService: null
+          versionToken: 7q2Nt4a5y1sTzCeMw8Bf3Uu9Kk7Vv0Ii4Jj6Gg1Hh5Dd
+          createdAt: "2026-08-22T10:00:00Z"

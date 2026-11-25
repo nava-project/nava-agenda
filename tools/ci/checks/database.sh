@@ -77,6 +77,7 @@ suite "Suite de excepciones de jornada y festivos HU-041" psql_file database/tes
 suite "Suite de bloqueos de agenda HU-042" psql_file database/tests/hu042_bloqueos.sql
 suite "Suite del núcleo de citas HU-060" psql_file database/tests/hu060_citas.sql
 suite "Suite del vocabulario cancelled_by_professional (DEC-183)" psql_file database/tests/cancelled_by_professional.sql
+suite "Suite del corte del no_show (DEC-193)" psql_file database/tests/no_show_corte.sql
 suite "Suite de idempotencia (secuencial, una conexión)" psql_file database/tests/idempotency_concurrency.sql
 suite "Suite de idempotencia (dos conexiones reales)" env DATABASE_TEST_URL="postgres://agenda_app:app_test@localhost:5432/postgres?sslmode=disable" bash database/tests/idempotency_concurrency_two_connections.sh
 # Al final a propósito: su fixture añade un profesional y un servicio fijos a los negocios
