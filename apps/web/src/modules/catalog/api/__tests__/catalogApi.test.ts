@@ -163,6 +163,28 @@ describe('catalogApi.createService', () => {
     expect(outcome).toEqual({ kind: 'validation-error' })
   })
 
+  it('keeps the safe detail of a 422 Problem to show it (#857)', async () => {
+    postMock.mockResolvedValueOnce(
+      problem(422, {
+        title: 'Validación',
+        status: 422,
+        code: 'validation-error',
+        requestId: 'req-ejemplo-857',
+        detail: 'el precio debe ser mayor que cero',
+      }),
+    )
+
+    const outcome = await createService(
+      { name: 'Corte', description: '', durationMinutes: 30, price: '45000.00' },
+      'idem-key-857',
+    )
+
+    expect(outcome).toEqual({
+      kind: 'validation-error',
+      detail: 'el precio debe ser mayor que cero',
+    })
+  })
+
   it('maps 409 with code=conflict to name-conflict (DEC-067)', async () => {
     postMock.mockResolvedValueOnce(problem(409, { code: 'conflict' }))
 

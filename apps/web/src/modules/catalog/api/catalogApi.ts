@@ -90,7 +90,7 @@ export async function createService(
           ? { kind: 'name-conflict' }
           : { kind: 'idempotency-conflict' }
       case 422:
-        return { kind: 'validation-error' }
+        return { kind: 'validation-error', detail: detailOf(error) }
       default:
         return { kind: 'unexpected-error', requestId: requestIdOf(error) }
     }
@@ -132,7 +132,7 @@ export async function updateService(
       case 409:
         return { kind: 'name-conflict' }
       case 422:
-        return { kind: 'validation-error' }
+        return { kind: 'validation-error', detail: detailOf(error) }
       default:
         return { kind: 'unexpected-error', requestId: requestIdOf(error) }
     }
@@ -144,6 +144,11 @@ export async function updateService(
 // El código de soporte de un Problem, si lo trae (#813).
 function requestIdOf(error: unknown): string | undefined {
   return isProblem(error) ? error.requestId : undefined
+}
+
+// La explicación segura de un Problem (Problem.detail), si la trae (#857).
+function detailOf(error: unknown): string | undefined {
+  return isProblem(error) && error.detail ? error.detail : undefined
 }
 
 // isProblemCode informa si el cuerpo de error ya decodificado por

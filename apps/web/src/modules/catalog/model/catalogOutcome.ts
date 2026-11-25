@@ -13,7 +13,9 @@ export type FetchServicesOutcome =
 
 export type CreateServiceOutcome =
   | { kind: 'success'; service: Service }
-  | { kind: 'validation-error' }
+  // detail: la explicación segura del Problem (#857), para mostrarla tal cual; el
+  // cliente nunca decide por ella.
+  | { kind: 'validation-error'; detail?: string }
   // DEC-067: el nombre ya lo usa otro servicio activo del mismo negocio.
   // Distinto de idempotency-conflict: no depende de la clave de
   // idempotencia ni de un reintento, así que reintentar con la MISMA clave
@@ -31,7 +33,7 @@ export type CreateServiceOutcome =
 export type UpdateServiceOutcome =
   // upcomingAppointmentsUpdated (HU-029): turnos futuros que adoptaron el precio nuevo.
   | { kind: 'success'; service: Service; upcomingAppointmentsUpdated: number }
-  | { kind: 'validation-error' }
+  | { kind: 'validation-error'; detail?: string }
   | { kind: 'name-conflict' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
