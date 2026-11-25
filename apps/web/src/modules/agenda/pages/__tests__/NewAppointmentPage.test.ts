@@ -446,6 +446,50 @@ describe('NewAppointmentPage', () => {
     }
   })
 
+  it('never marks the block as docked below 1024 px, where it is static (O2 of #848)', async () => {
+    type Entry = Pick<
+      IntersectionObserverEntry,
+      'isIntersecting' | 'boundingClientRect' | 'rootBounds'
+    >
+    let notify: (entries: Entry[]) => void = () => {}
+    class FakeObserver {
+      constructor(cb: (entries: Entry[]) => void) {
+        notify = cb
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver)
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query !== '(min-width: 1024px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    document.body.appendChild(scroller)
+    try {
+      const wrapper = await mountReady(oneProfessional, { attachTo: scroller })
+      // A 390 el pie del riel queda fuera de la vista, pero el bloque no está pegado.
+      notify([
+        {
+          isIntersecting: false,
+          boundingClientRect: { top: 1400 } as DOMRectReadOnly,
+          rootBounds: { bottom: 844 } as DOMRectReadOnly,
+        },
+      ])
+      await flushPromises()
+      expect(
+        wrapper.get('.new-appointment-page__respond').attributes('data-docked'),
+      ).toBeUndefined()
+      wrapper.unmount()
+    } finally {
+      scroller.remove()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('paints the docked block with the panel canvas, never a plate of its own (#839)', () => {
     const page = readFileSync(join(__dirname, '../NewAppointmentPage.vue'), 'utf8')
     const shell = readFileSync(join(__dirname, '../../../auth/layouts/PrivateShell.vue'), 'utf8')
@@ -457,9 +501,10 @@ describe('NewAppointmentPage', () => {
     expect(shell).toMatch(
       /--shell-canvas-fill:[\s\S]*?no-repeat fixed,\s*var\(--color-surface-strong\);/,
     )
-    // Filete de latón solo pegado.
+    // Filete de latón solo pegado, en el borde de arriba del bloque: 14 px sobre
+    // «Registrar turno», que si no lo tapa (O1 de #848).
     expect(page).toMatch(
-      /\.new-appointment-page__respond\[data-docked\]::before \{\s*border-top: 1px solid color-mix\(in srgb, var\(--color-brass-line\)/,
+      /\.new-appointment-page__respond\[data-docked\]::before \{\s*inset: 0;\s*border-top: 1px solid color-mix\(in srgb, var\(--color-brass-line\)/,
     )
   })
 

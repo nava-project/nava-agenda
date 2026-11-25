@@ -502,19 +502,28 @@ onBeforeUnmount(() => railObserver?.disconnect())
 // no cabe (#837 r2) y entonces tapa el final de la tarjeta. Solo en ese caso
 // lleva el filete de latón que lo lee como dock (#839): el pie del riel queda
 // por debajo de la vista exactamente cuando el bloque está pegado.
+// El bloque solo se pega desde 1024 px: por debajo es estático y no se marca,
+// aunque el pie del riel quede fuera de la vista (O2 de la revisión de #848).
+const DOCK_QUERY = '(min-width: 1024px)'
 const railFoot = ref<HTMLElement | null>(null)
-const respondDocked = ref(false)
+const railFootBelow = ref(false)
+const dockable = ref(true)
+const respondDocked = computed(() => dockable.value && railFootBelow.value)
 let footObserver: IntersectionObserver | null = null
+const dockMedia = typeof window.matchMedia === 'function' ? window.matchMedia(DOCK_QUERY) : null
+const onDockMedia = () => (dockable.value = dockMedia?.matches ?? true)
+onDockMedia()
+dockMedia?.addEventListener('change', onDockMedia)
 watch(railFoot, (el) => {
   footObserver?.disconnect()
   footObserver = null
-  respondDocked.value = false
+  railFootBelow.value = false
   const scroller = el && scrollerOf(el)
   if (!el || !scroller || typeof IntersectionObserver === 'undefined') return
   footObserver = new IntersectionObserver(
     ([entry]) => {
       const bottom = entry?.rootBounds?.bottom
-      respondDocked.value =
+      railFootBelow.value =
         !!entry &&
         !entry.isIntersecting &&
         bottom !== undefined &&
@@ -524,7 +533,10 @@ watch(railFoot, (el) => {
   )
   footObserver.observe(el)
 })
-onBeforeUnmount(() => footObserver?.disconnect())
+onBeforeUnmount(() => {
+  footObserver?.disconnect()
+  dockMedia?.removeEventListener('change', onDockMedia)
+})
 
 function onRetryLoad() {
   void loadPage()
@@ -2112,8 +2124,12 @@ function onProfessionalSelect(professionalId: string) {
   }
 
   /* Pegado sobre la tarjeta, se lee como un dock y no como un corte: filete de
-     latón arriba y una sombra muy suave que cae sobre la tarjeta. */
+     latón arriba y una sombra muy suave que cae sobre la tarjeta. Pegado sube a
+     todo el bloque: el filete queda 14 px sobre «Registrar turno», que si no lo
+     tapa (O1 de la revisión de #848). La tarjeta corre por debajo, así que
+     cubrir esos 14 px es justo lo que hace un dock. */
   .new-appointment-page__respond[data-docked]::before {
+    inset: 0;
     border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 70%, transparent);
     box-shadow: 0 -12px 18px -14px rgb(0 0 0 / 45%);
   }
