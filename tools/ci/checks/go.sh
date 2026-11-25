@@ -82,7 +82,8 @@ done
 psql_file database/roles/rename_to_agenda.sql
 for f in 20261122090000_rename_cancelled_by_professional.sql \
          20261123090000_create_customer_anonymization.sql \
-         20261125090000_appointment_no_show_cut.sql; do
+         20261125090000_appointment_no_show_cut.sql \
+         20261125150000_grant_occupied_until_to_owner.sql; do
   psql_file "database/migrations/$f"
 done
 psql -c "ALTER ROLE agenda_app PASSWORD 'app_test';"

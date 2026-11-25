@@ -46,6 +46,17 @@ BEGIN
   IF (SELECT provolatile FROM pg_proc WHERE proname = 'appointment_occupied_until') <> 'i' THEN
     RAISE EXCEPTION 'appointment_occupied_until debe ser IMMUTABLE.';
   END IF;
+  -- 20261125150000: la exclusión se construye como dueño de la tabla, que puede
+  -- ser agenda_owner (BD local, restauraciones). El GRANT debe ser explícito: en
+  -- CI la función la crea el superusuario y PUBLIC conserva EXECUTE, lo que
+  -- taparía su falta; en producción y en local PUBLIC no lo tiene.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p, aclexplode(p.proacl) a
+     WHERE p.proname = 'appointment_occupied_until'
+       AND a.grantee = 'agenda_owner'::regrole AND a.privilege_type = 'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'agenda_owner debe tener EXECUTE explícito en appointment_occupied_until.';
+  END IF;
   IF EXISTS (
     SELECT 1 FROM pg_constraint
      WHERE conrelid = 'public.appointment'::regclass AND contype = 'c'
@@ -205,4 +216,16 @@ $$;
 \echo 'dos negocios OK · el corte vale en cada negocio y RLS aísla las filas'
 
 RESET ROLE;
+
+-- 20261125150000: con la tabla en manos de agenda_owner (la BD local, o una
+-- restauración que deje ese dueño), reconstruir la exclusión la evalúa como
+-- agenda_owner. Sin su EXECUTE fallaba con 42501. Dentro de la transacción: el
+-- cambio de dueño se revierte con el ROLLBACK.
+-- Sin EXECUTE para PUBLIC, como en producción y en local (default de 20260811145252).
+REVOKE EXECUTE ON FUNCTION appointment_occupied_until(text, timestamptz, timestamptz, timestamptz)
+  FROM PUBLIC;
+ALTER TABLE appointment OWNER TO agenda_owner;
+REINDEX INDEX appointment_professional_interval_excl;
+\echo 'dueño agenda_owner OK · la exclusión se reconstruye sin depender del dueño de la tabla'
+
 ROLLBACK;
