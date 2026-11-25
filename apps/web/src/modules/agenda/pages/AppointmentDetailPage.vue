@@ -773,6 +773,23 @@ const correctDestination = ref<AppointmentStatus | ''>('')
 const correctReason = ref('')
 let correctIdempotencyKey = newIdempotencyKey()
 
+// Tras una escritura fallida, el foco va adonde se resuelve el error (#869, como
+// #853 y #856). El botón de confirmar no lo suelta mientras guarda
+// (keepFocusWhileLoading), y si confirmar otra vez sirve (red, 500) ahí se queda.
+// Si la alerta trae una acción («Recargar»: conflicto de versión, estado inválido o
+// un turno que aún no empieza), reintentar fallaría igual y el foco va a ella. Se
+// mira el paso desde 'saving' con flush 'post': la alerta ya está en el DOM.
+watch(
+  [rescheduleStatus, cancelStatus, closeStatus, correctStatus],
+  (now, before) => {
+    if (!now.some((status, i) => before[i] === 'saving' && status !== 'saving')) return
+    document
+      .querySelector<HTMLElement>('.base-dialog--open [role="alert"] .base-alert__actions button')
+      ?.focus()
+  },
+  { flush: 'post' },
+)
+
 function onOpenCorrect() {
   correctStatus.value = 'idle'
   correctErrorDetail.value = null

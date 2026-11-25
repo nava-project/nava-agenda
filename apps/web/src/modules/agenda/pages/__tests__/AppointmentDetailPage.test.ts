@@ -1784,6 +1784,51 @@ describe('AppointmentDetailPage · el foco tras una escritura fallida (#869)', (
       expect(button.getAttribute('aria-disabled')).toBe('false')
     },
   )
+
+  it.each(CASES)(
+    '$name: after an unexpected error the focus stays on confirm, which retries',
+    async ({ detail, mock, confirm, prepare }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      mock.mockResolvedValueOnce({ kind: 'unexpected-error' })
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      expect(openDialogElement(wrapper).querySelector('[role="alert"]')).toBeTruthy()
+      expect(document.activeElement).toBe(button)
+    },
+  )
+
+  // Cuando la alerta solo ofrece «Recargar», confirmar otra vez fallaría igual: el foco va
+  // a «Recargar», que es lo que resuelve el error (mismo criterio que #853 y #856).
+  const RELOAD_CASES = CASES.flatMap((c) =>
+    ['version-conflict', 'invalid-state'].map((kind) => ({ ...c, kind, outcome: { kind } })),
+  ).concat([
+    {
+      ...CASES.find((c) => c.name === 'Marcar como atendido')!,
+      kind: 'validation-error',
+      outcome: { kind: 'validation-error', detail: 'El turno empieza más tarde.' },
+    } as (typeof CASES)[number] & { kind: string; outcome: { kind: string } },
+  ])
+
+  it.each(RELOAD_CASES)(
+    '$name, $kind: the focus goes to «Recargar» in the alert',
+    async ({ detail, mock, confirm, prepare, outcome }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      mock.mockResolvedValueOnce(outcome)
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      const reload = openDialogElement(wrapper).querySelector('[role="alert"] button')
+      expect(reload?.textContent?.trim()).toBe('Recargar')
+      expect(document.activeElement).toBe(reload)
+    },
+  )
 })
 
 // DEC-193 (#854): un «No vino» ocupa la agenda solo hasta el minuto de la marca. El
