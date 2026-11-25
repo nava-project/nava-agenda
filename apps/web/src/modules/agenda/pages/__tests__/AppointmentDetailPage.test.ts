@@ -1250,7 +1250,7 @@ describe('AppointmentDetailPage', () => {
   // CA-067-03: antes de startsAt, el servidor responde 422 (validation
   // error) en vez de un conflicto -- distinto de cancelar/reprogramar, que
   // no tienen esta frontera temporal.
-  it('on a validation error (turn not started yet), offers a reload with an explanatory message', async () => {
+  it('on a validation error (turn not started yet), explains it and offers «Entendido», not a reload (#872)', async () => {
     fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
     const { wrapper } = await mountPage()
     await openNoShowDialog(wrapper)
@@ -1261,8 +1261,19 @@ describe('AppointmentDetailPage', () => {
     })
     await confirmNoShow(wrapper)
 
-    expect(wrapper.text()).toContain('todavía no comienza')
-    expect(wrapper.findAll('button').some((b) => b.text() === 'Recargar')).toBe(true)
+    const alert = openDialogElement(wrapper).querySelector('[role="alert"]')
+    expect(alert?.textContent).toContain('Este turno todavía no comienza')
+    expect(alert?.textContent).toContain('espera hasta su hora de inicio')
+    expect([...alert!.querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual([
+      'Entendido',
+    ])
+
+    // «Entendido» cierra el diálogo sin pedir otra vez el detalle: recargar no lo resuelve.
+    const detailReads = fetchAppointmentDetailMock.mock.calls.length
+    await findButtonByText(wrapper, 'Entendido').trigger('click')
+    await flushPromises()
+    expect(wrapper.element.querySelector('.base-dialog--open')).toBeNull()
+    expect(fetchAppointmentDetailMock).toHaveBeenCalledTimes(detailReads)
   })
 
   it('on an idempotency conflict, keeps the dialog open with a recoverable message', async () => {
@@ -1805,13 +1816,7 @@ describe('AppointmentDetailPage · el foco tras una escritura fallida (#869)', (
   // a «Recargar», que es lo que resuelve el error (mismo criterio que #853 y #856).
   const RELOAD_CASES = CASES.flatMap((c) =>
     ['version-conflict', 'invalid-state'].map((kind) => ({ ...c, kind, outcome: { kind } })),
-  ).concat([
-    {
-      ...CASES.find((c) => c.name === 'Marcar como atendido')!,
-      kind: 'validation-error',
-      outcome: { kind: 'validation-error', detail: 'El turno empieza más tarde.' },
-    } as (typeof CASES)[number] & { kind: string; outcome: { kind: string } },
-  ])
+  )
 
   it.each(RELOAD_CASES)(
     '$name, $kind: the focus goes to «Recargar» in the alert',
@@ -1827,6 +1832,28 @@ describe('AppointmentDetailPage · el foco tras una escritura fallida (#869)', (
       const reload = openDialogElement(wrapper).querySelector('[role="alert"] button')
       expect(reload?.textContent?.trim()).toBe('Recargar')
       expect(document.activeElement).toBe(reload)
+    },
+  )
+
+  // #872: ante el 422 «todavía no comienza», recargar no resuelve y reintentar tampoco
+  // antes de la hora real. La alerta ofrece «Entendido», y el foco va ahí.
+  it.each(CASES.filter((c) => c.name.startsWith('Marcar')))(
+    '$name, turn not started yet (422): the focus goes to «Entendido» in the alert',
+    async ({ detail, mock, confirm, prepare }) => {
+      const wrapper = await mountAttached(detail as typeof readyDetail)
+      await prepare(wrapper)
+      mock.mockResolvedValueOnce({
+        kind: 'validation-error',
+        detail: 'el turno todavía no comienza; espera hasta su hora de inicio',
+      })
+      const button = dialogButton(wrapper, confirm)
+      button.focus()
+      button.click()
+      await flushPromises()
+
+      const action = openDialogElement(wrapper).querySelector('[role="alert"] button')
+      expect(action?.textContent?.trim()).toBe('Entendido')
+      expect(document.activeElement).toBe(action)
     },
   )
 })

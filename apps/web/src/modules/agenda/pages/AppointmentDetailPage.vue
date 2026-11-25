@@ -776,8 +776,9 @@ let correctIdempotencyKey = newIdempotencyKey()
 // Tras una escritura fallida, el foco va adonde se resuelve el error (#869, como
 // #853 y #856). El botón de confirmar no lo suelta mientras guarda
 // (keepFocusWhileLoading), y si confirmar otra vez sirve (red, 500) ahí se queda.
-// Si la alerta trae una acción («Recargar»: conflicto de versión, estado inválido o
-// un turno que aún no empieza), reintentar fallaría igual y el foco va a ella. Se
+// Si la alerta trae una acción, reintentar fallaría igual y el foco va a ella: «Recargar»
+// ante un conflicto de versión o un estado inválido, y «Entendido» ante un turno que
+// aún no empieza (#872). Se
 // mira el paso desde 'saving' con flush 'post': la alerta ya está en el DOM.
 watch(
   [rescheduleStatus, cancelStatus, closeStatus, correctStatus],
@@ -1685,6 +1686,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
               </BaseButton>
             </template>
           </BaseAlert>
+          <!-- 422 «todavía no comienza» (#872): sale cuando el reloj del dispositivo va
+               adelantado. Recargar no lo resuelve (canCloseTurn usa ese mismo reloj y los
+               botones siguen ahí) y el servidor rechaza hasta la hora real: lo útil es
+               esperar, como dice su detalle. «Entendido» cierra el diálogo sin efectos. -->
           <BaseAlert
             v-if="closeStatus === 'validation-error'"
             variant="warning"
@@ -1693,8 +1698,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
           >
             {{ closeErrorDetail }}
             <template #action>
-              <BaseButton type="button" variant="secondary" @click="onReloadCloseAfterConflict">
-                Recargar
+              <BaseButton type="button" variant="secondary" @click="isCloseOpen = false">
+                Entendido
               </BaseButton>
             </template>
           </BaseAlert>
