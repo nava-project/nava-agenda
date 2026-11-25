@@ -190,6 +190,25 @@ describe('CustomerAppointmentPage', () => {
     expect(completed.find('button').exists()).toBe(false)
   })
 
+  it.each([
+    [120, 'hasta 2 horas antes', '120 minutos'],
+    [1440, 'hasta 24 horas antes', '1440 minutos'],
+    [90, 'hasta 90 minutos antes', '1,5 horas'],
+  ])(
+    'says the deadline of %i minutes the way the access does (#812)',
+    async (minutes, text, absent) => {
+      getMock.mockResolvedValueOnce({
+        data: { ...successData(), cancellationDeadlineMinutes: minutes },
+        error: undefined,
+        response: okResponse(),
+      })
+      const wrapper = mountPage({ token: 'token-en-claro' })
+      await flushPromises()
+      expect(wrapper.text()).toContain(text)
+      expect(wrapper.text()).not.toContain(absent)
+    },
+  )
+
   it('never renders an internal id, businessId, appointmentId or customerId (CA-098-03)', async () => {
     getMock.mockResolvedValueOnce({ data: successData(), error: undefined, response: okResponse() })
     const wrapper = mountPage({ token: 'token-en-claro' })

@@ -140,7 +140,11 @@ describe('AppointmentCancellation', () => {
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.text()).toContain('El plazo para cancelar por tu cuenta ya venció')
     expect(wrapper.text()).toContain('a la barbería')
-    expect(wrapper.find('a[href="tel:+573001234567"]').exists()).toBe(true)
+    const phone = wrapper.get('a[href="tel:+573001234567"]')
+    // El teléfono se lee formateado, como en la entrada de la reserva (#812).
+    expect(phone.find('.phone-display__dial').text()).toBe('+57')
+    expect(phone.find('.phone-display__number').text()).toBe('300 123 4567')
+    expect(phone.text()).not.toContain('+573001234567')
     expect(wrapper.find('a[href="mailto:contacto@barberia-ejemplo.test"]').exists()).toBe(true)
     wrapper.unmount()
   })

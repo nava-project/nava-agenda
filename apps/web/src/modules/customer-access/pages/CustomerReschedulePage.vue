@@ -8,7 +8,13 @@
 // clave de idempotencia. Plazo, límite, franja y versión los decide el servidor;
 // `rescheduleAvailability` es solo una pista para no ofrecer lo que no procede.
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { AppointmentTicket, BaseAlert, type DayRulerMark, SunDiamond } from '@/shared/ui'
+import {
+  AppointmentTicket,
+  BaseAlert,
+  type DayRulerMark,
+  PhoneDisplay,
+  SunDiamond,
+} from '@/shared/ui'
 import { buildVocabularyFromTerms } from '@/shared/model'
 import { civilDateChip, formatCivilDateFull, getCivilDateInTimezone } from '@/shared/time/civilDate'
 import { formatTimeInTimezone } from '@/shared/time/formatInstant'
@@ -546,7 +552,12 @@ const requestId = computed(() =>
           >
             <li v-for="item in contact" :key="item.href">
               <span>{{ item.label }}</span>
-              <a :href="item.href">{{ item.text }}</a>
+              <a :href="item.href"
+                ><PhoneDisplay v-if="item.href.startsWith('tel:')" :value="item.text" /><template
+                  v-else
+                  >{{ item.text }}</template
+                ></a
+              >
             </li>
           </ul>
           <a class="bk-link reschedule__back" :href="myTurnHref">Volver a mi turno</a>

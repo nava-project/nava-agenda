@@ -92,6 +92,12 @@ describe('AppointmentActions · el turno y sus dos acciones', () => {
     expect(ticket.text()).toContain('Casa Ejemplo · Hora de Colombia')
   })
 
+  it('dice el plazo sin costo en horas cuando son horas enteras (#812)', async () => {
+    const w = await mountActions()
+    expect(w.text()).toContain('Sin costo hasta 1 hora antes.')
+    expect(w.text()).not.toContain('60 minutos')
+  })
+
   it('«Cambiar la hora» lleva a la pantalla de HU-104 y dice cuántos cambios quedan', async () => {
     const w = await mountActions()
     const link = w.find('a.actions__choice')

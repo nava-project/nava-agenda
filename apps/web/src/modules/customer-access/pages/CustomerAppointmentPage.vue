@@ -26,6 +26,7 @@ import AppointmentReview from '../components/AppointmentReview.vue'
 import { useAppointmentCancel } from '../composables/useAppointmentCancel'
 import { appointmentPhase, countdownLabel } from '../model/appointmentMoment'
 import { timezoneLabel } from '@/shared/time/timezoneName'
+import { minutesInWords } from '@/shared/time/durationWords'
 import { getCivilDateInTimezone, minutesSinceCivilMidnight } from '@/shared/time/civilDate'
 import { ticketMoment } from '@/shared/time/ticketMoment'
 import {
@@ -300,10 +301,10 @@ const cancellationPolicyLabel = computed(() => {
   if (screenState.value.status !== 'success') return ''
   const { appointment } = screenState.value
   if (!appointment.lateCancellationClientAllowed) {
-    return `Puedes cancelar sin costo hasta ${appointment.cancellationDeadlineMinutes} minutos antes de tu turno. Pasado ese plazo, contacta directamente ${v.value.toTheBusiness}.`
+    return `Puedes cancelar sin costo hasta ${minutesInWords(appointment.cancellationDeadlineMinutes)} antes de tu turno. Pasado ese plazo, contacta directamente ${v.value.toTheBusiness}.`
   }
   const reasonNote = appointment.lateCancellationReasonRequired ? ' indicando el motivo' : ''
-  return `Puedes cancelar hasta ${appointment.cancellationDeadlineMinutes} minutos antes sin costo, o después${reasonNote} conforme a la política ${v.value.ofTheBusiness}.`
+  return `Puedes cancelar hasta ${minutesInWords(appointment.cancellationDeadlineMinutes)} antes sin costo, o después${reasonNote} conforme a la política ${v.value.ofTheBusiness}.`
 })
 
 // Enlace que no abre: no se distingue vencido, usado o incompleto (CA-098-02).
