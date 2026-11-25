@@ -64,21 +64,9 @@ function openBlocks(id: string, name: string, photoUrl: string | null) {
 </template>
 
 <style scoped>
-.block-action.base-button.base-button--secondary {
-  background-color: transparent;
-  color: var(--color-danger-on-strong);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-.block-action.base-button.base-button--secondary:hover:not(:disabled):not(.base-button--loading) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 12%, transparent);
-  border-color: color-mix(in srgb, var(--color-danger-on-strong) 50%, transparent);
-  border-bottom-color: var(--color-danger-on-strong);
-}
-.block-action.base-button.base-button--secondary:active:not(:disabled):not(.base-button--loading) {
-  background-color: color-mix(in srgb, var(--color-danger-on-strong) 20%, transparent);
-}
-
+/* «Bloquear» es una acción normal, en tinta: el secundario de la familia tal
+   cual. El rojo queda para errores y acciones destructivas
+   (estandar-diseno-visual §5), y un bloqueo se puede quitar. */
 .block-action :deep(.base-button__content) {
   display: inline-flex;
   align-items: center;
