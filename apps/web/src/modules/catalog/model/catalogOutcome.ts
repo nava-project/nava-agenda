@@ -25,7 +25,8 @@ export type CreateServiceOutcome =
   // reintento el que debe generar una clave nueva.
   | { kind: 'idempotency-conflict' }
   | { kind: 'network-error' }
-  | { kind: 'unexpected-error' }
+  // requestId: el código de soporte del Problem, como en la reserva (#813).
+  | { kind: 'unexpected-error'; requestId?: string }
 
 export type UpdateServiceOutcome =
   // upcomingAppointmentsUpdated (HU-029): turnos futuros que adoptaron el precio nuevo.
@@ -34,7 +35,7 @@ export type UpdateServiceOutcome =
   | { kind: 'name-conflict' }
   | { kind: 'not-found' }
   | { kind: 'network-error' }
-  | { kind: 'unexpected-error' }
+  | { kind: 'unexpected-error'; requestId?: string }
 
 // --- HU-024: ciclo de vida --------------------------------------------------
 

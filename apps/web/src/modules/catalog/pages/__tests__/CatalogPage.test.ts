@@ -1012,6 +1012,34 @@ describe('CatalogPage', () => {
     expect(wrapper.text()).toContain('Ese nombre ya está en uso')
   })
 
+  it('on a 500 while editing, shows the support code like the booking does (#813)', async () => {
+    const wrapper = await mountReady(fourServices)
+    await findButtonByText(wrapper, 'Editar').trigger('click')
+    await flushPromises()
+
+    updateMock.mockResolvedValueOnce({ kind: 'unexpected-error', requestId: 'req-ejemplo-813' })
+    submitOpenDialog(wrapper)
+    await flushPromises()
+
+    const alert = wrapper.findAll('[role="alert"]').find((a) => a.text().includes('inesperado'))!
+    expect(alert.text()).toContain('comparte este código con soporte: req-ejemplo-813')
+    expect(alert.text()).toContain('No perdiste lo que escribiste.')
+  })
+
+  it('on a 500 without a support code while editing, keeps the plain message (#813)', async () => {
+    const wrapper = await mountReady(fourServices)
+    await findButtonByText(wrapper, 'Editar').trigger('click')
+    await flushPromises()
+
+    updateMock.mockResolvedValueOnce({ kind: 'unexpected-error' })
+    submitOpenDialog(wrapper)
+    await flushPromises()
+
+    const alert = wrapper.findAll('[role="alert"]').find((a) => a.text().includes('inesperado'))!
+    expect(alert.text()).toContain('Inténtalo de nuevo en unos segundos.')
+    expect(alert.text()).not.toContain('soporte')
+  })
+
   // --- HU-024: desactivar/reactivar --------------------------------------
 
   it('shows Activo/Inactivo badges reflecting each service, and the matching action button', async () => {

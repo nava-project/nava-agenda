@@ -4,6 +4,7 @@
 // /private/services/{serviceId} a los outcomes discriminados que la página
 // consume; ningún componente ve `Problem`, `status` HTTP crudo ni cabeceras.
 import { httpClient } from '@/shared/api/httpClient'
+import { isProblem } from '@/shared/api/problem'
 import type { Service, ServicePage } from '../model/service'
 import type {
   CreateServiceOutcome,
@@ -91,7 +92,7 @@ export async function createService(
       case 422:
         return { kind: 'validation-error' }
       default:
-        return { kind: 'unexpected-error' }
+        return { kind: 'unexpected-error', requestId: requestIdOf(error) }
     }
   } catch {
     return { kind: 'network-error' }
@@ -106,7 +107,7 @@ export async function updateService(
   applyPriceToUpcoming = false,
 ): Promise<UpdateServiceOutcome> {
   try {
-    const { data, response } = await httpClient.PATCH('/private/services/{serviceId}', {
+    const { data, error, response } = await httpClient.PATCH('/private/services/{serviceId}', {
       params: { path: { serviceId } },
       body: {
         name: input.name,
@@ -133,11 +134,16 @@ export async function updateService(
       case 422:
         return { kind: 'validation-error' }
       default:
-        return { kind: 'unexpected-error' }
+        return { kind: 'unexpected-error', requestId: requestIdOf(error) }
     }
   } catch {
     return { kind: 'network-error' }
   }
+}
+
+// El código de soporte de un Problem, si lo trae (#813).
+function requestIdOf(error: unknown): string | undefined {
+  return isProblem(error) ? error.requestId : undefined
 }
 
 // isProblemCode informa si el cuerpo de error ya decodificado por

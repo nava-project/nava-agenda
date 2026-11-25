@@ -207,6 +207,24 @@ describe('catalogApi.createService', () => {
     expect(outcome).toEqual({ kind: 'unexpected-error' })
   })
 
+  it('carries the support code of a real 500 Problem when creating (#813)', async () => {
+    postMock.mockResolvedValueOnce(
+      problem(500, {
+        status: 500,
+        code: 'internal-error',
+        title: 'Internal Server Error',
+        requestId: 'req-ejemplo-813',
+      }),
+    )
+
+    const outcome = await createService(
+      { name: 'Corte clásico', description: '', durationMinutes: 30, price: '45000.00' },
+      'idem-key-1',
+    )
+
+    expect(outcome).toEqual({ kind: 'unexpected-error', requestId: 'req-ejemplo-813' })
+  })
+
   it('maps a rejected request (no HTTP response) to network-error', async () => {
     postMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
 
@@ -311,6 +329,26 @@ describe('catalogApi.updateService', () => {
     })
 
     expect(outcome).toEqual({ kind: 'validation-error' })
+  })
+
+  it('carries the support code of a real 500 Problem when editing (#813)', async () => {
+    patchMock.mockResolvedValueOnce(
+      problem(500, {
+        status: 500,
+        code: 'internal-error',
+        title: 'Internal Server Error',
+        requestId: 'req-ejemplo-813',
+      }),
+    )
+
+    const outcome = await updateService(serviceBody.id, {
+      name: 'Corte clásico',
+      description: '',
+      durationMinutes: 30,
+      price: '45000.00',
+    })
+
+    expect(outcome).toEqual({ kind: 'unexpected-error', requestId: 'req-ejemplo-813' })
   })
 
   it('maps a rejected request (no HTTP response) to network-error', async () => {

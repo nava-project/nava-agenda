@@ -557,6 +557,8 @@ const createForm = ref<ServiceInput>({ name: '', description: '', durationMinute
 const createDurationRaw = ref('30')
 const createFieldErrors = ref<FormFieldErrors>({})
 const createStatus = ref<SaveStatus>('idle')
+// El código de soporte del último error inesperado al crear (#813).
+const createRequestId = ref<string | undefined>()
 const createAttempted = ref(false)
 // Clave de idempotencia del intento lógico vigente (RN-IDE-01): se genera
 // al abrir el diálogo y se REUTILIZA en cada reintento del mismo intento;
@@ -657,8 +659,17 @@ async function onSubmitCreate() {
       createStatus.value = 'network-error'
       return
     case 'unexpected-error':
+      createRequestId.value = outcome.requestId
       createStatus.value = 'unexpected-error'
   }
+}
+
+// Un 500 al guardar dice el código de soporte con el mismo patrón que la
+// reserva (#813); sin código, el texto de siempre.
+function unexpectedErrorText(requestId: string | undefined): string {
+  return requestId
+    ? `Inténtalo de nuevo. Si continúa, comparte este código con soporte: ${requestId}. No perdiste lo que escribiste.`
+    : 'Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.'
 }
 
 // --- Edición ----------------------------------------------------------
@@ -669,6 +680,7 @@ const editForm = ref<ServiceInput>({ name: '', description: '', durationMinutes:
 const editDurationRaw = ref('30')
 const editFieldErrors = ref<FormFieldErrors>({})
 const editStatus = ref<SaveStatus>('idle')
+const editRequestId = ref<string | undefined>()
 const editAttempted = ref(false)
 
 // HU-029 (DEC-004): si el precio cambia y el servicio tiene turnos futuros, el profesional
@@ -809,6 +821,7 @@ async function onSubmitEdit() {
       editStatus.value = 'network-error'
       return
     case 'unexpected-error':
+      editRequestId.value = outcome.requestId
       editStatus.value = 'unexpected-error'
   }
 }
@@ -1507,7 +1520,7 @@ async function reloadAfterConflict(serviceId: string) {
           title="Ocurrió un error inesperado"
           role="alert"
         >
-          Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
+          {{ unexpectedErrorText(createRequestId) }}
         </BaseAlert>
 
         <BaseInput
@@ -1626,7 +1639,7 @@ async function reloadAfterConflict(serviceId: string) {
           title="Ocurrió un error inesperado"
           role="alert"
         >
-          Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
+          {{ unexpectedErrorText(editRequestId) }}
         </BaseAlert>
 
         <BaseInput
