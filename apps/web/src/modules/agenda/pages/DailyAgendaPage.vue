@@ -232,13 +232,15 @@ async function revalidateContext(businessId: string | null) {
   if (sessionBusinessId.value !== businessId) return
   const fresh = professionalsOutcome.items
   rememberAgendaContext(businessId, { professionals: fresh, timezone: timezoneOutcome.timezone })
-  if (timezoneOutcome.timezone !== businessTimezone.value)
-    businessTimezone.value = timezoneOutcome.timezone
-  if (sameProfessionals(fresh, professionals.value)) return
-  professionals.value = fresh
+  // Otra zona (se cambió en Configuración desde otra pestaña o dispositivo,
+  // #831): «hoy» se vuelve a resolver con ella y la agenda se relee.
+  const zoneChanged = timezoneOutcome.timezone !== businessTimezone.value
+  if (zoneChanged) businessTimezone.value = timezoneOutcome.timezone
+  const listChanged = !sameProfessionals(fresh, professionals.value)
+  if (listChanged) professionals.value = fresh
   // El profesional que se miraba ya no está: la URL se normaliza con la lista nueva.
-  if (fresh.length > 0 && !fresh.some((p) => p.id === selectedProfessionalId.value))
-    await syncFromRoute()
+  const selectedGone = !fresh.some((p) => p.id === selectedProfessionalId.value)
+  if (zoneChanged || (listChanged && selectedGone)) await syncFromRoute()
 }
 
 function sameProfessionals(a: ProfessionalSummary[], b: ProfessionalSummary[]): boolean {
@@ -258,6 +260,9 @@ function onRetryLoad() {
   loaderGrace.start()
   void loadPage()
 }
+
+// La fecha que esta pantalla escribió en la URL por omisión («hoy»), o null.
+let defaultedDate: string | null = null
 
 // syncFromRoute (CA-063) es el único punto que traduce route.query a una
 // carga de agenda: se llama una vez al abrir la pantalla (tras resolver
@@ -282,9 +287,16 @@ async function syncFromRoute() {
       ? requestedProfessionalId
       : professionals.value[0]!.id
 
+  // Una fecha que puso esta pantalla por omisión sigue siendo «hoy»: con otra
+  // zona se vuelve a resolver (#831). La que se eligió en la URL se conserva.
+  const requestedDate = requestedDateFromRoute()
+  const isDefaultDate = requestedDate === null || requestedDate === defaultedDate
   const resolvedDate = businessTimezone.value
-    ? (requestedDateFromRoute() ?? getCivilDateInTimezone(businessTimezone.value))
+    ? isDefaultDate
+      ? getCivilDateInTimezone(businessTimezone.value)
+      : requestedDate
     : null
+  if (isDefaultDate) defaultedDate = resolvedDate
 
   // La comparación usa el valor CRUDO de route.query.date (no el ya
   // validado por requestedDateFromRoute): una fecha inválida en la URL

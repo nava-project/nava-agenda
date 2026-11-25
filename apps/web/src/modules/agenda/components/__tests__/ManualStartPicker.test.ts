@@ -282,6 +282,108 @@ describe('ManualStartPicker', () => {
     expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
   })
 
+  // #845: Reprogramar lo monta cerrado con la página y lo relee cada vez que se ve.
+  it('while inactive it does not read, and it reads the 14 days again each time it becomes active', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue(availability([at(tomorrow, '09:00')]))
+    const { wrapper } = mountPicker({ active: false, excludeAppointmentId: 'a-1' })
+    await flushPromises()
+    expect(fetchManualAvailabilityMock).not.toHaveBeenCalled()
+
+    for (const active of [true, false, true]) {
+      await wrapper.setProps({ active })
+      await flushPromises()
+    }
+
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledTimes(2)
+    expect(fetchManualAvailabilityMock).toHaveBeenLastCalledWith(
+      'p-1',
+      's-1',
+      today,
+      shiftCivilDate(today, 13),
+      'a-1',
+    )
+    expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
+  })
+
+  it('a response from an earlier reading does not overwrite the current one', async () => {
+    let resolveOld: (value: unknown) => void = () => {}
+    fetchManualAvailabilityMock
+      .mockReturnValueOnce(new Promise((resolve) => (resolveOld = resolve)))
+      .mockResolvedValueOnce(availability([at(today, '14:00')]))
+    const { wrapper } = mountPicker()
+    await wrapper.setProps({ active: false })
+    await wrapper.setProps({ active: true })
+    await flushPromises()
+
+    resolveOld(availability([at(today, '14:00'), at(today, '14:30'), at(today, '14:45')], 15))
+    await flushPromises()
+
+    expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
+  })
+
+  it('a refreshDay answer that arrives after a full reread does not overwrite it', async () => {
+    let resolveDay: (value: unknown) => void = () => {}
+    fetchManualAvailabilityMock.mockResolvedValueOnce(
+      availability([at(today, '14:00'), at(today, '14:30')]),
+    )
+    const { wrapper } = mountPicker()
+    await flushPromises()
+
+    fetchManualAvailabilityMock
+      .mockReturnValueOnce(new Promise((resolve) => (resolveDay = resolve)))
+      .mockResolvedValueOnce(availability([at(today, '14:00')]))
+    const pending = (
+      wrapper.vm as unknown as { refreshDay: (d: string) => Promise<void> }
+    ).refreshDay(today)
+    await wrapper.setProps({ active: false })
+    await wrapper.setProps({ active: true })
+    await flushPromises()
+    resolveDay(availability([at(today, '14:00'), at(today, '14:30')]))
+    await pending
+    await flushPromises()
+
+    expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
+  })
+
+  it('while it rereads, the earlier hours are gone; a chosen start no longer free is dropped', async () => {
+    let resolveNew: (value: unknown) => void = () => {}
+    fetchManualAvailabilityMock
+      .mockResolvedValueOnce(availability([at(today, '14:00'), at(today, '14:30')]))
+      .mockReturnValueOnce(new Promise((resolve) => (resolveNew = resolve)))
+    const { wrapper, time } = mountPicker()
+    await flushPromises()
+    await minute(wrapper, ':30').trigger('click')
+    await flushPromises()
+    expect(time.value).toBe('14:30')
+
+    await wrapper.setProps({ active: false })
+    await wrapper.setProps({ active: true })
+    await flushPromises()
+    // Mientras relee, la rejilla anterior no se puede usar.
+    expect(wrapper.findAll('.bk-min')).toHaveLength(0)
+
+    resolveNew(availability([at(today, '14:00')]))
+    await flushPromises()
+    expect(time.value).toBe('')
+    expect(wrapper.findAll('.bk-min').map((b) => b.text())).toEqual([':00'])
+  })
+
+  it('a chosen start that is still free survives the reread', async () => {
+    fetchManualAvailabilityMock.mockResolvedValue(
+      availability([at(today, '14:00'), at(today, '14:30')]),
+    )
+    const { wrapper, time } = mountPicker()
+    await flushPromises()
+    await minute(wrapper, ':30').trigger('click')
+    await flushPromises()
+
+    await wrapper.setProps({ active: false })
+    await wrapper.setProps({ active: true })
+    await flushPromises()
+    expect(fetchManualAvailabilityMock).toHaveBeenCalledTimes(2)
+    expect(time.value).toBe('14:30')
+  })
+
   it('shows the field error under the day title, above the hours, describing them', async () => {
     fetchManualAvailabilityMock.mockResolvedValue(availability([at(today, '14:00')]))
     const { wrapper } = mountPicker({ error: 'el profesional ya tiene una cita en ese intervalo' })

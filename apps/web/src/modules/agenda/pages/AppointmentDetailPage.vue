@@ -1415,6 +1415,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
             :timezone="businessTimezone"
             :exclude-appointment-id="detail.id"
             :current="detail.startsAt"
+            :active="isRescheduleOpen"
             :error="rescheduleFieldError"
             :disabled="rescheduleStatus === 'saving'"
             id-prefix="reschedule"

@@ -82,6 +82,34 @@ describe('OpeningHoursCard', () => {
     expect(wrapper.get('.pb-hours__note').text()).toBe('Cerramos los festivos.')
   })
 
+  it('con hoy cerrado por festivo, la fila de hoy dice «Cerrado», no la jornada normal (#811)', async () => {
+    const wrapper = mountCard({
+      closedOnHolidays: true,
+      today: { ...TUESDAY, holiday: 'Independencia de Cartagena', hours: [] },
+    })
+    const todayRow = wrapper.get('.pb-hours__row--today')
+    expect(todayRow.text()).toContain('hoy')
+    expect(todayRow.get('dd').text()).toBe('Cerrado')
+    expect(todayRow.text()).not.toContain('9:00 a. m.')
+    // El resto de la semana no cambia.
+    expect(wrapper.findAll('.pb-hours__row')[0].text()).toContain('9:00 a. m. – 12:30 p. m.')
+    expect(await axe(wrapper.element)).toHaveNoViolations()
+  })
+
+  it('un día normal sigue resaltando su horario (#811)', () => {
+    const todayRow = mountCard().get('.pb-hours__row--today')
+    expect(todayRow.get('dd').text()).toBe('9:00 a. m. – 7:00 p. m.')
+  })
+
+  it('si `today` ya no es hoy, la fila vuelve al horario de la semana (#811)', () => {
+    const wrapper = mountCard({
+      closedOnHolidays: true,
+      today: { ...TUESDAY, holiday: 'Independencia de Cartagena', hours: [] },
+      at: new Date(Date.UTC(2026, 10, 18, 15)),
+    })
+    expect(wrapper.get('.pb-hours__row--today dd').text()).toBe('9:00 a. m. – 7:00 p. m.')
+  })
+
   it('si la página quedó abierta hasta otro día, no afirma un estado viejo', () => {
     const wrapper = mountCard({ at: new Date(Date.UTC(2026, 10, 18, 15)) })
     expect(wrapper.find('.pb-hours__now').exists()).toBe(false)

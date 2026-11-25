@@ -27,19 +27,22 @@ const props = defineProps<{
   at: Date
 }>()
 
-const week = computed(() => {
-  const byDay = segmentsByDay(props.openingHours)
-  return DAYS_OF_WEEK.map((day) => ({
-    day,
-    label: DAY_LABELS[day],
-    hours: byDay[day].map(formatInterval),
-    isToday: props.today?.dayOfWeek === day,
-  }))
-})
-
 const status = computed(() =>
   props.today ? openingStatus(props.today, props.timeZone, props.at) : null,
 )
+
+// La fila de hoy dice el horario de hoy, no el de la semana: en un festivo con el
+// local cerrado dice «Cerrado», como el estado de arriba (#811). Si `today` ya no
+// es hoy (la página quedó abierta), la fila vuelve al horario de la semana.
+const week = computed(() => {
+  const byDay = segmentsByDay(props.openingHours)
+  const todayHours = status.value && props.today ? props.today.hours : null
+  return DAYS_OF_WEEK.map((day) => {
+    const isToday = props.today?.dayOfWeek === day
+    const segments = isToday && todayHours ? todayHours : byDay[day]
+    return { day, label: DAY_LABELS[day], hours: segments.map(formatInterval), isToday }
+  })
+})
 
 const statusText = computed(() => {
   const s = status.value

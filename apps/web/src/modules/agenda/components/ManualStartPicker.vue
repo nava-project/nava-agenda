@@ -21,6 +21,10 @@
  * - Al reprogramar (#776), `excludeAppointmentId` pide la lectura sin el propio
  *   turno (su hora vuelve a estar libre y la duración es la suya) y `current`
  *   muestra esa hora en la rejilla sin dejar elegirla.
+ * - `active` (Reprogramar, #845): el diálogo lo monta cerrado con la página. Solo
+ *   lee mientras está a la vista y vuelve a leer cada vez que se muestra, así no
+ *   ofrece horas de una lectura vieja. Una respuesta de una lectura anterior se
+ *   descarta.
  * - Un `404` de la lectura (el servicio se desactivó o dejó de estar asignado al
  *   profesional después de reservar) dice qué pasó y ofrece «Otra hora»; no cambia
  *   de modo en silencio.
@@ -61,6 +65,8 @@ interface Props {
   current?: string | null
   /** Prefijo de los ids de «Otra hora», único en la página. */
   idPrefix?: string
+  /** A la vista: lee al pasar a `true` y no lee mientras es `false` (#845). */
+  active?: boolean
   dateLabel?: string
   timeLabel?: string
 }
@@ -70,6 +76,7 @@ const props = withDefaults(defineProps<Props>(), {
   excludeAppointmentId: undefined,
   current: null,
   idPrefix: 'new-appointment',
+  active: true,
   dateLabel: 'Fecha del turno',
   timeLabel: 'Hora del turno',
 })
@@ -158,6 +165,11 @@ async function load() {
   duration.value = availability.durationMinutes
   emit('duration', availability.durationMinutes)
   days.value = windowDays(availability.starts, availability.timezone, from)
+  // Una hora de la rejilla que ya no está libre se suelta, como tras un 409 (#845).
+  if (mode.value === 'grid' && time.value) {
+    const day = days.value.find((d) => d.civilDate === date.value)
+    if (!day?.slots.some((s) => clockOf(s.minutes) === time.value)) time.value = ''
+  }
   // Abre en el día ya elegido si está en el tramo; si no, en el primero con hueco.
   const keep = days.value.find((d) => d.civilDate === date.value)
   activeDate.value = (keep ??
@@ -179,14 +191,23 @@ watch(
     // Otro profesional u otro servicio: otra rejilla. La hora de la rejilla
     // anterior ya no vale; la escrita a mano se conserva.
     if (mode.value === 'grid') time.value = ''
-    void load()
+    if (props.active) void load()
   },
   { immediate: true },
+)
+
+// Cada vez que vuelve a la vista, relee (#845): pudo pasar un buen rato.
+watch(
+  () => props.active,
+  (active) => {
+    if (active) void load()
+  },
 )
 
 /** Vuelve a leer `civilDate` tras un `409` y suelta la elegida si ya no está. */
 async function refreshDay(civilDate: string) {
   if (status.value !== 'ready') return
+  const ticket = request
   const outcome = await fetchManualAvailability(
     props.professionalId,
     props.serviceId,
@@ -194,7 +215,8 @@ async function refreshDay(civilDate: string) {
     civilDate,
     props.excludeAppointmentId,
   )
-  if (outcome.kind !== 'success') return
+  // Una relectura completa empezada mientras tanto manda (#845, CA-4).
+  if (outcome.kind !== 'success' || ticket !== request) return
   const [fresh] = windowDays(outcome.availability.starts, outcome.availability.timezone, civilDate)
   days.value = days.value.map((d) => (d.civilDate === civilDate && fresh ? fresh : d))
   if (
