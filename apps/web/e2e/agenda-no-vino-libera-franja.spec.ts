@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext } from '@playwright/test'
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { noVinoLiberaFranja, releaseIfConfirmed } from './no-vino-pasos'
+import { noVinoLiberaFranja, releaseIfConfirmed, startedNowFitsToday } from './no-vino-pasos'
 
 /**
  * Recorrido E2E de #854 (DEC-193) con el API real: un turno que ya empezó se
@@ -12,7 +12,9 @@ import { noVinoLiberaFranja, releaseIfConfirmed } from './no-vino-pasos'
  *
  * Datos: database/testdata/ui_horarios_766.sql (negocio A y su cuenta) y
  * database/testdata/ui_no_show_854.sql (un profesional por proyecto con jornada
- * de 24 h y un servicio de 30 min), solo en la BD local de pruebas o en CI. Corre
+ * de 24 h y un servicio de 30 min), solo en la BD local de pruebas o en CI. En los
+ * últimos 30 min antes de la medianoche del negocio el turno no cabe en la jornada
+ * (422) y la prueba se salta con el motivo (startedNowFitsToday). Corre
  * contra el API local (`go run ./cmd/api`) con las migraciones al día; no forma
  * parte de los checks de CI, que solo corren `test:unit`.
  *
@@ -63,6 +65,8 @@ test('«No vino» dentro de la franja la libera y «Empezó ahora» la toma (#85
   const professional = PROFESSIONALS[testInfo.project.name]
   test.skip(!professional, `sin profesional de #854 para el proyecto ${testInfo.project.name}`)
   await signIn(page.context(), testInfo.project.name)
+  const today = await startedNowFitsToday(page, baseURL!)
+  test.skip(!today.fits, today.reason)
 
   const created: string[] = []
   try {

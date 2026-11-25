@@ -14,7 +14,38 @@ import { randomUUID } from 'node:crypto'
 export type NoVinoProfessional = { id: string; name: string }
 
 export const NO_VINO_SERVICE = 'Servicio de prueba 854'
+const NO_VINO_SERVICE_MINUTES = 30
 const APPOINTMENTS = '/api/v1/private/appointments'
+
+/**
+ * ¿Cabe hoy un turno «empezado ahora»? La jornada de prueba es un segmento de
+ * 00:00 + 1440 min (el máximo de `working_hour`), y la regla de la jornada exige
+ * que todo [inicio, fin) quepa en un solo segmento: un turno de 30 min que empiece
+ * después de las 23:30 del negocio termina pasada la medianoche y da 422 «fuera de
+ * la jornada». Ninguna hora de inicio del segmento lo evita. Se lee la hora en la
+ * zona del negocio, con dos minutos de margen para los dos registros del recorrido.
+ */
+export async function startedNowFitsToday(
+  page: Page,
+  base: string,
+): Promise<{ fits: boolean; reason: string }> {
+  const settings = await page.request.get(`${base}/api/v1/private/settings/business`)
+  expect(settings.status(), 'leer la zona del negocio').toBe(200)
+  const { timezone } = (await settings.json()) as { timezone: string }
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date())
+  const value = (type: string) => Number(parts.find((p) => p.type === type)?.value)
+  const minutesLeft = 24 * 60 - (value('hour') * 60 + value('minute'))
+  const needed = NO_VINO_SERVICE_MINUTES + 2
+  return {
+    fits: minutesLeft >= needed,
+    reason: `faltan ${minutesLeft} min para la medianoche en ${timezone}: un turno de ${NO_VINO_SERVICE_MINUTES} min empezado ahora no cabe en la jornada de hoy (422); se necesitan ${needed}`,
+  }
+}
 
 /** Registra en «Nuevo turno» un turno que empezó ahora y devuelve su id. */
 export async function registerStartedNow(

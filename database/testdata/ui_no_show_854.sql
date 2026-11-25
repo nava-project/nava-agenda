@@ -4,7 +4,9 @@
 -- su negocio A y su cuenta); ningún despliegue carga database/testdata.
 -- Un profesional por proyecto de Playwright (escritorio y móvil corren en paralelo y
 -- no deben pisarse), un servicio de 30 min asignado a ambos y una jornada de 24 h los
--- siete días: «Empezó ahora» cae dentro de la jornada a cualquier hora.
+-- siete días (00:00 + 1440 min, el máximo de working_hour). «Empezó ahora» cabe en la
+-- jornada salvo en los últimos 30 min antes de la medianoche del negocio: el turno
+-- terminaría al día siguiente, fuera del segmento (422). La spec salta esa ventana.
 BEGIN;
 INSERT INTO professional (id,business_id,full_name) VALUES ('854b0001-0000-4000-8000-000000000001','766a0001-0000-4000-8000-000000000001','No vino de prueba escritorio') ON CONFLICT (id) DO NOTHING;
 INSERT INTO professional (id,business_id,full_name) VALUES ('854b0001-0000-4000-8000-000000000002','766a0001-0000-4000-8000-000000000001','No vino de prueba móvil') ON CONFLICT (id) DO NOTHING;
