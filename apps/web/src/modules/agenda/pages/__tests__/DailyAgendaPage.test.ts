@@ -1227,3 +1227,46 @@ describe('DailyAgendaPage', () => {
     })
   })
 })
+
+// DEC-193 (#854): un «No vino» marcado dentro de su franja la libera desde el minuto
+// de la marca; la agenda lo dice con palabras a partir del `occupiedUntil` del servidor.
+describe('DailyAgendaPage · «No vino» que liberó su franja (DEC-193)', () => {
+  const noShow = {
+    ...oneEntry[0]!,
+    status: 'no_show',
+    // 2:30–3:00 p. m. en Bogotá; marcado a las 2:40 p. m.
+    occupiedUntil: '2026-08-28T19:40:00Z',
+  }
+
+  it('says from when the slot is free, in text next to the service', async () => {
+    fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [noShow] })
+    const { wrapper } = await mountReady()
+
+    const freed = wrapper.get('.daily-agenda-page__item-freed')
+    expect(freed.text().replace(/\s+/g, ' ')).toBe('Libre desde las 2:40 p. m.')
+    // Sigue dentro del enlace al detalle: lo lee el nombre accesible de la fila.
+    expect(wrapper.get('.daily-agenda-page__item-main').text()).toContain('Libre desde las')
+  })
+
+  it.each([
+    ['marked after its end (occupies the whole slot)', { occupiedUntil: noShow.endsAt }],
+    ['without the field (response before contract 3.1.0)', { occupiedUntil: undefined }],
+    ['completed', { status: 'completed', occupiedUntil: noShow.endsAt }],
+  ])('says nothing extra for a turn %s', async (_name, patch) => {
+    fetchDailyAgendaMock.mockResolvedValueOnce({
+      kind: 'success',
+      items: [{ ...noShow, ...patch }],
+    })
+    const { wrapper } = await mountReady()
+
+    expect(wrapper.find('.daily-agenda-page__item-freed').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Libre desde')
+  })
+
+  it('has no detectable axe violations with a freed «No vino»', async () => {
+    fetchDailyAgendaMock.mockResolvedValueOnce({ kind: 'success', items: [noShow] })
+    const { wrapper } = await mountReady()
+
+    expect(await axe(wrapper.element, axeOptions)).toHaveNoViolations()
+  })
+})

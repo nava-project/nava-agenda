@@ -11,7 +11,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -1621,6 +1621,170 @@ describe('AppointmentDetailPage', () => {
     })
     const { wrapper } = await mountPage()
     await openCorrectDialog(wrapper)
+
+    const results = await axe(wrapper.element)
+    expect(results.violations).toEqual([])
+  })
+})
+
+// DEC-193 (#854): un «No vino» ocupa la agenda solo hasta el minuto de la marca. El
+// detalle lo dice en texto a partir del `occupiedUntil` del servidor; la confirmación
+// y la corrección anticipan la consecuencia, y el 409 de T8 se muestra entero.
+describe('AppointmentDetailPage · corte del «No vino» (DEC-193)', () => {
+  // readyDetail: 2:30–3:00 p. m. en Bogotá.
+  const flat = (text: string | null | undefined) => (text ?? '').replace(/\s+/g, ' ').trim()
+  const noShowAt = (occupiedUntil: string | null | undefined) => ({
+    ...readyDetail,
+    status: 'no_show',
+    occupiedUntil,
+  })
+  const occupancyRow = (wrapper: VueWrapper) => wrapper.find('.appointment-detail-page__occupancy')
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('says what it occupied and that the rest of the slot was freed', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt('2026-08-28T19:40:00Z'),
+    })
+    const { wrapper } = await mountPage()
+
+    expect(flat(occupancyRow(wrapper).text())).toBe(
+      'Ocupó de 2:30 p. m. a 2:40 p. m.; el resto de la franja quedó libre para otro turno.',
+    )
+    expect(wrapper.text()).toContain('En la agenda')
+  })
+
+  it('says the whole slot was freed when it was marked at the start', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt(readyDetail.startsAt),
+    })
+    const { wrapper } = await mountPage()
+
+    expect(flat(occupancyRow(wrapper).text())).toBe(
+      'No llegó a ocupar su franja: quedó libre entera para otro turno.',
+    )
+  })
+
+  it('says it occupied the whole slot when it was marked after its end', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt(readyDetail.endsAt),
+    })
+    const { wrapper } = await mountPage()
+
+    expect(flat(occupancyRow(wrapper).text())).toBe('Ocupó su franja completa.')
+  })
+
+  it.each([
+    ['a «No vino» without the field (response before contract 3.1.0)', noShowAt(undefined)],
+    ['a confirmed turn', { ...readyDetail, occupiedUntil: readyDetail.endsAt }],
+  ])('does not show the occupancy row for %s', async (_name, detail) => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail })
+    const { wrapper } = await mountPage()
+
+    expect(occupancyRow(wrapper).exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('En la agenda')
+  })
+
+  it('announces, when marking «No vino» inside the slot, that the rest is freed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-28T19:40:00Z'))
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+    await openNoShowDialog(wrapper)
+
+    expect(flat(openDialogElement(wrapper).textContent)).toContain(
+      'Desde este minuto, el resto de la franja queda libre para otro turno.',
+    )
+  })
+
+  it('does not announce a freed slot when marking «No vino» after its end', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({ kind: 'success', detail: readyDetail })
+    const { wrapper } = await mountPage()
+    await openNoShowDialog(wrapper)
+
+    expect(flat(openDialogElement(wrapper).textContent)).not.toContain('queda libre')
+    // «Marcar como atendido» nunca lo dice.
+    await findButtonByText(wrapper, 'Volver').trigger('click')
+    await openCompleteDialog(wrapper)
+    expect(flat(openDialogElement(wrapper).textContent)).not.toContain('queda libre')
+  })
+
+  it('warns, when correcting a freed «No vino» to completed, that it retakes the whole slot', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt('2026-08-28T19:40:00Z'),
+    })
+    const { wrapper } = await mountPage()
+    await openCorrectDialog(wrapper)
+    await fillCorrectForm(wrapper, 'completed', 'motivo de prueba')
+
+    expect(flat(wrapper.get('.appointment-detail-page__correct-consequence').text())).toBe(
+      'El turno volverá a ocupar su franja entera. Si otro turno ya tomó el tramo liberado, primero hay que corregir ese turno.',
+    )
+  })
+
+  it('anticipates the cut when correcting to «No vino» before the slot ends', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-28T19:40:00Z'))
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, status: 'completed', occupiedUntil: readyDetail.endsAt },
+    })
+    const { wrapper } = await mountPage()
+    await openCorrectDialog(wrapper)
+    await fillCorrectForm(wrapper, 'no_show', 'motivo de prueba')
+
+    expect(flat(wrapper.get('.appointment-detail-page__correct-consequence').text())).toBe(
+      'El turno dejará de ocupar su franja desde este minuto; el resto quedará libre.',
+    )
+  })
+
+  it('keeps the old consequence when correcting to «No vino» after the slot ended', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: { ...readyDetail, status: 'completed', occupiedUntil: readyDetail.endsAt },
+    })
+    const { wrapper } = await mountPage()
+    await openCorrectDialog(wrapper)
+    await fillCorrectForm(wrapper, 'no_show', 'motivo de prueba')
+
+    expect(flat(wrapper.get('.appointment-detail-page__correct-consequence').text())).toBe(
+      'El turno sigue ocupando la misma franja en la agenda.',
+    )
+  })
+
+  it('shows the whole 409 detail when the freed stretch was already taken (T8)', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt('2026-08-28T19:40:00Z'),
+    })
+    const { wrapper } = await mountPage()
+    await openCorrectDialog(wrapper)
+    await fillCorrectForm(wrapper, 'completed', 'motivo de prueba')
+    correctAppointmentStatusMock.mockResolvedValueOnce({
+      kind: 'conflict',
+      detail: 'otro turno ya ocupa parte de esta franja; corrige primero ese turno',
+    })
+    submitCorrectDialog(wrapper)
+    await flushPromises()
+
+    const alert = openDialogElement(wrapper).querySelector('[role="alert"]')
+    expect(flat(alert?.textContent)).toContain(
+      'otro turno ya ocupa parte de esta franja; corrige primero ese turno',
+    )
+  })
+
+  it('has no detectable axe violations with the occupancy row', async () => {
+    fetchAppointmentDetailMock.mockResolvedValue({
+      kind: 'success',
+      detail: noShowAt('2026-08-28T19:40:00Z'),
+    })
+    const { wrapper } = await mountPage()
 
     const results = await axe(wrapper.element)
     expect(results.violations).toEqual([])

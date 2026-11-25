@@ -52,13 +52,21 @@ const freeStarts = {
   },
 }
 
+// La rejilla se pinta tras varias promesas encadenadas (servicio, profesional,
+// inicios libres); bajo carga del CI un solo flushPromises no siempre basta
+// (#834, PR-860 #1). Se espera al chip en vez de consultarlo en el acto.
 async function chooseFreeStart(wrapper: {
   findAll: (s: string) => { text: () => string; trigger: (e: string) => Promise<void> }[]
 }) {
-  await wrapper
-    .findAll('.bk-min')
-    .find((b) => b.text() === ':30')!
-    .trigger('click')
+  const chip = await vi.waitFor(
+    () => {
+      const found = wrapper.findAll('.bk-min').find((b) => b.text() === ':30')
+      if (!found) throw new Error('la rejilla aún no muestra el inicio :30')
+      return found
+    },
+    { timeout: 2000, interval: 10 },
+  )
+  await chip.trigger('click')
   await flushPromises()
 }
 

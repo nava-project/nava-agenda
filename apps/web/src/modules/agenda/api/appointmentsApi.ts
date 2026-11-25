@@ -204,6 +204,7 @@ function toDailyAgendaEntry(data: {
   attendeeName: string
   startsAt: string
   endsAt: string
+  occupiedUntil: string | null
   status: string
   origin: string
   serviceName: string
@@ -217,6 +218,7 @@ function toDailyAgendaEntry(data: {
     attendeeName: data.attendeeName,
     startsAt: data.startsAt,
     endsAt: data.endsAt,
+    occupiedUntil: data.occupiedUntil,
     status: data.status as DailyAgendaEntry['status'],
     origin: data.origin as DailyAgendaEntry['origin'],
     serviceName: data.serviceName,
@@ -261,6 +263,7 @@ function toAppointmentDetail(data: {
   customerNote: string | null
   startsAt: string
   endsAt: string
+  occupiedUntil: string | null
   status: string
   origin: string
   serviceName: string
@@ -283,6 +286,7 @@ function toAppointmentDetail(data: {
     customerNote: data.customerNote,
     startsAt: data.startsAt,
     endsAt: data.endsAt,
+    occupiedUntil: data.occupiedUntil,
     status: data.status as AppointmentDetail['status'],
     origin: data.origin as AppointmentDetail['origin'],
     serviceName: data.serviceName,

@@ -27,6 +27,13 @@ export type AppointmentDetail = {
   customerNote: string | null
   startsAt: string
   endsAt: string
+  /**
+   * Hasta cuándo ocupa de verdad la agenda (DEC-193, contrato 3.1.0): endsAt,
+   * salvo un no_show marcado dentro de su franja, que ocupa hasta el minuto de
+   * la marca. null si no ocupa (cancelado). Opcional solo para los datos de
+   * prueba anteriores al campo: sin él, el turno se lee como ocupando entero.
+   */
+  occupiedUntil?: string | null
   status: AppointmentStatus
   origin: AppointmentOrigin
   serviceName: string
