@@ -33,6 +33,11 @@ vi.mock('@/modules/professionalServices/api/professionalServicesApi', () => ({
 }))
 
 const { default: CatalogWorkspacePage } = await import('../CatalogWorkspacePage.vue')
+// `CatalogPage` llega en diferido (defineAsyncComponent). Sin precargarlo, la primera
+// prueba pagaba la transformación en frío del módulo (~740 ms con la máquina en reposo)
+// dentro del `vi.waitFor` de `mountPage`, cuyo límite es 1 s: con carga se pasaba (#836).
+// Precargado aquí, el cargador diferido resuelve desde la caché de módulos en milisegundos.
+await import('@/modules/catalog/pages/CatalogPage.vue')
 
 function service(id: string, name: string, overrides: Partial<Record<string, unknown>> = {}) {
   return {
