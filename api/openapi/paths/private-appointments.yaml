@@ -215,6 +215,7 @@
                       attendeeName: Carlos Restrepo
                       startsAt: "2026-08-28T14:30:00Z"
                       endsAt: "2026-08-28T15:00:00Z"
+                      occupiedUntil: "2026-08-28T15:00:00Z"
                       status: confirmed
                       origin: manual
                       serviceName: Corte clásico
@@ -226,6 +227,7 @@
                       attendeeName: Ana Gómez
                       startsAt: "2026-08-28T23:30:00Z"
                       endsAt: "2026-08-29T00:15:00Z"
+                      occupiedUntil: "2026-08-29T00:15:00Z"
                       status: confirmed
                       origin: public
                       serviceName: Barba y corte
@@ -843,7 +845,11 @@
       instante responde `422` sin persistir nada, ni siquiera una
       reclamación de idempotencia que impida reintentar (CA-067-03). No
       cambia intervalo, snapshots, cliente, persona, contacto, nota ni
-      profesional; el turno sigue ocupando agenda (CA-067-04). Protegida con
+      profesional. El turno ocupa agenda solo hasta el minuto en que se marca,
+      con el reloj del servidor (`DEC-193`, que enmienda CA-067-04): marcado
+      dentro de su franja, el resto queda libre para otro turno, en el panel y
+      en la reserva pública; marcado después de `endsAt`, no libera nada. El
+      `occupiedUntil` del detalle y de la agenda lo refleja. Protegida con
       clave de idempotencia (RN-IDE-01, DEC-043) y con la precondición
       `If-Match` (el `versionToken` de una lectura anterior del detalle,
       HU-064). Repetir el cierre sobre una cita ya `no_show` es un no-op
@@ -988,9 +994,14 @@
       la misma frontera temporal que T4/T7 (`422` si `startsAt` todavía no
       pasó) y la misma restricción de exclusión de PostgreSQL que protege
       reprogramar: un cruce con otra cita del mismo profesional responde
-      `409 conflict` sin escribir nada (CA-068-04). Al corregir desde
-      `completed`/`no_show` hacia un cancelado, la cita deja de ocupar
-      agenda en la misma confirmación (CA-068-05). Protegida con clave de
+      `409 conflict` sin escribir nada (CA-068-04). Lo mismo al corregir un
+      `no_show` hacia `completed`: vuelve a ocupar su franja entera, y si otro
+      turno ya tomó el tramo que el `no_show` había liberado responde `409
+      conflict`; hay que corregir primero ese turno (`DEC-193`). Al corregir
+      hacia `no_show`, el turno ocupa hasta el minuto de la corrección, como
+      al marcarlo. Al corregir desde `completed`/`no_show` hacia un
+      cancelado, la cita deja de ocupar agenda en la misma confirmación
+      (CA-068-05). Protegida con clave de
       idempotencia (RN-IDE-01, DEC-043) y con la precondición `If-Match` (el
       `versionToken` de una lectura anterior del detalle, HU-064). El tenant
       y el actor se derivan exclusivamente de `SessionCookie`; el cuerpo
@@ -1070,8 +1081,9 @@
           (`code: invalid-state`, el turno todavía está `confirmed`, sin
           ningún resultado terminal que corregir, CA-068-01); o cruce de
           agenda (`code: conflict`, corregir desde un cancelado hacia
-          `completed`/`no_show` volvería a ocupar una franja que otra cita
-          del mismo profesional ya ocupa, CA-068-04).
+          `completed`/`no_show`, o desde `no_show` hacia `completed`, volvería
+          a ocupar una franja que otra cita del mismo profesional ya ocupa,
+          CA-068-04 y `DEC-193`).
         headers:
           X-Request-Id:
             $ref: '../components/headers/XRequestId.yaml'
@@ -1126,7 +1138,7 @@
                   type: /api/v1/problems/conflict
                   title: Conflicto
                   status: 409
-                  detail: el profesional ya tiene una cita en ese intervalo
+                  detail: otro turno ya ocupa parte de esta franja; corrige primero ese turno
                   instance: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
                   code: conflict
                   requestId: 8f3ac2b1e4d5f6a7c8d9e0f1a2b3c4d5
@@ -1145,7 +1157,8 @@
       manual (issue #717). Es la contraparte privada de
       `GET /public/businesses/{slug}/services/{serviceId}/professionals/{professionalId}/availability`
       y usa el mismo cálculo: jornada efectiva (recurrente, excepciones y
-      festivos), menos bloqueos vigentes y citas que ocupan agenda, con la
+      festivos), menos bloqueos vigentes y citas que ocupan agenda (un
+      `no_show` solo hasta el minuto de la marca, `DEC-193`), con la
       duración del servicio y la rejilla del profesional anclada al inicio de
       cada tramo (DEC-135, DEC-169). A diferencia de la lectura pública, no
       aplica la anticipación mínima ni la ventana máxima (RN-DIS-04, excepción

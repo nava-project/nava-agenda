@@ -5,6 +5,28 @@ Ver [`nava-docs/agenda/06-api/estandar-openapi.md`](https://github.com/nava-proj
 sección 18 para qué cuenta como cambio compatible o incompatible.
 
 
+## 3.1.0 · 2026-11-25
+
+### Agregado
+
+- `occupiedUntil` en `DailyAgendaEntry` (`listDailyAgenda`)
+  y en `AppointmentDetailResponse` (`GET /private/appointments/{appointmentId}`), issue #854,
+  `DEC-193`: hasta cuándo ocupa de verdad la agenda el turno. Es `endsAt`, salvo un `no_show`
+  marcado dentro de su franja, que ocupa hasta el minuto de la marca; `null` si no ocupa
+  (cancelado).
+
+### Cambiado
+
+- `markAppointmentNoShow`: el turno ocupa agenda solo hasta el minuto en que se marca (enmienda
+  CA-067-04). El resto de su franja se ofrece en `listManualAvailability` y en la disponibilidad
+  pública.
+- `correctAppointmentStatus`: un `no_show` corregido a `completed` vuelve a ocupar su franja
+  entera y responde `409 conflict` si otro turno ya tomó el tramo liberado. El `detail` del
+  `409` por cruce cambia a «otro turno ya ocupa parte de esta franja; corrige primero ese
+  turno».
+- Compatible (sección 18 del estándar): un campo de respuesta nuevo, sin cambiar la forma ni
+  los códigos existentes. El cliente decide por `code`, nunca por `detail`.
+
 ## 3.0.0 · 2026-11-23
 
 ### Cambiado (incompatible)

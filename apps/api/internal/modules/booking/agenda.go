@@ -27,10 +27,16 @@ const DailyAgendaLimit = 300
 // servicio son la fuente visible (DEC-004): esta lectura nunca hace join
 // con el catálogo vigente.
 type DailyAgendaEntry struct {
-	ID                       string
-	AttendeeName             string
-	StartsAt                 time.Time
-	EndsAt                   time.Time
+	ID           string
+	AttendeeName string
+	StartsAt     time.Time
+	EndsAt       time.Time
+	// OccupiedUntil es hasta cuándo ocupa de verdad la agenda (DEC-193):
+	// EndsAt, salvo un `no_show` marcado dentro de su franja, que la ocupa
+	// hasta el minuto de la marca. nil si el turno no ocupa agenda
+	// (cancelado). Lo calcula la base (appointment_occupied_until), con el
+	// mismo criterio que la exclusión.
+	OccupiedUntil            *time.Time
 	Status                   Status
 	Origin                   Origin
 	ServiceNameSnapshot      string

@@ -572,6 +572,21 @@ func errScheduleConflict() error {
 	return apperr.Conflict("el profesional ya tiene una cita en ese intervalo")
 }
 
+// errCorrectionScheduleConflict es el 409 de T8 cuando el turno volvería a
+// ocupar un tramo que otro turno ya tomó (DEC-193: un `no_show` que pasa a
+// `completed`, o un cancelado que pasa a `completed`/`no_show`). Mismo Kind
+// que errScheduleConflict; solo cambia la explicación segura.
+func errCorrectionScheduleConflict() error {
+	return apperr.Conflict("otro turno ya ocupa parte de esta franja; corrige primero ese turno")
+}
+
+// noShowCut es el corte de un `no_show` (DEC-193, R1 y R5): el minuto de la
+// marca, truncado, con el mismo instante con el que la guarda decidió que
+// el turno ya empezó. La base lo acota a [starts_at, ends_at].
+func noShowCut(now time.Time) time.Time {
+	return now.UTC().Truncate(time.Minute)
+}
+
 // scheduleConflictError traduce una carrera perdida contra la restricción
 // de exclusión de PostgreSQL (RN-CON-03) según el origen de la cita: la
 // primitiva pública (HU-097) necesita un Kind distinguible
@@ -630,7 +645,9 @@ func (r *Repository) ListDailyAgenda(
 
 	err = r.db.InTenantTx(ctx, shop, func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `
-			SELECT id, attendee_name, starts_at, ends_at, status, origin,
+			SELECT id, attendee_name, starts_at, ends_at,
+			       CASE WHEN occupies_schedule THEN appointment_occupied_until(status, starts_at, ends_at, no_show_cut_at) END,
+			       status, origin,
 			       service_name_snapshot, duration_minutes_snapshot,
 			       price_amount_snapshot, price_currency_snapshot,
 			       is_home_service, service_address, service_latitude, service_longitude
@@ -692,7 +709,7 @@ func scanDailyAgendaEntry(row pgx.Row) (booking.DailyAgendaEntry, error) {
 	)
 	var home homeServiceColumns
 	err := row.Scan(
-		&e.ID, &e.AttendeeName, &e.StartsAt, &e.EndsAt, &status, &origin,
+		&e.ID, &e.AttendeeName, &e.StartsAt, &e.EndsAt, &e.OccupiedUntil, &status, &origin,
 		&e.ServiceNameSnapshot, &e.DurationMinutesSnapshot, &priceAmount, &e.CurrencySnapshot,
 		&home.is, &home.address, &home.latitude, &home.longitude,
 	)
@@ -743,7 +760,10 @@ func (r *Repository) GetAppointmentDetail(
 		row := q.QueryRow(ctx, `
 			SELECT a.id, a.professional_id, a.service_id, a.attendee_name,
 			       c.full_name, c.phone, c.email,
-			       a.customer_note, a.starts_at, a.ends_at, a.status, a.origin,
+			       a.customer_note, a.starts_at, a.ends_at,
+			       CASE WHEN a.occupies_schedule
+			            THEN appointment_occupied_until(a.status, a.starts_at, a.ends_at, a.no_show_cut_at) END,
+			       a.status, a.origin,
 			       a.service_name_snapshot, a.duration_minutes_snapshot,
 			       a.price_amount_snapshot, a.price_currency_snapshot,
 			       a.is_home_service, a.service_address, a.service_latitude, a.service_longitude,
@@ -778,7 +798,7 @@ func scanAppointmentDetail(row pgx.Row) (booking.AppointmentDetail, bool, error)
 	err := row.Scan(
 		&d.ID, &d.ProfessionalID, &d.ServiceID, &d.AttendeeName,
 		&d.CustomerFullName, &d.CustomerPhone, &d.CustomerEmail,
-		&d.CustomerNote, &d.StartsAt, &d.EndsAt, &status, &origin,
+		&d.CustomerNote, &d.StartsAt, &d.EndsAt, &d.OccupiedUntil, &status, &origin,
 		&d.ServiceNameSnapshot, &d.DurationMinutesSnapshot,
 		&priceAmount, &d.CurrencySnapshot,
 		&home.is, &home.address, &home.latitude, &home.longitude,
@@ -1867,19 +1887,22 @@ func updateAppointmentStatusCompleted(
 }
 
 // updateAppointmentStatusNoShow aplica `no_show` sobre la fila YA bloqueada,
-// mismo criterio que updateAppointmentStatusCompleted.
+// mismo criterio que updateAppointmentStatusCompleted, y guarda el corte
+// (DEC-193): desde ese minuto el resto de la franja queda libre. Solo puede
+// liberar agenda, nunca ocuparla, así que no viola la exclusión.
 func updateAppointmentStatusNoShow(
 	ctx context.Context,
 	q database.Queries,
 	businessID, appointmentID string,
+	cut time.Time,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
-		   SET status = 'no_show', resolved_at = now()
+		   SET status = 'no_show', resolved_at = now(), no_show_cut_at = $3
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		businessID, appointmentID,
+		businessID, appointmentID, cut,
 	).Scan(&updatedAt)
 	if err != nil {
 		return time.Time{}, err
@@ -2176,7 +2199,7 @@ func (r *Repository) MarkNoShow(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusNoShow(ctx, q, businessID, current.id)
+			updatedAt, err := updateAppointmentStatusNoShow(ctx, q, businessID, current.id, noShowCut(input.Now))
 			if err != nil {
 				return err
 			}
@@ -2242,29 +2265,36 @@ const correctAppointmentStatusIdempotencyTTL = 10 * time.Minute
 // reprogramar (appointment_professional_interval_excl) puede violarse igual que
 // en updateAppointmentInterval, con la misma traducción 23P01/40P01 ->
 // errScheduleConflict (CA-068-04).
+//
+// DEC-193: entrar en `no_show` guarda el corte (el minuto de la corrección);
+// salir de `no_show` lo borra, así que un `no_show` que pasa a `completed`
+// vuelve a ocupar su franja entera. Si otro turno ya tomó el tramo liberado,
+// la exclusión lo rechaza con errCorrectionScheduleConflict.
 func updateAppointmentStatusCorrected(
 	ctx context.Context,
 	q database.Queries,
 	businessID, appointmentID, newStatus string,
+	cut time.Time,
 ) (time.Time, error) {
 	var updatedAt time.Time
 	err := q.QueryRow(ctx, `
 		UPDATE appointment
-		   SET status = $3, resolved_at = now()
+		   SET status = $3, resolved_at = now(),
+		       no_show_cut_at = CASE WHEN $3 = 'no_show' THEN $4::timestamptz END
 		 WHERE business_id = $1 AND id = $2
 		RETURNING updated_at`,
-		businessID, appointmentID, newStatus,
+		businessID, appointmentID, newStatus, cut,
 	).Scan(&updatedAt)
 	if err != nil {
 		if isConstraintViolation(err, "23P01", appointmentProfessionalIntervalExclConstraint) {
-			return time.Time{}, errScheduleConflict()
+			return time.Time{}, errCorrectionScheduleConflict()
 		}
 		if isDeadlockDetected(err) {
 			// Mismo criterio que updateAppointmentInterval: PostgreSQL puede
 			// reportar 40P01 en vez de 23P01 para la transacción perdedora
 			// de dos escrituras concurrentes que se disputan el mismo
 			// índice GiST.
-			return time.Time{}, errScheduleConflict()
+			return time.Time{}, errCorrectionScheduleConflict()
 		}
 		return time.Time{}, err
 	}
@@ -2446,7 +2476,7 @@ func (r *Repository) CorrectAppointmentStatus(
 			if booking.EncodeVersionToken(current.id, current.updatedAt) != input.ExpectedVersionToken {
 				return errVersionConflict()
 			}
-			updatedAt, err := updateAppointmentStatusCorrected(ctx, q, businessID, current.id, destination)
+			updatedAt, err := updateAppointmentStatusCorrected(ctx, q, businessID, current.id, destination, noShowCut(input.Now))
 			if err != nil {
 				return err
 			}

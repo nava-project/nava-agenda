@@ -211,16 +211,19 @@ type DailyAgendaResponse struct {
 // no aparece: la ruta ya lo fija (DEC-074) y repetirlo sería un campo
 // interno innecesario.
 type DailyAgendaEntryResponse struct {
-	ID              string    `json:"id"`
-	AttendeeName    string    `json:"attendeeName"`
-	StartsAt        time.Time `json:"startsAt"`
-	EndsAt          time.Time `json:"endsAt"`
-	Status          string    `json:"status"`
-	Origin          string    `json:"origin"`
-	ServiceName     string    `json:"serviceName"`
-	DurationMinutes int       `json:"durationMinutes"`
-	PriceAmount     string    `json:"priceAmount"`
-	Currency        string    `json:"currency"`
+	ID           string    `json:"id"`
+	AttendeeName string    `json:"attendeeName"`
+	StartsAt     time.Time `json:"startsAt"`
+	EndsAt       time.Time `json:"endsAt"`
+	// occupiedUntil (DEC-193): hasta cuándo ocupa de verdad la agenda; endsAt
+	// salvo un no_show marcado dentro de su franja. null si no ocupa agenda.
+	OccupiedUntil   *time.Time `json:"occupiedUntil"`
+	Status          string     `json:"status"`
+	Origin          string     `json:"origin"`
+	ServiceName     string     `json:"serviceName"`
+	DurationMinutes int        `json:"durationMinutes"`
+	PriceAmount     string     `json:"priceAmount"`
+	Currency        string     `json:"currency"`
 	// HomeService es la dirección del cliente cuando el turno es a domicilio
 	// (DEC-131); null en el local.
 	HomeService *HomeServiceResponse `json:"homeService"`
@@ -241,26 +244,29 @@ type HomeServiceResponse struct {
 // requerido, "Fuera de alcance"): VersionToken es el único dato de
 // concurrencia expuesto, opaco (booking.EncodeVersionToken).
 type AppointmentDetailResponse struct {
-	ID                   string               `json:"id"`
-	ProfessionalID       string               `json:"professionalId"`
-	ProfessionalFullName string               `json:"professionalFullName"`
-	ServiceID            string               `json:"serviceId"`
-	AttendeeName         string               `json:"attendeeName"`
-	CustomerFullName     string               `json:"customerFullName"`
-	CustomerPhone        *string              `json:"customerPhone"`
-	CustomerEmail        *string              `json:"customerEmail"`
-	CustomerNote         *string              `json:"customerNote"`
-	StartsAt             time.Time            `json:"startsAt"`
-	EndsAt               time.Time            `json:"endsAt"`
-	Status               string               `json:"status"`
-	Origin               string               `json:"origin"`
-	ServiceName          string               `json:"serviceName"`
-	DurationMinutes      int                  `json:"durationMinutes"`
-	PriceAmount          string               `json:"priceAmount"`
-	Currency             string               `json:"currency"`
-	HomeService          *HomeServiceResponse `json:"homeService"`
-	VersionToken         string               `json:"versionToken"`
-	CreatedAt            time.Time            `json:"createdAt"`
+	ID                   string    `json:"id"`
+	ProfessionalID       string    `json:"professionalId"`
+	ProfessionalFullName string    `json:"professionalFullName"`
+	ServiceID            string    `json:"serviceId"`
+	AttendeeName         string    `json:"attendeeName"`
+	CustomerFullName     string    `json:"customerFullName"`
+	CustomerPhone        *string   `json:"customerPhone"`
+	CustomerEmail        *string   `json:"customerEmail"`
+	CustomerNote         *string   `json:"customerNote"`
+	StartsAt             time.Time `json:"startsAt"`
+	EndsAt               time.Time `json:"endsAt"`
+	// occupiedUntil (DEC-193): hasta cuándo ocupa de verdad la agenda; endsAt
+	// salvo un no_show marcado dentro de su franja. null si no ocupa agenda.
+	OccupiedUntil   *time.Time           `json:"occupiedUntil"`
+	Status          string               `json:"status"`
+	Origin          string               `json:"origin"`
+	ServiceName     string               `json:"serviceName"`
+	DurationMinutes int                  `json:"durationMinutes"`
+	PriceAmount     string               `json:"priceAmount"`
+	Currency        string               `json:"currency"`
+	HomeService     *HomeServiceResponse `json:"homeService"`
+	VersionToken    string               `json:"versionToken"`
+	CreatedAt       time.Time            `json:"createdAt"`
 }
 
 // AppointmentHistoryResponse es el cuerpo de

@@ -287,7 +287,8 @@
       servicio activo `serviceId` completo cabe con el profesional `professionalId`,
       dentro del negocio resuelto por `slug`: intersección de jornada
       efectiva (recurrente, excepciones, festivos, B2), bloqueos vigentes y
-      citas que ocupan agenda (B3), aplicando la duración del servicio, la
+      citas que ocupan agenda (B3; un `no_show` solo hasta el minuto de la
+      marca, `DEC-193`), aplicando la duración del servicio, la
       anticipación mínima, la ventana máxima y la rejilla vigentes del
       negocio (HU-093). Las franjas caen siempre en la rejilla fija del
       tramo laboral (inicio del tramo + k × `slotGridMinutes`), aunque una

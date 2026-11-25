@@ -142,17 +142,28 @@ func (r *Repository) ResolveBusinessID(ctx context.Context, slug string) (string
 // esta lectura nunca pueda divergir de ella) cuyo intervalo interseca
 // [from, to). professionalID se filtra explícitamente además de RLS (mismo
 // criterio que las demás consultas de este paquete).
+//
+// DEC-193: el fin de cada intervalo es appointment_occupied_until, la misma
+// función que usa la exclusión, no ends_at: un `no_show` marcado dentro de
+// su franja solo ocupa hasta el minuto de la marca, y el resto se ofrece.
+// Un intervalo vacío (marcado justo en el inicio) no ocupa nada y no se lee.
 func (r *Repository) ListOccupiedIntervals(ctx context.Context, businessID, professionalID string, from, to time.Time) ([]time.Time, []time.Time, error) {
 	var starts, ends []time.Time
 	err := r.db.InTenantTx(ctx, database.BusinessID(businessID), func(ctx context.Context, q database.Queries) error {
 		rows, err := q.Query(ctx, `
-			SELECT starts_at, ends_at
-			  FROM appointment
-			 WHERE business_id = $1
-			   AND professional_id = $2
-			   AND occupies_schedule
-			   AND starts_at < $4
-			   AND ends_at > $3
+			SELECT starts_at, occupied_until
+			  FROM (
+			    SELECT starts_at,
+			           appointment_occupied_until(status, starts_at, ends_at, no_show_cut_at) AS occupied_until
+			      FROM appointment
+			     WHERE business_id = $1
+			       AND professional_id = $2
+			       AND occupies_schedule
+			       AND starts_at < $4
+			       AND ends_at > $3
+			  ) a
+			 WHERE occupied_until > $3
+			   AND occupied_until > starts_at
 			 ORDER BY starts_at`,
 			businessID, professionalID, from, to,
 		)
