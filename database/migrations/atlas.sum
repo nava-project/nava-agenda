@@ -1,4 +1,4 @@
-h1:9A43IVxQVBQ7ON7/0o/WQb7SKzJ5rC+1nQSHOs6cstE=
+h1:rCqq3bvRqb7Py0oYxfkg3z1wOwTxx2KbkrAWuVguGFs=
 20260807170000_create_tenant_foundation.sql h1:9KyewD/Xqtm6MjQ7MkTora3f47kjPOobGVfE2q66AUI=
 20260807170100_create_idempotency_record.sql h1:he0jfwTn3otdzgu/qHhFo7Z4ra9+1AL/mT2db82DOrU=
 20260811145252_harden_roles_and_definer_functions.sql h1:KhiZKVpFfL81T+f/73nMkVD0ndVWsCdM4ShqMHZfZ/g=
@@ -52,3 +52,4 @@ h1:9A43IVxQVBQ7ON7/0o/WQb7SKzJ5rC+1nQSHOs6cstE=
 20261122090000_rename_cancelled_by_professional.sql h1:BIjO/MqV4yhG0B8l4+g6EZTjFlC0UdIfn4jZ2kqve7w=
 20261123090000_create_customer_anonymization.sql h1:jOM8YSq3DtADXbhI3KNPwMErckBNY0j6+nHwMHTFZJM=
 20261125090000_appointment_no_show_cut.sql h1:Y2rO5R8vXaz24Apf3vpZ+sbv5YD/xIcf41RlONgD7A0=
+20261125150000_grant_occupied_until_to_owner.sql h1:XzAazKipIzgExv/fXCPh/qnC75NxSlzWMgfo+agepug=
