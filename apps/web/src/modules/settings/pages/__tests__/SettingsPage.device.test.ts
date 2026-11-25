@@ -9,7 +9,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { axe } from 'vitest-axe'
 import { appearance } from '@/shared/model'
-import { saveMock, mountReady, submit, resetSettingsPageDoubles } from './settingsPageHarness'
+import {
+  saveMock,
+  mountReady,
+  submit,
+  resetSettingsPageDoubles,
+  useSimulatedClock,
+  realClockForAxe,
+} from './settingsPageHarness'
 
 vi.mock(
   '../../api/settingsApi',
@@ -35,6 +42,7 @@ vi.mock(
 vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).doubles.auth)
 
 describe('SettingsPage', () => {
+  useSimulatedClock()
   beforeEach(resetSettingsPageDoubles)
 
   describe('preferencias de este dispositivo', () => {
@@ -116,6 +124,7 @@ describe('SettingsPage', () => {
 
     it('has no axe violations once loaded', { timeout: AXE_TIMEOUT_MS }, async () => {
       const wrapper = await mountReady()
+      realClockForAxe()
       const results = await axe(wrapper.element)
       expect(results).toHaveNoViolations()
     })
@@ -136,6 +145,7 @@ describe('SettingsPage', () => {
 
         await submit(wrapper)
 
+        realClockForAxe()
         const results = await axe(wrapper.element, axeOptionsWithAlert)
         expect(results).toHaveNoViolations()
       },
@@ -149,6 +159,7 @@ describe('SettingsPage', () => {
         await wrapper.get('input[name="businessTerm"]').setValue('salón 24')
         await submit(wrapper)
 
+        realClockForAxe()
         const results = await axe(wrapper.element, axeOptionsWithAlert)
         expect(results).toHaveNoViolations()
       },

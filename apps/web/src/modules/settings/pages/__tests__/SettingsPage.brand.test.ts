@@ -21,6 +21,7 @@ import {
   input,
   submit,
   resetSettingsPageDoubles,
+  useSimulatedClock,
 } from './settingsPageHarness'
 
 vi.mock(
@@ -47,6 +48,7 @@ vi.mock(
 vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).doubles.auth)
 
 describe('SettingsPage', () => {
+  useSimulatedClock()
   beforeEach(resetSettingsPageDoubles)
 
   describe('acento de la marca', () => {

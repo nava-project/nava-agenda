@@ -9,7 +9,7 @@
  * `vi.mock` lo cargan mientras se resuelven esos módulos, y un ciclo las
  * bloquearía. La página se carga al montar, cuando los dobles ya están puestos.
  */
-import { vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { PAGE_MIN_HOLD_MS } from '@/shared/composables'
 import { DEFAULT_BRAND, resetAppearance, resetBrand } from '@/shared/model'
@@ -86,11 +86,41 @@ export const mountOptions = {
   },
 }
 
-// El rombo de carga se sostiene PAGE_MIN_HOLD_MS aunque la respuesta ya haya
-// llegado: se espera ese retraso real antes de mirar la pantalla cargada.
+// Reloj simulado (#867, como StaffPage en #834). La página espera con
+// setTimeout y Date.now(): el rombo de carga se sostiene PAGE_MIN_HOLD_MS aunque
+// la respuesta ya haya llegado, y el buscador de direcciones espera su debounce.
+// Con esperas reales en las pruebas, un CI cargado las reordenaba frente a las
+// del componente. Cada archivo que usa este arnés llama a useSimulatedClock();
+// setImmediate sigue real porque lo usa flushPromises.
+export const COMPONENT_WAITS = {
+  // La mínima del rombo de carga (useMinHoldLoading), con margen.
+  loadHold: PAGE_MIN_HOLD_MS + 50,
+  // Más que el debounce de 250 ms del buscador de direcciones (AddressAutocomplete).
+  addressSearch: 400,
+} as const
+
+export async function passComponentWait(wait: keyof typeof COMPONENT_WAITS) {
+  await vi.advanceTimersByTimeAsync(COMPONENT_WAITS[wait])
+}
+
+export function useSimulatedClock() {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+}
+
+// axe-core programa su trabajo con setTimeout y no avanza con el reloj simulado.
+// Cada prueba de accesibilidad lo corre al final, así que vuelve al reloj real justo antes.
+export function realClockForAxe() {
+  vi.useRealTimers()
+}
+
 export async function settle() {
   await flushPromises()
-  await new Promise((resolve) => setTimeout(resolve, PAGE_MIN_HOLD_MS + 50))
+  await passComponentWait('loadHold')
   await flushPromises()
 }
 

@@ -20,6 +20,8 @@ import {
   settle,
   submit,
   resetSettingsPageDoubles,
+  useSimulatedClock,
+  passComponentWait,
 } from './settingsPageHarness'
 
 vi.mock(
@@ -44,6 +46,7 @@ vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).do
 const { default: SettingsPage } = await import('../SettingsPage.vue')
 
 describe('SettingsPage', () => {
+  useSimulatedClock()
   beforeEach(resetSettingsPageDoubles)
 
   describe('ubicación (DEC-130, HU-102)', () => {
@@ -99,7 +102,7 @@ describe('SettingsPage', () => {
       }))
 
       await wrapper.get('input[name="address"]').setValue('Vibras Barbería')
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      await passComponentWait('addressSearch')
       await settle()
       await wrapper.findAll('#configuracion-ubicacion [role="option"]')[0]!.trigger('click')
       await settle()

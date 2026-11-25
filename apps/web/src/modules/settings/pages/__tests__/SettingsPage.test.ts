@@ -25,6 +25,7 @@ import {
   input,
   submit,
   resetSettingsPageDoubles,
+  useSimulatedClock,
 } from './settingsPageHarness'
 
 vi.mock(
@@ -53,6 +54,7 @@ vi.mock('@/modules/auth', async () => (await import('./settingsPageHarness')).do
 const { default: SettingsPage } = await import('../SettingsPage.vue')
 
 describe('SettingsPage', () => {
+  useSimulatedClock()
   beforeEach(resetSettingsPageDoubles)
 
   describe('carga', () => {

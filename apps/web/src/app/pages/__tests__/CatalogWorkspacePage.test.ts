@@ -66,9 +66,30 @@ const assignmentsOf = (...ids: string[]) => ({
   },
 })
 
-function waitOutHold() {
-  return new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
+// Reloj simulado (#867, como StaffPage en #834): el catálogo sostiene su rombo de
+// carga DEFAULT_MIN_HOLD_MS con setTimeout y Date.now(). Con una espera real en la
+// prueba, un CI cargado la reordenaba frente a la del componente. setImmediate sigue
+// real porque lo usa flushPromises; vi.waitFor avanza el reloj simulado en cada intento.
+const COMPONENT_WAITS = {
+  // useMinHoldLoading: el rombo de la carga, con margen.
+  loadHold: DEFAULT_MIN_HOLD_MS + 50,
+} as const
+
+async function passComponentWait(wait: keyof typeof COMPONENT_WAITS) {
+  await vi.advanceTimersByTimeAsync(COMPONENT_WAITS[wait])
 }
+
+function waitOutHold() {
+  return passComponentWait('loadHold')
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 // `CatalogPage` se carga de forma diferida (defineAsyncComponent): hay que esperar a que
 // monte antes de contar el rombo de carga, y desmontar al terminar para que una página
