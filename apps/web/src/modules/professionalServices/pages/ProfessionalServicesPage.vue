@@ -1347,8 +1347,8 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
 }
 
 /* El cambio de rombo tampoco se anima con «Animaciones reducidas» (DEC-110). */
-:global(:root[data-motion='reduced']) .professional-services-page__diamond::after,
-:global(:root[data-motion='reduced']) .professional-services-page__meter-fill {
+:root[data-motion='reduced'] .professional-services-page__diamond::after,
+:root[data-motion='reduced'] .professional-services-page__meter-fill {
   transition: none;
 }
 
@@ -1369,8 +1369,8 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
 
 /* «Animaciones reducidas» de Configuración (DEC-110): los esqueletos quedan
    quietos igual que con la preferencia del sistema. */
-:global(:root[data-motion='reduced']) .professional-services-page__skeleton-row,
-:global(:root[data-motion='reduced']) .professional-services-page__skeleton-profile {
+:root[data-motion='reduced'] .professional-services-page__skeleton-row,
+:root[data-motion='reduced'] .professional-services-page__skeleton-profile {
   animation: none;
 }
 

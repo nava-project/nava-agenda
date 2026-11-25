@@ -5,10 +5,10 @@
  * scripts/check-built-css.mjs sobre dist; aquí se fija su criterio y que el
  * fuente no vuelva a escribir el prefijo a mano.
  */
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { prefixedOnlyRules } from '../../../../scripts/check-built-css.mjs'
+import { prefixedOnlyRules, rootOnlyRules } from '../../../../scripts/check-built-css.mjs'
 
 describe('CSS construido sin propiedades solo prefijadas (#791)', () => {
   it('señala la regla que el build de main dejaba solo con -webkit-backdrop-filter', () => {
@@ -33,5 +33,41 @@ describe('CSS construido sin propiedades solo prefijadas (#791)', () => {
     const source = readFileSync(join(__dirname, '../BaseDialog.vue'), 'utf8')
     expect(source).toMatch(/^\s*backdrop-filter: blur\(6px\);/m)
     expect(source).not.toMatch(/^\s*-webkit-backdrop-filter:/m)
+  })
+})
+
+describe('ninguna regla cae sobre toda la raíz (#846)', () => {
+  it('señala lo que el build de main dejaba de `:global(:root[data-motion]) .clase`', () => {
+    const mainBuild =
+      '.staff-page__skeleton-bar[data-v-1]{opacity:.6}:root[data-motion=reduced],:root[data-motion=reduced]{opacity:.8;animation:none}'
+    expect(rootOnlyRules(mainBuild)).toEqual([
+      ':root[data-motion=reduced],:root[data-motion=reduced] { opacity; animation }',
+    ])
+  })
+
+  it('acepta los tokens de la apariencia y las reglas que bajan a un elemento', () => {
+    const css =
+      ':root[data-app-theme=ink]{--color-canvas:#0b1022;color-scheme:dark}' +
+      ':root[data-motion=reduced] .staff-page__skeleton-bar[data-v-1]{animation:none;opacity:.8}' +
+      ':root[data-motion=reduced] *,:root[data-motion=reduced] :after{animation-duration:.01ms!important}'
+    expect(rootOnlyRules(css)).toEqual([])
+  })
+
+  it('el fuente no escribe `:global(X) .y` en estilos scoped: compila a solo X (#731)', () => {
+    const src = join(__dirname, '../../..')
+    const offenders: string[] = []
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name)
+        if (entry.isDirectory()) walk(path)
+        else if (entry.name.endsWith('.vue')) {
+          const source = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+          for (const match of source.matchAll(/:global\([^)]*\)\s*[^\s{,]/g))
+            offenders.push(`${path.slice(src.length + 1)}: ${match[0]}`)
+        }
+      }
+    }
+    walk(src)
+    expect(offenders).toEqual([])
   })
 })

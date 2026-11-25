@@ -3014,7 +3014,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   color-scheme: dark;
 }
 
-:global(:root[data-app-theme='ivory']) .appointment-detail-page__ink-form :deep(.base-input) {
+:root[data-app-theme='ivory'] .appointment-detail-page__ink-form :deep(.base-input) {
   color-scheme: light;
 }
 
@@ -3335,7 +3335,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
   }
 }
 
-:global(:root[data-motion='reduced']) .appointment-detail-page__cancel-time-text::after {
+:root[data-motion='reduced'] .appointment-detail-page__cancel-time-text::after {
   animation: none;
 }
 /* ── Llegada (#758) ─────────────────────────────────────────────────────────

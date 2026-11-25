@@ -8,6 +8,8 @@
  * catalogApi se sustituye por un doble de prueba; el recorrido real contra
  * el API vive en el E2E de HU-022.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -366,6 +368,64 @@ describe('CatalogPage', () => {
       expect(wrapper.find('.catalog-page__ready--fitting').exists()).toBe(false)
       wrapper.unmount()
     } finally {
+      rectSpy.mockRestore()
+      scroller.remove()
+    }
+  })
+
+  it('fits two whole cards at 320×640 with the measured bottom padding (#819)', async () => {
+    // Geometría medida en Chromium y Firefox a 320×640 con el modo de teléfono
+    // bajo: visor de 489px, lista a 156px, tarjetas de 116px, 12px hasta un
+    // paginador de dos renglones (74px) y 8px de padding inferior. Con los 48px
+    // fijos de antes el ajuste daba una sola tarjeta y dejaba el hueco debajo.
+    const css = readFileSync(join(__dirname, '../CatalogPage.vue'), 'utf8')
+    expect(css).toMatch(
+      /@media \(max-width: 640px\) and \(max-height: 700px\) \{\s*\.catalog-page \{\s*gap: 10px;\s*padding: 12px 16px 8px;/,
+    )
+    const scroller = document.createElement('div')
+    scroller.style.overflowY = 'auto'
+    Object.defineProperty(scroller, 'clientHeight', { value: 489 })
+    document.body.appendChild(scroller)
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height }) as DOMRect
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: HTMLElement) {
+        if (this === scroller) return rect(0, 489)
+        if (this.classList.contains('catalog-page__row')) return rect(157, 116)
+        if (this.classList.contains('catalog-page__list')) return rect(156, 118)
+        if (this.classList.contains('catalog-page__pagination')) return rect(286, 74)
+        return rect(0, 0)
+      })
+    // jsdom no aplica el CSS del componente: se da el padding que calcula el navegador.
+    const realStyle = window.getComputedStyle.bind(window)
+    const styleSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+      const style = realStyle(el, pseudo)
+      if (!(el instanceof HTMLElement) || !el.classList.contains('catalog-page')) return style
+      return new Proxy(style, {
+        get: (target, key) => (key === 'paddingBottom' ? '8px' : Reflect.get(target, key)),
+      })
+    })
+
+    try {
+      fetchMock.mockResolvedValueOnce({
+        kind: 'success',
+        page: listPage(fourServices, { total: 34, totalPages: 2 }),
+      })
+      const wrapper = mount(CatalogPage, {
+        attachTo: scroller,
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      await flushPromises()
+      await waitOutInitialLoadHold()
+      await flushPromises()
+
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(wrapper.findAll('li').length).toBe(2)
+      // 34 servicios a 2 por página = 17 páginas.
+      expect(findButtonByText(wrapper, '17').exists()).toBe(true)
+      wrapper.unmount()
+    } finally {
+      styleSpy.mockRestore()
       rectSpy.mockRestore()
       scroller.remove()
     }

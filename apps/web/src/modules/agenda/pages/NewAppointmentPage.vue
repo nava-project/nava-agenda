@@ -22,7 +22,7 @@
 // a él. Campos, validaciones, contrato y envío no cambian.
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
-import { useToast, useVocabulary } from '@/shared/composables'
+import { useVocabulary } from '@/shared/composables'
 import { worksOwnProfessional } from '@/shared/model'
 import { sessionBusinessName } from '@/modules/auth'
 import {
@@ -133,7 +133,6 @@ watch(customerNote, () => {
 
 const fieldErrors = ref<Record<string, string | undefined>>({})
 const attempted = ref(false)
-const toast = useToast()
 // Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
 const hideProfessionalField = computed(
@@ -385,9 +384,10 @@ async function onSubmit() {
       created.value = outcome.appointment
       saveStatus.value = 'idle'
       draftAnnouncement.value = ''
-      toast.success('Turno registrado', { detail: 'El turno ya está en la agenda.' })
-      // El foco va al titular desde el primer cuadro: la ceremonia corta de
-      // la tarjeta no bloquea nada (#833, CA-15).
+      // Sin aviso emergente (#839): la vista de confirmación ya lo es, y a
+      // 1024×768 el aviso tapaba el pie de la tarjeta registrada. El foco va
+      // al titular desde el primer cuadro, que se anuncia con su nota (la
+      // ceremonia corta de la tarjeta no bloquea nada, #833, CA-15).
       await nextTick()
       successHeading.value?.focus()
       return
@@ -498,6 +498,34 @@ watch(rail, (el) => {
 })
 onBeforeUnmount(() => railObserver?.disconnect())
 
+// El bloque de la respuesta va pegado al fondo de la vista mientras el riel
+// no cabe (#837 r2) y entonces tapa el final de la tarjeta. Solo en ese caso
+// lleva el filete de latón que lo lee como dock (#839): el pie del riel queda
+// por debajo de la vista exactamente cuando el bloque está pegado.
+const railFoot = ref<HTMLElement | null>(null)
+const respondDocked = ref(false)
+let footObserver: IntersectionObserver | null = null
+watch(railFoot, (el) => {
+  footObserver?.disconnect()
+  footObserver = null
+  respondDocked.value = false
+  const scroller = el && scrollerOf(el)
+  if (!el || !scroller || typeof IntersectionObserver === 'undefined') return
+  footObserver = new IntersectionObserver(
+    ([entry]) => {
+      const bottom = entry?.rootBounds?.bottom
+      respondDocked.value =
+        !!entry &&
+        !entry.isIntersecting &&
+        bottom !== undefined &&
+        entry.boundingClientRect.top >= bottom - 1
+    },
+    { root: scroller },
+  )
+  footObserver.observe(el)
+})
+onBeforeUnmount(() => footObserver?.disconnect())
+
 function onRetryLoad() {
   void loadPage()
 }
@@ -567,14 +595,20 @@ function onProfessionalSelect(professionalId: string) {
 
       <!-- Evento 12, registrado (#833): la misma tarjeta pasa a confirmada con
            una ceremonia corta, en el sitio del riel. Ningún role="status" la
-           envuelve: el titular recibe el foco y el aviso emergente anuncia. -->
+           envuelve ni sale un aviso emergente (#839): el titular recibe el foco
+           y el lector lee con él la nota que lo describe. -->
       <div v-else-if="createdTicket" class="new-appointment-page__layout">
         <div class="new-appointment-page__form new-appointment-page__done">
           <p class="new-appointment-page__done-label">Confirmación</p>
-          <h2 ref="successHeading" tabindex="-1" class="new-appointment-page__done-title">
+          <h2
+            ref="successHeading"
+            tabindex="-1"
+            class="new-appointment-page__done-title"
+            aria-describedby="new-appointment-success-note"
+          >
             Turno registrado
           </h2>
-          <p class="new-appointment-page__success-note">
+          <p id="new-appointment-success-note" class="new-appointment-page__success-note">
             El turno quedó confirmado en la agenda {{ v.ofTheProfessional }}. Las notificaciones al
             cliente todavía no están disponibles (B5 las agrega más adelante).
           </p>
@@ -1013,7 +1047,7 @@ function onProfessionalSelect(professionalId: string) {
                alerta aparece junto al botón que la provocó. La tarjeta sigue
                entera y se alcanza desplazando; no hay una segunda barra de
                desplazamiento ni una parada de Tab nueva. -->
-          <div class="new-appointment-page__respond">
+          <div class="new-appointment-page__respond" :data-docked="respondDocked || undefined">
             <!-- La respuesta al registrar va justo encima de «Registrar turno», junto
                  al botón que la provocó: el riel se pega por abajo (top negativo)
                  y una alerta arriba crecería fuera de la vista (#837 r1).
@@ -1070,6 +1104,9 @@ function onProfessionalSelect(professionalId: string) {
               </BaseButton>
             </div>
           </div>
+          <!-- Marca el pie del riel (#839): mientras queda fuera de la vista, el
+               bloque de arriba está pegado y tapa la tarjeta. -->
+          <span ref="railFoot" class="new-appointment-page__rail-foot" aria-hidden="true" />
         </aside>
       </form>
     </template>
@@ -1132,6 +1169,7 @@ function onProfessionalSelect(professionalId: string) {
 }
 
 .new-appointment-page__rail {
+  position: relative;
   grid-area: rail;
   display: flex;
   flex-direction: column;
@@ -1150,6 +1188,16 @@ function onProfessionalSelect(professionalId: string) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Un píxel fuera del flujo en el borde inferior del riel (#839). */
+.new-appointment-page__rail-foot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  pointer-events: none;
 }
 
 /* ------------------------------------------- tarjeta del borrador (#833) */
@@ -2042,15 +2090,32 @@ function onProfessionalSelect(professionalId: string) {
 
   /* Pegadas al fondo de la vista mientras el riel no cabe (#837 r2): al cargar
      a 1024×768 o 1440×800 el botón queda entero sin desplazar. Tapan por
-     encima el final de la tarjeta, que aparece al bajar; el fundido de 14 px
-     sobre el mismo lienzo evita un corte seco. */
+     encima el final de la tarjeta, que aparece al bajar. */
   .new-appointment-page__respond {
     position: sticky;
     bottom: 0;
     z-index: 1;
     margin-top: -14px;
     padding: 14px 0 12px;
-    background: linear-gradient(to bottom, transparent, var(--color-surface-strong) 14px);
+  }
+
+  /* El relleno es el propio lienzo del panel, con su luz fija a la ventana
+     (#839): fuera de la tarjeta no se ve ninguna placa, ni en Tinta ni en
+     Marfil. Empieza bajo los 14 px que el bloque solapa a la tarjeta, así en
+     reposo no la recorta. */
+  .new-appointment-page__respond::before {
+    position: absolute;
+    inset: 14px 0 0;
+    z-index: -1;
+    background: var(--shell-canvas-fill, var(--color-surface-strong));
+    content: '';
+  }
+
+  /* Pegado sobre la tarjeta, se lee como un dock y no como un corte: filete de
+     latón arriba y una sombra muy suave que cae sobre la tarjeta. */
+  .new-appointment-page__respond[data-docked]::before {
+    border-top: 1px solid color-mix(in srgb, var(--color-brass-line) 70%, transparent);
+    box-shadow: 0 -12px 18px -14px rgb(0 0 0 / 45%);
   }
 
   .new-appointment-page__sheet {

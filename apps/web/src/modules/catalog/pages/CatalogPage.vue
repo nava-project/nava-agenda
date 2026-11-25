@@ -186,17 +186,22 @@ function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
 // esté desplazado su contenedor, y esta pantalla quiere calcular para la
 // posición de reposo (sin desplazar), que es además el estado al que
 // aspira a volver.
-// PAGE_BOTTOM_PADDING_PX debe coincidir con el padding-bottom real de
-// .catalog-page (ver <style scoped>, "padding: 34px 32px 48px"). NO se
-// puede medir en vivo como gapBelowList (abajo): .catalog-page tiene
-// min-height: 100%, así que con pocas filas su borde inferior se estira
-// hasta el final de .private-shell__content sin importar cuánto padding
-// real tenga — medir "borde de .catalog-page menos borde del paginador" en
-// ese caso da todo el hueco vacío estirado, no el padding, y hace que el
-// cálculo se autodestruya (encontrado en vivo: en una pantalla baja, un
-// hueco enorme se confundía con "padding", y el resultado subestimaba
-// muchísimo cuántas filas caben).
+// El padding inferior de .catalog-page se lee de su estilo calculado, no de
+// sus bordes: .catalog-page tiene min-height: 100%, así que con pocas filas
+// su borde inferior se estira hasta el final de .private-shell__content, y
+// "borde de .catalog-page menos borde del paginador" daría todo el hueco
+// vacío, no el padding (encontrado en vivo: el cálculo subestimaba muchísimo
+// cuántas filas caben). Tampoco es una constante: cambia en móvil (28px) y en
+// teléfonos bajos (#819), y con 48px fijos el ajuste perdía una fila.
+// PAGE_BOTTOM_PADDING_PX solo cubre jsdom, que no calcula estilos.
 const PAGE_BOTTOM_PADDING_PX = 48
+const pageRef = ref<HTMLElement | null>(null)
+
+function pageBottomPaddingPx(): number {
+  const page = pageRef.value
+  const value = page ? parseFloat(window.getComputedStyle(page).paddingBottom) : NaN
+  return Number.isFinite(value) ? value : PAGE_BOTTOM_PADDING_PX
+}
 
 function computeFittingPageSize(): number | null {
   const list = tableListRef.value
@@ -238,7 +243,7 @@ function computeFittingPageSize(): number | null {
     (listRect.top - containerTop) -
     gapBelowList -
     paginationRect.height -
-    PAGE_BOTTOM_PADDING_PX * scale
+    pageBottomPaddingPx() * scale
   const rows = Math.floor(available / currentRowHeightPx(list, scale))
 
   return Math.min(Math.max(rows, DYNAMIC_MIN_PAGE_SIZE), MAX_PAGE_SIZE)
@@ -1072,6 +1077,7 @@ async function reloadAfterConflict(serviceId: string) {
 
 <template>
   <section
+    ref="pageRef"
     class="catalog-page"
     :class="{ 'catalog-page--offer': hasOfferColumn() }"
     aria-labelledby="catalog-page-title"
@@ -2196,8 +2202,8 @@ async function reloadAfterConflict(serviceId: string) {
 
 /* «Animaciones reducidas» de Configuración (DEC-110): el esqueleto queda
    quieto igual que con la preferencia del sistema. */
-:global(:root[data-motion='reduced']) .catalog-page__skeleton-icon,
-:global(:root[data-motion='reduced']) .catalog-page__skeleton-bar {
+:root[data-motion='reduced'] .catalog-page__skeleton-icon,
+:root[data-motion='reduced'] .catalog-page__skeleton-bar {
   animation: none;
   opacity: 0.8;
 }
@@ -3557,6 +3563,25 @@ async function reloadAfterConflict(serviceId: string) {
 
   .catalog-page__subtitle {
     display: none;
+  }
+}
+
+/* Teléfonos bajos (#819): a 320×640 faltaban 28px para la segunda tarjeta y la
+   página quedaba con un servicio y un hueco debajo. Como en el escritorio bajo,
+   se aprieta el aire que rodea la lista, no la tarjeta ni sus botones de 36px:
+   así caben dos tarjetas enteras y el paginador sin scroll. */
+@media (max-width: 640px) and (max-height: 700px) {
+  .catalog-page {
+    gap: 10px;
+    padding: 12px 16px 8px;
+  }
+
+  .catalog-page__header {
+    padding-bottom: 8px;
+  }
+
+  .catalog-page__ready {
+    gap: 12px;
   }
 }
 </style>

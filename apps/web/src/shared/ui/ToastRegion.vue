@@ -248,7 +248,11 @@ function onAction(id: number, run: (() => void) | undefined) {
   left: 12px;
   z-index: var(--layer-toast);
   display: flex;
-  flex-direction: column;
+  /* La cola llega con el más nuevo primero. Se apila lejos del borde al que se
+     ancla la región, así un aviso nuevo nunca mueve a los que ya se ven (#844):
+     arriba, el más nuevo queda debajo de los anteriores. */
+  flex-direction: column-reverse;
+  justify-content: flex-end;
   gap: 10px;
   pointer-events: none;
 }
@@ -257,12 +261,14 @@ function onAction(id: number, run: (() => void) | undefined) {
    (#743). Arriba tapaban la acción de la cabecera de cada pantalla
    («Agregar servicio», «Nuevo turno»), justo la que se quiere repetir tras
    guardar. El visor del cascarón ya excluye la barra, así que nunca la
-   tapan. El más nuevo queda junto al borde y entra subiendo. */
+   tapan. El más nuevo se apila encima de los anteriores, lejos de la barra,
+   y entra subiendo: los que ya se ven no se mueven (#844). */
 .toast-region--host {
   position: absolute;
   top: auto;
   bottom: var(--space-3);
-  flex-direction: column-reverse;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .toast-region--host .toast-motion-enter-active {
@@ -344,6 +350,8 @@ function onAction(id: number, run: (() => void) | undefined) {
 
 .toast-region__clear {
   position: relative;
+  /* También lejos del borde: aparece con el segundo aviso sin empujar al primero (#844). */
+  order: -1;
   display: inline-flex;
   align-items: center;
   align-self: flex-end;

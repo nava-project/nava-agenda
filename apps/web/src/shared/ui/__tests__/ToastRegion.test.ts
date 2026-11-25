@@ -3,6 +3,8 @@
  * aviso a la vez, pausa el tiempo con el cursor, ejecuta la acción y
  * descarta con Escape o con "Descartar todos".
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -57,6 +59,32 @@ describe('ToastRegion', () => {
     vi.advanceTimersByTime(TOAST_DURATION_MS.success)
     await wrapper.vm.$nextTick()
     expect(wrapper.findAll('.base-toast__title').map((node) => node.text())).toEqual(['Segundo'])
+  })
+
+  // jsdom no maqueta: se fija el contrato de apilado que mide Playwright (#844). La cola
+  // llega con el más nuevo primero; la región lo pinta lejos del borde al que se ancla,
+  // así un segundo aviso nunca mueve al que ya se ve, y «Descartar todos» también.
+  it('stacks a second toast away from the anchored edge, without moving the first (#844)', async () => {
+    const css = readFileSync(join(__dirname, '../ToastRegion.vue'), 'utf8')
+    const rule = (selector: string) =>
+      new RegExp(`\\n${selector.replace(/[.-]/g, '\\$&')} \\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+    // Arriba (ventana): el más nuevo debajo de los anteriores.
+    expect(rule('.toast-region')).toMatch(/flex-direction: column-reverse;/)
+    // Abajo (panel): el más nuevo encima de los anteriores.
+    expect(rule('.toast-region--host')).toMatch(/bottom: var\(--space-3\);/)
+    expect(rule('.toast-region--host')).toMatch(/flex-direction: column;/)
+    expect(rule('.toast-region__clear')).toMatch(/order: -1;/)
+
+    const wrapper = mount(ToastRegion, { props: { placement: 'host' } })
+    pushToast({ variant: 'success', title: 'Primero' })
+    await wrapper.vm.$nextTick()
+    const first = wrapper.get('[data-toast-id]').element
+    pushToast({ variant: 'success', title: 'Segundo' })
+    await wrapper.vm.$nextTick()
+    // El primero es el mismo nodo (no se vuelve a montar) y el nuevo entra antes en el DOM.
+    const items = wrapper.findAll('[data-toast-id]').map((node) => node.element)
+    expect(items).toHaveLength(2)
+    expect(items[1]).toBe(first)
   })
 
   it('opens one toast at a time and holds the countdown while open', async () => {
