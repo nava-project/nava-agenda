@@ -1458,3 +1458,82 @@ describe('StaffPage', () => {
     })
   })
 })
+
+// #869 (estandar-diseno-visual §6.3): mientras guarda, «Guardar» espera con aria-disabled y
+// no con `disabled` nativo, que en el navegador suelta el foco en <body> (jsdom no lo hace,
+// por eso se mira el atributo). Si la escritura falla, el foco sigue en «Guardar», que
+// reintenta. Se monta adjunto al documento para que haya foco.
+describe('StaffPage · el foco tras un guardado fallido (#869)', () => {
+  const mounted: VueWrapper[] = []
+  beforeEach(() => {
+    // Las pruebas de perfil individual (DEC-115) dejan otra marca: se vuelve a la base.
+    resetToasts()
+    resetBrand()
+    createMock.mockReset()
+    renameMock.mockReset()
+    fetchMyProfessionalMock.mockReset()
+    fetchMyProfessionalMock.mockResolvedValue({ kind: 'none' })
+  })
+  afterEach(() => {
+    while (mounted.length) mounted.pop()!.unmount()
+  })
+
+  async function mountAttached() {
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue({
+      kind: 'success',
+      page: { items: [...oneProfessional], nextCursor: null },
+    })
+    const wrapper = mount(StaffPage, {
+      attachTo: document.body,
+      global: {
+        stubs: { teleport: true, transition: true, RouterLink: { template: '<a><slot /></a>' } },
+      },
+    })
+    mounted.push(wrapper)
+    await flushPromises()
+    await waitOutInitialLoadHold()
+    await flushPromises()
+    return wrapper
+  }
+
+  const CASES = [
+    { name: 'Agregar profesional', opener: 'Agregar profesional', mock: createMock },
+    { name: 'Editar profesional', opener: 'Editar', mock: renameMock },
+  ]
+
+  it.each(CASES)(
+    '$name: «Guardar» keeps the focus while it waits and after a network failure',
+    async ({ opener, mock }) => {
+      const wrapper = await mountAttached()
+      await findButtonByText(wrapper, opener).trigger('click')
+      await flushPromises()
+      setInputValue(openDialogInput(wrapper), 'Nombre de prueba')
+      await flushPromises()
+
+      let resolveWrite: (outcome: { kind: string }) => void = () => {}
+      mock.mockReturnValueOnce(new Promise((r) => (resolveWrite = r)))
+      const save = dialogButton(wrapper, 'Guardar')
+      save.focus()
+      save.click()
+      await flushPromises()
+
+      expect(mock).toHaveBeenCalledTimes(1)
+      expect(save.disabled).toBe(false)
+      expect(save.getAttribute('aria-disabled')).toBe('true')
+      expect(document.activeElement).toBe(save)
+      save.click()
+      await flushPromises()
+      expect(mock).toHaveBeenCalledTimes(1)
+
+      resolveWrite({ kind: 'network-error' })
+      await flushPromises()
+      await waitOutMoreHold()
+      await flushPromises()
+
+      expect(openDialogElement(wrapper).querySelector('[role="alert"]')).toBeTruthy()
+      expect(document.activeElement).toBe(save)
+      expect(save.getAttribute('aria-disabled')).toBe('false')
+    },
+  )
+})

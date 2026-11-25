@@ -784,7 +784,9 @@ watch(
   (now, before) => {
     if (!now.some((status, i) => before[i] === 'saving' && status !== 'saving')) return
     document
-      .querySelector<HTMLElement>('.base-dialog--open [role="alert"] .base-alert__actions button')
+      .querySelector<HTMLElement>(
+        '.base-dialog--open .appointment-detail-page__dialog-form [role="alert"] .base-alert__actions button',
+      )
       ?.focus()
   },
   { flush: 'post' },

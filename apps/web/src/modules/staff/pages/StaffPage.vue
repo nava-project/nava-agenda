@@ -1173,7 +1173,7 @@ async function onSubmitRename() {
             variant="primary"
             :loading="createStatus === 'saving'"
             loading-label="Guardando…"
-            :disabled="createStatus === 'saving'"
+            keep-focus-while-loading
           >
             Guardar
           </BaseButton>
@@ -1272,7 +1272,7 @@ async function onSubmitRename() {
             variant="primary"
             :loading="renameStatus === 'saving'"
             loading-label="Guardando…"
-            :disabled="renameStatus === 'saving'"
+            keep-focus-while-loading
           >
             Guardar
           </BaseButton>
