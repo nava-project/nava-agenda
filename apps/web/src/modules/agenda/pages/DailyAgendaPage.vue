@@ -442,6 +442,19 @@ function formatAgendaTime(instant: string): string {
   }).format(new Date(instant))
 }
 
+// DEC-193 (#854): un «No vino» marcado dentro de su franja la libera desde el
+// minuto de la marca. El corte lo da el servidor (`occupiedUntil`); la agenda lo
+// dice con palabras («Libre desde las 12:10 p. m.»), nunca solo con color.
+function noShowFreedFrom(entry: DailyAgendaEntry): string | null {
+  if (entry.status !== 'no_show' || !entry.occupiedUntil) return null
+  return Date.parse(entry.occupiedUntil) < Date.parse(entry.endsAt) ? entry.occupiedUntil : null
+}
+
+function noShowFreedLabel(entry: DailyAgendaEntry): string {
+  const freedFrom = noShowFreedFrom(entry)
+  return freedFrom ? `Libre desde las ${formatAgendaTime(freedFrom)}` : ''
+}
+
 // «7:15 – 7:45 a. m.»: el periodo una sola vez cuando los dos extremos lo
 // comparten; si no, en ambos («11:30 a. m. – 12:15 p. m.»).
 function entryTimeRange(entry: DailyAgendaEntry): string {
@@ -737,8 +750,13 @@ function timelineSlipWidthPercent(entry: DailyAgendaEntry): number {
   if (!bounds || !agendaDate.value || !businessTimezone.value) return 0
   const start = minutesIntoCivilDate(entry.startsAt, agendaDate.value, businessTimezone.value)
   // Fin sin recortar, igual que en timelineBounds: la ficha ocupa su
-  // duración real aunque cruce medianoche.
-  const end = minutesSinceCivilMidnight(entry.endsAt, agendaDate.value, businessTimezone.value)
+  // duración real aunque cruce medianoche. Un «No vino» que liberó su franja
+  // (DEC-193) llega solo hasta el corte, para no tapar el turno que tomó el resto.
+  const end = minutesSinceCivilMidnight(
+    noShowFreedFrom(entry) ?? entry.endsAt,
+    agendaDate.value,
+    businessTimezone.value,
+  )
   const span = bounds.end - bounds.start
   // Ancho mínimo visual en px reales: una ficha muy corta sigue siendo
   // legible en la línea de tiempo sin que eso cambie su duración real.
@@ -1610,6 +1628,11 @@ const dayChangeMarkerPercent = computed(() => {
                             >{{ entry.serviceName
                             }}<template v-if="entry.homeService"> · A domicilio</template></span
                           >
+                          <span
+                            v-if="noShowFreedLabel(entry)"
+                            class="daily-agenda-page__item-freed"
+                            >{{ noShowFreedLabel(entry) }}</span
+                          >
                         </span>
                       </RouterLink>
                       <BaseBadge
@@ -2335,6 +2358,13 @@ const dayChangeMarkerPercent = computed(() => {
 .daily-agenda-page__item-service {
   font-size: 14px;
   line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+/* DEC-193: el tramo que un «No vino» dejó libre, dicho en texto. */
+.daily-agenda-page__item-freed {
+  font-size: 13px;
+  line-height: 18px;
   color: var(--color-text-secondary);
 }
 

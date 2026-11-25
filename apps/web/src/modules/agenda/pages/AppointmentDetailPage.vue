@@ -221,6 +221,23 @@ const timeRangeLabel = computed(() => {
   return `${start} – ${end}`
 })
 
+// DEC-193 (#854): un `no_show` ocupa la agenda solo hasta el minuto de la marca.
+// El dato es del servidor (`occupiedUntil`); aquí solo se dice en palabras, nunca
+// solo con color. Sin el dato (respuesta anterior al campo) no se afirma nada.
+const noShowOccupancyLabel = computed(() => {
+  const d = detail.value
+  const zone = businessTimezone.value
+  if (!d || !zone || d.status !== 'no_show' || !d.occupiedUntil) return ''
+  const until = Date.parse(d.occupiedUntil)
+  if (until <= Date.parse(d.startsAt)) {
+    return 'No llegó a ocupar su franja: quedó libre entera para otro turno.'
+  }
+  if (until < Date.parse(d.endsAt)) {
+    return `Ocupó de ${formatTimeInTimezone(d.startsAt, zone)} a ${formatTimeInTimezone(d.occupiedUntil, zone)}; el resto de la franja quedó libre para otro turno.`
+  }
+  return 'Ocupó su franja completa.'
+})
+
 // La tarjeta de turno (DEC-189, #757): la misma que el cliente se lleva, ahora en
 // el panel. El sello dice el estado como lo lee la agenda («En curso», «Por
 // registrar»); el rótulo de latón, de dónde salió el turno.
@@ -663,7 +680,13 @@ function onOpenComplete() {
   isCloseOpen.value = true
 }
 
+// DEC-193: al abrir «No vino» se fija si la franja todavía no termina; si no
+// terminó, la confirmación dice que el resto queda libre. Lo decide el servidor
+// con su reloj; esto solo anticipa la consecuencia.
+const noShowFreesRest = ref(false)
+
 function onOpenNoShow() {
+  noShowFreesRest.value = !!detail.value && Date.now() < Date.parse(detail.value.endsAt)
   closeMode.value = 'no-show'
   closeStatus.value = 'idle'
   closeErrorDetail.value = null
@@ -773,8 +796,26 @@ const correctTrimmedReason = computed(() => correctReason.value.trim())
 const correctConsequenceLabel = computed(() => {
   if (!detail.value || !correctDestination.value) return ''
   const occupies = (status: AppointmentStatus) => status === 'completed' || status === 'no_show'
-  const destOccupies = occupies(correctDestination.value)
-  const originOccupies = occupies(detail.value.status)
+  const destination = correctDestination.value
+  const origin = detail.value.status
+  const destOccupies = occupies(destination)
+  const originOccupies = occupies(origin)
+  // DEC-193: hacia `no_show`, el servidor corta en el minuto de la corrección;
+  // si la franja ya terminó, no cambia nada. Desde un `no_show` que liberó parte
+  // de su franja, `completed` la vuelve a ocupar entera.
+  const beforeEnd = Date.now() < Date.parse(detail.value.endsAt)
+  const freed =
+    origin === 'no_show' &&
+    !!detail.value.occupiedUntil &&
+    Date.parse(detail.value.occupiedUntil) < Date.parse(detail.value.endsAt)
+  if (destination === 'no_show' && beforeEnd) {
+    return originOccupies
+      ? 'El turno dejará de ocupar su franja desde este minuto; el resto quedará libre.'
+      : 'El turno volverá a ocupar su franja hasta este minuto; el resto seguirá libre.'
+  }
+  if (destination === 'completed' && freed) {
+    return 'El turno volverá a ocupar su franja entera. Si otro turno ya tomó el tramo liberado, primero hay que corregir ese turno.'
+  }
   if (destOccupies && !originOccupies) return 'El turno volverá a ocupar su franja en la agenda.'
   if (!destOccupies && originOccupies) return 'El turno dejará de ocupar su franja en la agenda.'
   return destOccupies
@@ -1123,6 +1164,10 @@ function occurredAtLabel(entry: HistoryEntry): string {
             <div class="appointment-detail-page__leader">
               <dt>Cliente que reservó</dt>
               <dd>{{ detail.customerFullName }}</dd>
+            </div>
+            <div v-if="noShowOccupancyLabel" class="appointment-detail-page__leader">
+              <dt>En la agenda</dt>
+              <dd class="appointment-detail-page__occupancy">{{ noShowOccupancyLabel }}</dd>
             </div>
             <div v-if="detail.customerPhone" class="appointment-detail-page__leader">
               <dt>Teléfono</dt>
@@ -1704,6 +1749,22 @@ function occurredAtLabel(entry: HistoryEntry): string {
                 <path d="M12 10v4M12 17v.5" />
               </svg>
               Esta acción no se puede deshacer desde aquí.
+            </li>
+            <li v-if="closeMode === 'no-show' && noShowFreesRest">
+              <svg
+                class="appointment-detail-page__cancel-effect-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="8.5" />
+                <path d="M12 7.5V12l3 2" />
+              </svg>
+              Desde este minuto, el resto de la franja queda libre para otro turno.
             </li>
           </ul>
 
