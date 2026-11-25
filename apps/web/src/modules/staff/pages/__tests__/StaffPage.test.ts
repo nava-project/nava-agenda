@@ -7,7 +7,7 @@
  * sustituye por un doble de prueba; el recorrido real contra el API vive en el
  * E2E de HU-021.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
@@ -112,17 +112,47 @@ function mountPage() {
   })
 }
 
-// useMinHoldLoading mantiene el rombo/esqueleto al menos DEFAULT_MIN_HOLD_MS con
-// un setTimeout REAL antes de dejar pasar el contenido: flushPromises() (solo
-// microtareas) no alcanza a esperarlo. Con margen sobre el valor exacto.
-function waitOutInitialLoadHold() {
-  return new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
+// Reloj simulado en todo el archivo (#834). La página espera con setTimeout y
+// Date.now(): la mínima del esqueleto (useMinHoldLoading), la de cada página
+// pedida y el ajuste de 120 ms tras un resize. Con esperas reales en las pruebas,
+// un CI cargado las reordenaba frente a las del componente y las aserciones veían
+// otro momento. setImmediate sigue real porque lo usa flushPromises.
+const COMPONENT_WAITS = {
+  // useMinHoldLoading: el esqueleto de la primera carga, con margen.
+  initialLoadHold: DEFAULT_MIN_HOLD_MS + 50,
+  // La mínima de una página pedida («Cargar más», paginación, reajuste).
+  moreHold: PAGE_MIN_HOLD_MS + 50,
+  // Más que el ajuste de 120 ms que sigue a un resize o al aviso del ResizeObserver.
+  refit: 160,
+} as const
+
+async function passComponentWait(wait: keyof typeof COMPONENT_WAITS) {
+  await vi.advanceTimersByTimeAsync(COMPONENT_WAITS[wait])
 }
 
-// "Cargar más" mantiene los esqueletos al menos PAGE_MIN_HOLD_MS.
-function waitOutMoreHold() {
-  return new Promise((resolve) => setTimeout(resolve, PAGE_MIN_HOLD_MS + 50))
+function waitOutInitialLoadHold() {
+  return passComponentWait('initialLoadHold')
 }
+
+function waitOutMoreHold() {
+  return passComponentWait('moreHold')
+}
+
+// axe-core programa su trabajo con setTimeout y no avanza con el reloj simulado.
+// Cada prueba de accesibilidad lo corre al final, ya sin esperas del componente
+// por medir, así que vuelve al reloj real justo antes.
+function axeWithRealClock(...args: Parameters<typeof axe>) {
+  vi.useRealTimers()
+  return axe(...args)
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 async function mountReady(items = oneProfessional, nextCursor: string | null = null) {
   // Clona el arreglo (StaffPage.vue asigna professionals.value = outcome.page.items
@@ -490,7 +520,7 @@ describe('StaffPage', () => {
       })
       height = 420
       window.dispatchEvent(new Event('resize'))
-      await new Promise((resolve) => setTimeout(resolve, 160))
+      await passComponentWait('refit')
       await flushPromises()
       await waitOutMoreHold()
       await flushPromises()
@@ -572,7 +602,7 @@ describe('StaffPage', () => {
       await waitOutInitialLoadHold()
       await flushPromises()
       expect(fetchMock).toHaveBeenLastCalledWith(1, 3)
-      await new Promise((resolve) => setTimeout(resolve, 160))
+      await passComponentWait('refit')
       await flushPromises()
       expect(wrapper.find('.content-reveal__cover').exists()).toBe(true)
 
@@ -1291,13 +1321,13 @@ describe('StaffPage', () => {
 
   it('has no axe violations in the list view', async () => {
     const wrapper = await mountReady(fourProfessionals)
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
   it('has no axe violations in the empty state', async () => {
     const wrapper = await mountReady([])
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1306,7 +1336,7 @@ describe('StaffPage', () => {
     await findButtonByText(wrapper, 'Agregar profesional').trigger('click')
     await flushPromises()
 
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1317,7 +1347,7 @@ describe('StaffPage', () => {
     await findButtonByText(wrapper, 'Editar').trigger('click')
     await flushPromises()
 
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
   describe('perfil de profesional individual (DEC-115)', () => {
@@ -1386,7 +1416,7 @@ describe('StaffPage', () => {
       setBrand(solo)
       const wrapper = await mountReady()
 
-      expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
+      expect(await axeWithRealClock(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
     })
   })
 
@@ -1424,7 +1454,7 @@ describe('StaffPage', () => {
       setBrand(employee)
       const wrapper = await mountReady()
 
-      expect(await axe(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
+      expect(await axeWithRealClock(wrapper.element.outerHTML, axeOptions)).toHaveNoViolations()
     })
   })
 })
