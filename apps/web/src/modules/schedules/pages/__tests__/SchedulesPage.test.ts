@@ -1070,7 +1070,7 @@ describe('SchedulesPage · vocabulario del negocio (DEC-119)', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Aún no tienes manicuristas registradas.')
-    expect(wrapper.text()).toContain('“Manicuristas”')
+    expect(wrapper.text()).toContain('«Manicuristas»')
     expectNoFixedWords(wrapper)
   })
 

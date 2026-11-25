@@ -469,7 +469,7 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
           </template>
           <template v-else>
             Agrega {{ v.oneProfessional }} en la sección
-            <RouterLink :to="{ name: 'staff-profesionales' }">“{{ v.Professionals }}”</RouterLink>
+            <RouterLink :to="{ name: 'staff-profesionales' }">«{{ v.Professionals }}»</RouterLink>
             antes de asignarle servicios.
           </template>
         </template>
@@ -490,7 +490,7 @@ function assignmentState(serviceId: string): 'pending' | 'on' | 'off' {
           </template>
           <template v-else>
             Agrega uno en la sección
-            <RouterLink :to="{ name: 'catalog-servicios' }">“Servicios”</RouterLink>
+            <RouterLink :to="{ name: 'catalog-servicios' }">«Servicios»</RouterLink>
             antes de asignarlo a {{ v.aProfessional }}.
           </template>
         </template>

@@ -588,7 +588,7 @@ function onProfessionalSelect(professionalId: string) {
           role="status"
         >
           Agrega {{ v.oneProfessional }} en la sección
-          <span class="new-appointment-page__dest">"{{ v.Professionals }}"</span> antes de registrar
+          <span class="new-appointment-page__dest">«{{ v.Professionals }}»</span> antes de registrar
           turnos.
         </PageState>
       </div>
