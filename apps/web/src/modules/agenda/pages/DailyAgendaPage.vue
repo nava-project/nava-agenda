@@ -498,6 +498,13 @@ function entryTime(entry: DailyAgendaEntry): string {
   return formatAgendaTime(entry.startsAt)
 }
 
+// «12:00 p. m.» → { clock: '12:00', period: 'p. m.' } (Intl separa con un
+// espacio duro, que \s también reconoce).
+function entryStartParts(entry: DailyAgendaEntry): { clock: string; period: string } {
+  const match = /^(\S+)\s+(.+)$/u.exec(entryTime(entry))
+  return match ? { clock: match[1], period: match[2] } : { clock: entryTime(entry), period: '' }
+}
+
 // Línea temporal horizontal de escritorio (estandar-diseno-visual.md §11.2,
 // especificacion-frontend-nava.md §7.2): "no es fuente de disponibilidad",
 // solo posiciona visualmente las fichas ya devueltas por el servidor. La
@@ -544,6 +551,11 @@ const TIMELINE_SLIP_MIN_PX = 44
 // En 12 h el rango («11:45 a. m. – 12:15 p. m.») pide ~190 px en una línea;
 // una ficha más estrecha lleva solo la hora de inicio (el rango está en la lista).
 const TIMELINE_SLIP_RANGE_PX = 190
+// Por debajo de este ancho real la hora de inicio no cabe con su periodo
+// («12:00 p. m.» más el relleno y el filete) y se partía en tres líneas sobre la
+// ficha vecina (#865): la ficha muestra solo «12:00», en una línea. El periodo
+// sigue en el texto, oculto a la vista, y la lista lo dice entero.
+const TIMELINE_SLIP_PERIOD_PX = 96
 // Ancho aproximado de una ficha ensanchada (--expanded): decide si se ancla
 // por la derecha para no salirse del carril.
 const TIMELINE_SLIP_EXPANDED_PX = 200
@@ -955,7 +967,12 @@ const stripMarks = computed<DaylightMark[]>(() => {
   return entries.value.map((entry) => ({
     key: entry.id,
     start: minutesSinceCivilMidnight(entry.startsAt, date, tz),
-    end: Math.min(24 * 60, minutesSinceCivilMidnight(entry.endsAt, date, tz)),
+    // Como la ficha del carril: un «No vino» que liberó su franja llega solo
+    // hasta el corte (DEC-193, #865).
+    end: Math.min(
+      24 * 60,
+      minutesSinceCivilMidnight(noShowFreedFrom(entry) ?? entry.endsAt, date, tz),
+    ),
     tone: entryTone(entry),
   }))
 })
@@ -1493,6 +1510,8 @@ const dayChangeMarkerPercent = computed(() => {
                               expandedSlipId === entry.id,
                             'daily-agenda-page__timeline-slip--end':
                               timelineSlipStyle(entry).right !== undefined,
+                            'daily-agenda-page__timeline-slip--narrow':
+                              timelineSlipWidthPx(entry) < TIMELINE_SLIP_PERIOD_PX,
                           }"
                           :style="timelineSlipStyle(entry)"
                           :to="{
@@ -1503,12 +1522,20 @@ const dayChangeMarkerPercent = computed(() => {
                           @pointerdown="onSlipPointerDown"
                           @click.capture="onSlipClick($event, entry.id)"
                         >
-                          <span class="daily-agenda-page__timeline-slip-time">{{
-                            timelineSlipWidthPx(entry) >= TIMELINE_SLIP_RANGE_PX ||
-                            expandedSlipId === entry.id
-                              ? entryTimeRange(entry)
-                              : entryTime(entry)
-                          }}</span>
+                          <span
+                            v-if="
+                              timelineSlipWidthPx(entry) >= TIMELINE_SLIP_RANGE_PX ||
+                              expandedSlipId === entry.id
+                            "
+                            class="daily-agenda-page__timeline-slip-time"
+                            >{{ entryTimeRange(entry) }}</span
+                          >
+                          <span v-else class="daily-agenda-page__timeline-slip-time"
+                            >{{ entryStartParts(entry).clock
+                            }}<span class="daily-agenda-page__timeline-slip-period"
+                              >&nbsp;{{ entryStartParts(entry).period }}</span
+                            ></span
+                          >
                           <span
                             v-if="
                               timelineSlipDetail(entry) === 'full' || expandedSlipId === entry.id
@@ -2925,11 +2952,50 @@ const dayChangeMarkerPercent = computed(() => {
   }
 
   .daily-agenda-page__timeline-slip-time {
+    overflow: hidden;
     font-size: 12px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     line-height: 16px;
     color: var(--color-text-secondary);
+    text-overflow: clip;
+    /* La hora nunca se parte en varias líneas (#865). */
+    white-space: nowrap;
+  }
+
+  /* Ficha estrecha (#865): menos relleno para que «12:00» quepa entero, y el
+     periodo queda en el texto, fuera de la vista. Al pasar el cursor o al tocarla
+     se ensancha y vuelve todo: el relleno y «12:00 p. m.». */
+  .daily-agenda-page__timeline-slip--narrow {
+    padding: 0 var(--space-1);
+  }
+
+  .daily-agenda-page__timeline-slip--narrow:not(.daily-agenda-page__timeline-slip--expanded)
+    .daily-agenda-page__timeline-slip-period {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .daily-agenda-page__timeline-slip--narrow.daily-agenda-page__timeline-slip--expanded {
+    padding: 0 var(--space-3);
+  }
+
+  @media (hover: hover) {
+    .daily-agenda-page__timeline-slip--narrow:hover {
+      padding: 0 var(--space-3);
+    }
+
+    .daily-agenda-page__timeline-slip--narrow:hover .daily-agenda-page__timeline-slip-period {
+      position: static;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip-path: none;
+    }
   }
 
   .daily-agenda-page__timeline-slip-name {
