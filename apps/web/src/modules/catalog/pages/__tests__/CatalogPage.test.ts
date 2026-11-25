@@ -232,7 +232,6 @@ describe('CatalogPage', () => {
   // DEFAULT_MIN_HOLD_MS, aunque la respuesta ya haya llegado — así una
   // carga instantánea nunca deja ver la tabla "armándose" bajo el rombo.
   it('holds the loading state for a minimum duration even when the response is instant', async () => {
-    vi.useFakeTimers()
     fetchMock.mockResolvedValueOnce({ kind: 'success', page: listPage(oneService) })
     const wrapper = mountPage()
 
@@ -244,7 +243,6 @@ describe('CatalogPage', () => {
     expect(wrapper.text()).not.toContain('Corte clásico')
 
     await vi.advanceTimersByTimeAsync(100)
-    vi.useRealTimers()
 
     expect(wrapper.text()).toContain('Corte clásico')
   })
