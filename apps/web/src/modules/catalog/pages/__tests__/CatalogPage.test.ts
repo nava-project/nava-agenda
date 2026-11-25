@@ -74,20 +74,48 @@ function mountPage() {
   return mount(CatalogPage, { global: { stubs: { teleport: true, transition: true } } })
 }
 
-// useMinHoldLoading (mismo issue) mantiene el rombo/esqueleto al menos
-// DEFAULT_MIN_HOLD_MS con un setTimeout REAL antes de dejar pasar el
-// contenido: flushPromises() (solo microtareas) no alcanza a esperarlo.
-// Con margen sobre el valor exacto para no quedar al borde por jitter del
-// entorno de pruebas.
-function waitOutInitialLoadHold() {
-  return new Promise((resolve) => setTimeout(resolve, DEFAULT_MIN_HOLD_MS + 50))
+// Reloj simulado en todo el archivo (#867, como StaffPage en #834). La página
+// espera con setTimeout y Date.now(): la mínima del esqueleto (useMinHoldLoading),
+// la de cada búsqueda o página pedida y el debounce de la búsqueda. Con esperas
+// reales en las pruebas, un CI cargado las reordenaba frente a las del componente
+// y las aserciones veían otro momento. setImmediate sigue real porque lo usa
+// flushPromises.
+const COMPONENT_WAITS = {
+  // useMinHoldLoading: el esqueleto de la primera carga, con margen.
+  initialLoadHold: DEFAULT_MIN_HOLD_MS + 50,
+  // Buscar o cambiar de página (issue 2026-09-29): la mínima de los esqueletos.
+  pageLoadHold: PAGE_MIN_HOLD_MS + 50,
+  // Más que el debounce de 300 ms de la búsqueda (SEARCH_DEBOUNCE_MS).
+  searchDebounce: 350,
+} as const
+
+async function passComponentWait(wait: keyof typeof COMPONENT_WAITS) {
+  await vi.advanceTimersByTimeAsync(COMPONENT_WAITS[wait])
 }
 
-// Buscar o cambiar de página (issue 2026-09-29) mantiene los esqueletos al
-// menos PAGE_MIN_HOLD_MS antes de mostrar el resultado.
-function waitOutPageLoadHold() {
-  return new Promise((resolve) => setTimeout(resolve, PAGE_MIN_HOLD_MS + 50))
+function waitOutInitialLoadHold() {
+  return passComponentWait('initialLoadHold')
 }
+
+function waitOutPageLoadHold() {
+  return passComponentWait('pageLoadHold')
+}
+
+// axe-core programa su trabajo con setTimeout y no avanza con el reloj simulado.
+// Cada prueba de accesibilidad lo corre al final, ya sin esperas del componente
+// por medir, así que vuelve al reloj real justo antes.
+function axeWithRealClock(...args: Parameters<typeof axe>) {
+  vi.useRealTimers()
+  return axe(...args)
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 // listPage arma la forma real de ServicePage (CA-022-01, DEC-103): page/
 // pageSize/total/totalPages, ya no nextCursor. total/totalPages por
@@ -524,7 +552,7 @@ describe('CatalogPage', () => {
     // Antes del debounce, ninguna solicitud nueva.
     expect(fetchMock).toHaveBeenCalledTimes(1)
 
-    await new Promise((resolve) => setTimeout(resolve, 350))
+    await passComponentWait('searchDebounce')
     await flushPromises()
 
     // Issue 2026-09-29: el resultado no aparece de golpe. Con la respuesta
@@ -556,7 +584,7 @@ describe('CatalogPage', () => {
     })
     const search = wrapper.get('input[name="serviceSearch"]')
     setInputValue(search.element as HTMLInputElement, 'zzz-sin-coincidencias')
-    await new Promise((resolve) => setTimeout(resolve, 350))
+    await passComponentWait('searchDebounce')
     await flushPromises()
     await waitOutPageLoadHold()
     await flushPromises()
@@ -873,7 +901,7 @@ describe('CatalogPage', () => {
     await wrapper.find('.catalog-page__item-trigger').trigger('click')
     await flushPromises()
 
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1421,7 +1449,7 @@ describe('CatalogPage', () => {
 
   it('has no axe violations in the list view', async () => {
     const wrapper = await mountReady(fourServices)
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1430,7 +1458,7 @@ describe('CatalogPage', () => {
     await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
     await flushPromises()
 
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1440,7 +1468,7 @@ describe('CatalogPage', () => {
     await findButtonByText(wrapper, 'Cambiar estado').trigger('click')
     await flushPromises()
 
-    const results = await axe(wrapper.element, axeOptions)
+    const results = await axeWithRealClock(wrapper.element, axeOptions)
     expect(results).toHaveNoViolations()
   })
 
@@ -1457,7 +1485,7 @@ describe('CatalogPage', () => {
     await waitOutInitialLoadHold()
     await flushPromises()
 
-    const results = await axe(wrapper.element, {
+    const results = await axeWithRealClock(wrapper.element, {
       rules: { ...axeOptions.rules, 'heading-order': { enabled: false } },
     })
     expect(results).toHaveNoViolations()
