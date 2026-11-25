@@ -1495,7 +1495,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
               form="reschedule-form"
               variant="primary"
               :loading="rescheduleStatus === 'saving'"
-              :disabled="rescheduleStatus === 'saving' || !rescheduleDate || !rescheduleTime"
+              keep-focus-while-loading
+              :disabled="!rescheduleDate || !rescheduleTime"
             >
               Confirmar
             </BaseButton>
@@ -1623,7 +1624,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               type="button"
               variant="danger"
               :loading="cancelStatus === 'saving'"
-              :disabled="cancelStatus === 'saving'"
+              keep-focus-while-loading
               @click="onConfirmCancel"
             >
               Sí, cancelar turno
@@ -1776,7 +1777,7 @@ function occurredAtLabel(entry: HistoryEntry): string {
               type="button"
               variant="primary"
               :loading="closeStatus === 'saving'"
-              :disabled="closeStatus === 'saving'"
+              keep-focus-while-loading
               @click="onConfirmClose"
             >
               {{ closeConfirmLabel }}
@@ -1918,7 +1919,8 @@ function occurredAtLabel(entry: HistoryEntry): string {
               type="submit"
               variant="primary"
               :loading="correctStatus === 'saving'"
-              :disabled="correctStatus === 'saving' || !correctDestination || !correctTrimmedReason"
+              keep-focus-while-loading
+              :disabled="!correctDestination || !correctTrimmedReason"
             >
               Confirmar corrección
             </BaseButton>
