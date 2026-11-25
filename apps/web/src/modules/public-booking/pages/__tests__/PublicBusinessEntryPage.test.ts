@@ -307,6 +307,40 @@ describe('PublicBusinessEntryPage', () => {
     expect(withHours.find('.pb-hours').exists()).toBe(true)
   })
 
+  it('coming back to the tab after midnight, moves «· hoy» to the new day at once (#850)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      // Martes 17 a las 23:58 en Bogotá, con el `today` del martes.
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 18, 4, 58)))
+      respond({
+        ...profile,
+        openingHours: [
+          { dayOfWeek: 'TUESDAY', opens: '08:00', closes: '18:00' },
+          { dayOfWeek: 'WEDNESDAY', opens: '09:00', closes: '17:00' },
+        ],
+        today: {
+          date: '2026-11-17',
+          dayOfWeek: 'TUESDAY',
+          holiday: null,
+          hours: [{ opens: '08:00', closes: '18:00' }],
+        },
+      })
+      const wrapper = mountEntryPage()
+      await flushPromises()
+      expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Martes · hoy')
+
+      // La pestaña estuvo de fondo (el intervalo frenado) y vuelve el miércoles.
+      vi.setSystemTime(new Date(Date.UTC(2026, 10, 18, 5, 10)))
+      document.dispatchEvent(new Event('visibilitychange'))
+      await flushPromises()
+      expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Miércoles · hoy')
+      expect(wrapper.get('.pb-hours__row--today dd').text()).toBe('9:00 a. m. – 5:00 p. m.')
+      wrapper.unmount()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('does not invent today when the profile day is not today in the business zone', async () => {
     respond({
       ...profile,

@@ -100,14 +100,23 @@ async function load() {
 
 const now = ref(new Date())
 let clockTimer: ReturnType<typeof setInterval> | undefined
+// El navegador frena el intervalo en una pestaña de fondo: al volver, el reloj se
+// pone al día enseguida, y con él el estado y la marca de hoy (#850).
+const onVisible = () => {
+  if (document.visibilityState === 'visible') now.value = new Date()
+}
 
 onMounted(() => {
   void load()
   clockTimer = setInterval(() => {
     now.value = new Date()
   }, 30_000)
+  document.addEventListener('visibilitychange', onVisible)
 })
-onBeforeUnmount(() => clearInterval(clockTimer))
+onBeforeUnmount(() => {
+  clearInterval(clockTimer)
+  document.removeEventListener('visibilitychange', onVisible)
+})
 
 const retry = () => {
   void load()
