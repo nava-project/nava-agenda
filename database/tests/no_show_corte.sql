@@ -221,11 +221,23 @@ RESET ROLE;
 -- restauración que deje ese dueño), reconstruir la exclusión la evalúa como
 -- agenda_owner. Sin su EXECUTE fallaba con 42501. Dentro de la transacción: el
 -- cambio de dueño se revierte con el ROLLBACK.
+-- Con la tabla vacía, REINDEX y ANALYZE no evalúan la expresión y pasarían sin
+-- el GRANT: este bloque va DESPUÉS de los turnos que insertan los escenarios
+-- anteriores, y lo exige.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM appointment WHERE occupies_schedule) THEN
+    RAISE EXCEPTION 'la prueba del dueño necesita turnos que ocupen agenda antes del REINDEX y el ANALYZE.';
+  END IF;
+END
+$$;
 -- Sin EXECUTE para PUBLIC, como en producción y en local (default de 20260811145252).
 REVOKE EXECUTE ON FUNCTION appointment_occupied_until(text, timestamptz, timestamptz, timestamptz)
   FROM PUBLIC;
 ALTER TABLE appointment OWNER TO agenda_owner;
 REINDEX INDEX appointment_professional_interval_excl;
-\echo 'dueño agenda_owner OK · la exclusión se reconstruye sin depender del dueño de la tabla'
+-- ANALYZE también evalúa la expresión como dueño de la tabla, y es lo que corre autovacuum.
+ANALYZE appointment;
+\echo 'dueño agenda_owner OK · REINDEX y ANALYZE de la exclusión sin depender del dueño de la tabla'
 
 ROLLBACK;
