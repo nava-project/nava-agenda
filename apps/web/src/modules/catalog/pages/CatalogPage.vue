@@ -615,6 +615,24 @@ function onCreatePriceInput(value: string | number) {
   revalidateCreateIfAttempted()
 }
 
+// Tras un guardado fallido, el foco vuelve al diálogo (#853). Mientras se guarda,
+// «Guardar» y los campos se deshabilitan; el botón enfocado deja de serlo y el
+// navegador suelta el foco en <body>, fuera del diálogo. Con un nombre repetido el
+// foco va al nombre, que es lo que hay que cambiar; con cualquier otro error, a
+// «Guardar», para reintentar. La alerta (role="alert") se anuncia por sí sola.
+// Se mira el paso de 'saving' a un error con flush 'post': entonces el DOM ya
+// rehabilitó los controles y se pueden enfocar.
+const createFormEl = ref<HTMLFormElement | null>(null)
+const editFormEl = ref<HTMLFormElement | null>(null)
+function refocusAfterFailedSave(form: HTMLFormElement | null, status: string, previous: string) {
+  if (previous !== 'saving' || status === 'idle' || status === 'saving') return
+  const target =
+    status === 'name-conflict'
+      ? form?.querySelector<HTMLElement>('input[name="name"]')
+      : form?.querySelector<HTMLElement>('button[type="submit"]')
+  target?.focus()
+}
+
 async function onSubmitCreate() {
   if (createStatus.value === 'saving') return
 
@@ -680,6 +698,16 @@ const editForm = ref<ServiceInput>({ name: '', description: '', durationMinutes:
 const editDurationRaw = ref('30')
 const editFieldErrors = ref<FormFieldErrors>({})
 const editStatus = ref<SaveStatus>('idle')
+watch(
+  createStatus,
+  (status, previous) => refocusAfterFailedSave(createFormEl.value, status, previous),
+  { flush: 'post' },
+)
+watch(
+  editStatus,
+  (status, previous) => refocusAfterFailedSave(editFormEl.value, status, previous),
+  { flush: 'post' },
+)
 const editRequestId = ref<string | undefined>()
 const editAttempted = ref(false)
 
@@ -1483,6 +1511,7 @@ async function reloadAfterConflict(serviceId: string) {
         <DialogSeal />
       </template>
       <form
+        ref="createFormEl"
         class="catalog-page__form catalog-page__create-form"
         novalidate
         @submit.prevent="onSubmitCreate"
@@ -1602,6 +1631,7 @@ async function reloadAfterConflict(serviceId: string) {
         <DialogSeal :glyph="editTarget ? serviceInitial(editTarget.name) : undefined" />
       </template>
       <form
+        ref="editFormEl"
         class="catalog-page__form catalog-page__edit-form"
         novalidate
         @submit.prevent="onSubmitEdit"

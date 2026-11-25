@@ -108,7 +108,13 @@ describe('SettingsPage', () => {
   })
 
   describe('accesibilidad', () => {
-    it('has no axe violations once loaded', async () => {
+    // Una pasada de axe sobre toda la pantalla cuesta ~0,8 s con la máquina en reposo y
+    // se vuelve de 17 a 22 veces más lenta con el CI cargado (#836, medido con load 19):
+    // rozaba los 5 s por omisión. Revisar menos sería perder cobertura, así que solo
+    // estas tres pruebas llevan un límite propio; el global no cambia.
+    const AXE_TIMEOUT_MS = 20_000
+
+    it('has no axe violations once loaded', { timeout: AXE_TIMEOUT_MS }, async () => {
       const wrapper = await mountReady()
       const results = await axe(wrapper.element)
       expect(results).toHaveNoViolations()
@@ -120,24 +126,32 @@ describe('SettingsPage', () => {
     // LoginPage.test.ts: no es un defecto de esta pantalla ni de BaseAlert.
     const axeOptionsWithAlert = { rules: { 'heading-order': { enabled: false } } }
 
-    it('has no axe violations with the validation-error alert and the save bar visible', async () => {
-      const wrapper = await mountReady()
-      await wrapper.get('input[name="name"]').setValue('Nombre nuevo')
-      saveMock.mockResolvedValueOnce({ kind: 'validation-error' })
+    it(
+      'has no axe violations with the validation-error alert and the save bar visible',
+      { timeout: AXE_TIMEOUT_MS },
+      async () => {
+        const wrapper = await mountReady()
+        await wrapper.get('input[name="name"]').setValue('Nombre nuevo')
+        saveMock.mockResolvedValueOnce({ kind: 'validation-error' })
 
-      await submit(wrapper)
+        await submit(wrapper)
 
-      const results = await axe(wrapper.element, axeOptionsWithAlert)
-      expect(results).toHaveNoViolations()
-    })
+        const results = await axe(wrapper.element, axeOptionsWithAlert)
+        expect(results).toHaveNoViolations()
+      },
+    )
 
-    it('has no axe violations with a field error visible', async () => {
-      const wrapper = await mountReady()
-      await wrapper.get('input[name="businessTerm"]').setValue('salón 24')
-      await submit(wrapper)
+    it(
+      'has no axe violations with a field error visible',
+      { timeout: AXE_TIMEOUT_MS },
+      async () => {
+        const wrapper = await mountReady()
+        await wrapper.get('input[name="businessTerm"]').setValue('salón 24')
+        await submit(wrapper)
 
-      const results = await axe(wrapper.element, axeOptionsWithAlert)
-      expect(results).toHaveNoViolations()
-    })
+        const results = await axe(wrapper.element, axeOptionsWithAlert)
+        expect(results).toHaveNoViolations()
+      },
+    )
   })
 })

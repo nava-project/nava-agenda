@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
+import { nextTick } from 'vue'
 import { resetToasts, toastState } from '@/shared/model/toastStore'
 import { DEFAULT_MIN_HOLD_MS, PAGE_MIN_HOLD_MS } from '@/shared/composables'
 
@@ -1056,6 +1057,70 @@ describe('CatalogPage', () => {
     const alert = wrapper.findAll('[role="alert"]').find((a) => a.text().includes('inesperado'))!
     expect(alert.text()).toContain('Inténtalo de nuevo en unos segundos.')
     expect(alert.text()).not.toContain('soporte')
+  })
+
+  // --- #853: el foco vuelve al diálogo tras un guardado fallido ------------
+  describe('focus after a failed save (#853)', () => {
+    // El foco solo existe en un documento: se monta adjunto. Antes de enviar se suelta
+    // el foco en <body>, como hace el navegador cuando «Guardar» se deshabilita.
+    async function mountAttached(items = fourServices) {
+      fetchMock.mockResolvedValueOnce({ kind: 'success', page: listPage(items, {}) })
+      const wrapper = mount(CatalogPage, {
+        attachTo: document.body,
+        global: { stubs: { teleport: true, transition: true } },
+      })
+      await flushPromises()
+      await waitOutInitialLoadHold()
+      await flushPromises()
+      return wrapper
+    }
+    async function submitLosingFocus(wrapper: VueWrapper) {
+      ;(document.activeElement as HTMLElement | null)?.blur()
+      submitOpenDialog(wrapper)
+      await flushPromises()
+      await nextTick()
+    }
+    const submitButton = (wrapper: VueWrapper) =>
+      openDialogForm(wrapper).querySelector('button[type="submit"]')
+
+    it.each(['unexpected-error', 'network-error', 'idempotency-conflict'] as const)(
+      'creating, a %s leaves the focus on «Guardar», inside the dialog',
+      async (kind) => {
+        const wrapper = await mountAttached()
+        await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
+        await flushPromises()
+        fillCreateForm(wrapper, 'Servicio de ejemplo')
+        createMock.mockResolvedValueOnce({ kind })
+        await submitLosingFocus(wrapper)
+
+        expect(document.activeElement).toBe(submitButton(wrapper))
+        expect(openDialogInput(wrapper, 'name').value).toBe('Servicio de ejemplo')
+        wrapper.unmount()
+      },
+    )
+
+    it('creating, a repeated name puts the focus on the name, the thing to change', async () => {
+      const wrapper = await mountAttached()
+      await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
+      await flushPromises()
+      fillCreateForm(wrapper, 'Ya Existe')
+      createMock.mockResolvedValueOnce({ kind: 'name-conflict' })
+      await submitLosingFocus(wrapper)
+
+      expect(document.activeElement).toBe(openDialogInput(wrapper, 'name'))
+      wrapper.unmount()
+    })
+
+    it('editing, a 500 leaves the focus on «Guardar», inside the dialog', async () => {
+      const wrapper = await mountAttached()
+      await findButtonByText(wrapper, 'Editar').trigger('click')
+      await flushPromises()
+      updateMock.mockResolvedValueOnce({ kind: 'unexpected-error', requestId: 'req-ejemplo-853' })
+      await submitLosingFocus(wrapper)
+
+      expect(document.activeElement).toBe(submitButton(wrapper))
+      wrapper.unmount()
+    })
   })
 
   // --- HU-024: desactivar/reactivar --------------------------------------

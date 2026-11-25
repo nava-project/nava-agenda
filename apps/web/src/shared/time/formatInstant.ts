@@ -1,3 +1,5 @@
+import { dateTimeFormat } from './dateTimeFormat'
+
 // Presentación de instantes en una zona IANA SIEMPRE explícita, con la API
 // de plataforma `Intl.DateTimeFormat` (sin agregar una librería de fechas
 // nueva, nava-docs/agenda/10-backlog/prompts/hu/hu-020-configuracion-barberia.md
@@ -7,7 +9,7 @@
 // código debe formatear un instante para el profesional sin pasar por aquí (o
 // una función que, como esta, reciba la zona de forma explícita).
 export function formatInstantInTimezone(isoInstant: string, timezone: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return dateTimeFormat('es-CO', {
     timeZone: timezone,
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -18,7 +20,7 @@ export function formatInstantInTimezone(isoInstant: string, timezone: string): s
 // zona explícita recibida: cada fila de la agenda diaria necesita la hora
 // sin repetir la fecha completa ya visible en el encabezado.
 export function formatTimeInTimezone(isoInstant: string, timezone: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return dateTimeFormat('es-CO', {
     timeZone: timezone,
     timeStyle: 'short',
   }).format(new Date(isoInstant))
@@ -31,7 +33,7 @@ export function formatTimeInTimezone(isoInstant: string, timezone: string): stri
 // dispositivo SOLO para construir el objeto Date a formatear (el día civil
 // resultante lo decide `timeZone`, nunca el reloj/zona del dispositivo).
 export function formatFullDateInTimezone(timezone: string, at: Date = new Date()): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return dateTimeFormat('es-CO', {
     timeZone: timezone,
     dateStyle: 'full',
   }).format(at)
