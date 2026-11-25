@@ -34,6 +34,8 @@ vi.mock('../../api/appointmentsApi', () => ({
 
 const { default: DailyAgendaPage } = await import('../DailyAgendaPage.vue')
 const { forgetAgendaContext } = await import('../../model/agendaContext')
+const { getCivilDateInTimezone } = await import('@/shared/time/civilDate')
+const { timezoneLabel } = await import('@/shared/time/timezoneName')
 
 const TWO = [
   { id: 'b-1', fullName: 'Carlos Ramírez' },
@@ -58,11 +60,14 @@ function buildRouter() {
   })
 }
 
-async function mountPage() {
+async function mountPage(query: Record<string, string> = {}) {
   const router = buildRouter()
-  await router.push({ name: 'panel' })
+  await router.push({ name: 'panel', query })
   await router.isReady()
-  return mount(DailyAgendaPage, { global: { plugins: [router], stubs: { teleport: true } } })
+  const wrapper = mount(DailyAgendaPage, {
+    global: { plugins: [router], stubs: { teleport: true } },
+  })
+  return Object.assign(wrapper, { router })
 }
 
 const cover = (w: Awaited<ReturnType<typeof mountPage>>) => w.find('.content-reveal__cover')
@@ -179,6 +184,55 @@ describe('DailyAgendaPage: la entrada (#822)', () => {
     await flushPromises()
     expect(back.find('[role="alert"]').exists()).toBe(false)
     expectNames(await optionNames(back), ['Carlos Ramírez', 'Ana Gómez'])
+  })
+
+  // #831: UTC−11 y UTC+14 nunca comparten fecha civil, sea la hora que sea.
+  const WEST = 'Pacific/Pago_Pago'
+  const EAST = 'Pacific/Kiritimati'
+
+  async function comeBackWithZoneChange(query: Record<string, string> = {}) {
+    fetchProfessionalSummariesMock.mockResolvedValue({ kind: 'success', items: TWO })
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'success', timezone: WEST })
+    ;(await mountPage(query)).unmount()
+    await flushPromises()
+    fetchDailyAgendaMock.mockClear()
+    // La relectura por detrás trae la zona cambiada desde otro dispositivo.
+    fetchBusinessTimezoneMock.mockResolvedValueOnce({ kind: 'success', timezone: EAST })
+    const back = await mountPage(query)
+    await flushPromises()
+    return back
+  }
+
+  it('resolves «today» again with the new zone when the reread brings another one, and reloads the day (#831)', async () => {
+    const back = await comeBackWithZoneChange()
+    const eastToday = getCivilDateInTimezone(EAST)
+    expect(eastToday).not.toBe(getCivilDateInTimezone(WEST))
+    expect(back.router.currentRoute.value.query.date).toBe(eastToday)
+    expect(fetchDailyAgendaMock).toHaveBeenLastCalledWith('b-1', eastToday)
+    // La línea de fecha y zona de la cabecera ya dice la zona nueva.
+    const line = back.get('.daily-agenda-page__date').text()
+    expect(line).toContain(timezoneLabel(EAST))
+    expect(line).not.toContain(timezoneLabel(WEST))
+  })
+
+  it('keeps a date chosen in the URL when the zone changes, and rereads that day (#831)', async () => {
+    // La URL ya trae la selección entera: la página no la normaliza.
+    const back = await comeBackWithZoneChange({ professionalId: 'b-1', date: '2026-08-28' })
+    expect(back.router.currentRoute.value.query.date).toBe('2026-08-28')
+    expect(fetchDailyAgendaMock).toHaveBeenCalledTimes(2)
+    expect(fetchDailyAgendaMock).toHaveBeenLastCalledWith('b-1', '2026-08-28')
+    expect(back.get('.daily-agenda-page__date').text()).toContain(timezoneLabel(EAST))
+  })
+
+  it('does not reload the day when the reread brings the same zone', async () => {
+    fetchProfessionalSummariesMock.mockResolvedValue({ kind: 'success', items: TWO })
+    fetchBusinessTimezoneMock.mockResolvedValue(TIMEZONE)
+    ;(await mountPage()).unmount()
+    await flushPromises()
+    fetchDailyAgendaMock.mockClear()
+    await mountPage()
+    await flushPromises()
+    expect(fetchDailyAgendaMock).toHaveBeenCalledTimes(1)
   })
 
   it('never shows what was read for another business', async () => {
