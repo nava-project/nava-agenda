@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { axe } from 'vitest-axe'
 import AddressAutocomplete from '../AddressAutocomplete.vue'
@@ -28,10 +28,37 @@ function mountIt(client: PlacesClient | null, modelValue: PlaceSelection | null 
   })
 }
 
+// Reloj simulado (#867, como StaffPage en #834): el buscador difiere la consulta
+// con setTimeout (aquí con debounceMs: 0). Con una espera real de 5 ms, un CI
+// cargado podía disparar el temporizador después de la aserción. setImmediate
+// sigue real porque lo usa flushPromises.
+const COMPONENT_WAITS = {
+  // Más que el debounce de 0 ms con el que se monta en estas pruebas.
+  searchDebounce: 5,
+} as const
+
+async function passComponentWait(wait: keyof typeof COMPONENT_WAITS) {
+  await vi.advanceTimersByTimeAsync(COMPONENT_WAITS[wait])
+}
+
+// axe-core programa su trabajo con setTimeout y no avanza con el reloj simulado.
+function axeWithRealClock(...args: Parameters<typeof axe>) {
+  vi.useRealTimers()
+  return axe(...args)
+}
+
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 async function type(wrapper: ReturnType<typeof mountIt>, value: string) {
   const input = wrapper.get('input')
   await input.setValue(value)
-  await new Promise((r) => setTimeout(r, 5))
+  await passComponentWait('searchDebounce')
   await flushPromises()
 }
 
@@ -45,7 +72,7 @@ describe('AddressAutocomplete', () => {
     expect(input.attributes('aria-expanded')).toBe('true')
     expect(wrapper.findAll('[role="option"]')).toHaveLength(2)
     expect(wrapper.get('[role="status"]').text()).toContain('2 sugerencias')
-    expect(await axe(wrapper.element)).toHaveNoViolations()
+    expect(await axeWithRealClock(wrapper.element)).toHaveNoViolations()
   })
 
   it('a typed text is not an address: nothing is emitted until a suggestion is chosen', async () => {
@@ -135,7 +162,7 @@ describe('AddressAutocomplete', () => {
 
     expect(wrapper.get('[role="alert"]').text()).toContain('Elige una dirección')
     expect(wrapper.get('input').attributes('aria-invalid')).toBe('true')
-    expect(await axe(wrapper.element)).toHaveNoViolations()
+    expect(await axeWithRealClock(wrapper.element)).toHaveNoViolations()
   })
 
   describe('when a map picker owns the location (DEC-138)', () => {
