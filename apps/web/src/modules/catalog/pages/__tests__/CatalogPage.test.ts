@@ -1059,16 +1059,22 @@ describe('CatalogPage', () => {
     expect(alert.text()).not.toContain('soporte')
   })
 
-  // --- #853: el foco vuelve al diálogo tras un guardado fallido ------------
-  describe('focus after a failed save (#853)', () => {
+  // --- #853/#856/#857: el diálogo tras un guardado fallido -----------------
+  describe('focus after a failed save (#853, #856, #857)', () => {
     // El foco solo existe en un documento: se monta adjunto. Antes de enviar se suelta
     // el foco en <body>, como hace el navegador cuando «Guardar» se deshabilita.
+    // Cada montaje se desmonta en afterEach, también si un expect falla (O2 de #855).
+    const mounted: VueWrapper[] = []
+    afterEach(() => {
+      while (mounted.length) mounted.pop()!.unmount()
+    })
     async function mountAttached(items = fourServices) {
       fetchMock.mockResolvedValueOnce({ kind: 'success', page: listPage(items, {}) })
       const wrapper = mount(CatalogPage, {
         attachTo: document.body,
         global: { stubs: { teleport: true, transition: true } },
       })
+      mounted.push(wrapper)
       await flushPromises()
       await waitOutInitialLoadHold()
       await flushPromises()
@@ -1080,47 +1086,148 @@ describe('CatalogPage', () => {
       await flushPromises()
       await nextTick()
     }
+    async function openCreate(wrapper: VueWrapper, name = 'Servicio de ejemplo') {
+      await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
+      await flushPromises()
+      fillCreateForm(wrapper, name)
+    }
+    async function openEdit(wrapper: VueWrapper) {
+      await findButtonByText(wrapper, 'Editar').trigger('click')
+      await flushPromises()
+    }
     const submitButton = (wrapper: VueWrapper) =>
       openDialogForm(wrapper).querySelector('button[type="submit"]')
+    const cancelButton = (wrapper: VueWrapper) =>
+      [...openDialogForm(wrapper).querySelectorAll('button')].find(
+        (b) => b.textContent?.trim() === 'Cancelar',
+      )
+    const alerts = (wrapper: VueWrapper) =>
+      [...openDialogForm(wrapper).querySelectorAll('[role="alert"]')].map((a) =>
+        a.textContent!.replace(/\s+/g, ' ').trim(),
+      )
+    async function typeIn(wrapper: VueWrapper, name: string, value: string) {
+      const input = openDialogInput(wrapper, name)
+      input.value = value
+      input.dispatchEvent(new Event('input'))
+      await flushPromises()
+    }
 
     it.each(['unexpected-error', 'network-error', 'idempotency-conflict'] as const)(
       'creating, a %s leaves the focus on «Guardar», inside the dialog',
       async (kind) => {
         const wrapper = await mountAttached()
-        await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
-        await flushPromises()
-        fillCreateForm(wrapper, 'Servicio de ejemplo')
+        await openCreate(wrapper)
         createMock.mockResolvedValueOnce({ kind })
         await submitLosingFocus(wrapper)
 
         expect(document.activeElement).toBe(submitButton(wrapper))
         expect(openDialogInput(wrapper, 'name').value).toBe('Servicio de ejemplo')
-        wrapper.unmount()
       },
     )
 
     it('creating, a repeated name puts the focus on the name, the thing to change', async () => {
       const wrapper = await mountAttached()
-      await findButtonByText(wrapper, 'Agregar servicio').trigger('click')
-      await flushPromises()
-      fillCreateForm(wrapper, 'Ya Existe')
+      await openCreate(wrapper, 'Ya Existe')
       createMock.mockResolvedValueOnce({ kind: 'name-conflict' })
       await submitLosingFocus(wrapper)
 
       expect(document.activeElement).toBe(openDialogInput(wrapper, 'name'))
-      wrapper.unmount()
     })
 
     it('editing, a 500 leaves the focus on «Guardar», inside the dialog', async () => {
       const wrapper = await mountAttached()
-      await findButtonByText(wrapper, 'Editar').trigger('click')
-      await flushPromises()
+      await openEdit(wrapper)
       updateMock.mockResolvedValueOnce({ kind: 'unexpected-error', requestId: 'req-ejemplo-853' })
       await submitLosingFocus(wrapper)
 
       expect(document.activeElement).toBe(submitButton(wrapper))
-      wrapper.unmount()
     })
+
+    // O1 de #856: guardar otra vez no sirve y la alerta pide cerrar.
+    it('editing a service that no longer exists puts the focus on «Cancelar»', async () => {
+      const wrapper = await mountAttached()
+      await openEdit(wrapper)
+      updateMock.mockResolvedValueOnce({ kind: 'not-found' })
+      await submitLosingFocus(wrapper)
+
+      expect(document.activeElement).toBe(cancelButton(wrapper))
+      expect(alerts(wrapper).join(' ')).toContain('Cierra este diálogo')
+    })
+
+    // O3 de #856: el nombre repetido es un error del campo, anunciado una sola vez.
+    it.each(['create', 'edit'] as const)(
+      '%s: a repeated name is the error of «Nombre», described and announced once',
+      async (mode) => {
+        const wrapper = await mountAttached()
+        if (mode === 'create') {
+          await openCreate(wrapper, 'Ya Existe')
+          createMock.mockResolvedValueOnce({ kind: 'name-conflict' })
+        } else {
+          await openEdit(wrapper)
+          updateMock.mockResolvedValueOnce({ kind: 'name-conflict' })
+        }
+        await submitLosingFocus(wrapper)
+
+        const name = openDialogInput(wrapper, 'name')
+        expect(name.getAttribute('aria-invalid')).toBe('true')
+        const described = (name.getAttribute('aria-describedby') ?? '')
+          .split(' ')
+          .map((id) => document.getElementById(id)?.textContent ?? '')
+          .join(' ')
+        expect(described).toContain('Ese nombre ya está en uso')
+        expect(alerts(wrapper)).toEqual([
+          'Ese nombre ya está en uso: ya hay un servicio activo con ese nombre.',
+        ])
+        expect(document.activeElement).toBe(name)
+      },
+    )
+
+    it('the repeated-name error stays while the name does, and goes when it changes', async () => {
+      const wrapper = await mountAttached()
+      await openCreate(wrapper, 'Ya Existe')
+      createMock.mockResolvedValueOnce({ kind: 'name-conflict' })
+      await submitLosingFocus(wrapper)
+
+      await typeIn(wrapper, 'price', '50000')
+      expect(openDialogInput(wrapper, 'name').getAttribute('aria-invalid')).toBe('true')
+
+      await typeIn(wrapper, 'name', 'Otro nombre')
+      expect(openDialogInput(wrapper, 'name').getAttribute('aria-invalid')).toBe('false')
+      expect(alerts(wrapper)).toEqual([])
+    })
+
+    // #857: un 422 del servidor ya no pasa en silencio.
+    it.each([
+      ['create', 'el precio debe ser mayor que cero', 'El precio debe ser mayor que cero.'],
+      [
+        'edit',
+        'la duración del servicio debe ser un entero entre 1 y 1440 minutos',
+        'La duración del servicio debe ser un entero entre 1 y 1440 minutos.',
+      ],
+      ['create', undefined, 'Algún dato no es válido. Revísalo e inténtalo de nuevo.'],
+      ['edit', undefined, 'Algún dato no es válido. Revísalo e inténtalo de nuevo.'],
+    ] as const)(
+      '%s: a 422 shows an alert with the server explanation (%s) and the focus on «Guardar»',
+      async (mode, detail, text) => {
+        const wrapper = await mountAttached()
+        if (mode === 'create') {
+          await openCreate(wrapper)
+          createMock.mockResolvedValueOnce({ kind: 'validation-error', detail })
+        } else {
+          await openEdit(wrapper)
+          updateMock.mockResolvedValueOnce({ kind: 'validation-error', detail })
+        }
+        const typed = openDialogInput(wrapper, 'name').value
+        await submitLosingFocus(wrapper)
+
+        const shown = alerts(wrapper)
+        expect(shown).toHaveLength(1)
+        expect(shown[0]).toContain('Revisa los datos del servicio')
+        expect(shown[0]).toContain(text)
+        expect(document.activeElement).toBe(submitButton(wrapper))
+        expect(openDialogInput(wrapper, 'name').value).toBe(typed)
+      },
+    )
   })
 
   // --- HU-024: desactivar/reactivar --------------------------------------

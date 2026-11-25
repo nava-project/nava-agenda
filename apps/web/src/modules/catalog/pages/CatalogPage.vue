@@ -559,6 +559,7 @@ const createFieldErrors = ref<FormFieldErrors>({})
 const createStatus = ref<SaveStatus>('idle')
 // El código de soporte del último error inesperado al crear (#813).
 const createRequestId = ref<string | undefined>()
+const createValidationDetail = ref<string | undefined>()
 const createAttempted = ref(false)
 // Clave de idempotencia del intento lógico vigente (RN-IDE-01): se genera
 // al abrir el diálogo y se REUTILIZA en cada reintento del mismo intento;
@@ -570,6 +571,7 @@ function openCreateDialog() {
   createForm.value = { name: '', description: '', durationMinutes: 30, price: '' }
   createDurationRaw.value = '30'
   createFieldErrors.value = {}
+  createTakenName.value = null
   createStatus.value = 'idle'
   createAttempted.value = false
   createIdempotencyKey = newIdempotencyKey()
@@ -590,7 +592,12 @@ function validateCreateFields(): FormFieldErrors {
 }
 
 function revalidateCreateIfAttempted() {
-  if (createAttempted.value) createFieldErrors.value = validateCreateFields()
+  if (!createAttempted.value) return
+  createFieldErrors.value = keepNameTaken(
+    validateCreateFields(),
+    createForm.value.name,
+    createTakenName.value,
+  )
 }
 
 function onCreateNameInput(value: string | number) {
@@ -617,20 +624,54 @@ function onCreatePriceInput(value: string | number) {
 
 // Tras un guardado fallido, el foco vuelve al diálogo (#853). Mientras se guarda,
 // «Guardar» y los campos se deshabilitan; el botón enfocado deja de serlo y el
-// navegador suelta el foco en <body>, fuera del diálogo. Con un nombre repetido el
-// foco va al nombre, que es lo que hay que cambiar; con cualquier otro error, a
-// «Guardar», para reintentar. La alerta (role="alert") se anuncia por sí sola.
-// Se mira el paso de 'saving' a un error con flush 'post': entonces el DOM ya
-// rehabilitó los controles y se pueden enfocar.
+// navegador suelta el foco en <body>, fuera del diálogo. El foco va a lo que hay
+// que hacer después:
+// - nombre repetido: al nombre, que lleva su error (#856);
+// - el servicio ya no existe (404 al editar): a «Cancelar», porque guardar otra vez
+//   no sirve y la alerta pide cerrar (#856);
+// - cualquier otro error: a «Guardar», para reintentar.
+// El error se anuncia por sí solo (role="alert"). Se mira el paso de 'saving' a un
+// error con flush 'post': entonces el DOM ya rehabilitó los controles.
 const createFormEl = ref<HTMLFormElement | null>(null)
 const editFormEl = ref<HTMLFormElement | null>(null)
 function refocusAfterFailedSave(form: HTMLFormElement | null, status: string, previous: string) {
   if (previous !== 'saving' || status === 'idle' || status === 'saving') return
-  const target =
+  const selector =
     status === 'name-conflict'
-      ? form?.querySelector<HTMLElement>('input[name="name"]')
-      : form?.querySelector<HTMLElement>('button[type="submit"]')
-  target?.focus()
+      ? 'input[name="name"]'
+      : status === 'not-found'
+        ? '.catalog-page__dialog-actions button:not([type="submit"])'
+        : 'button[type="submit"]'
+  form?.querySelector<HTMLElement>(selector)?.focus()
+}
+
+// Un nombre repetido es un error del campo (#856): va junto a «Nombre», con
+// aria-invalid y su descripción, y es el único aviso (BaseInput ya lo anuncia con
+// role="alert"; una alerta arriba lo diría dos veces). Se borra al escribir otro
+// nombre, porque la revalidación local rehace los errores del formulario.
+const NAME_TAKEN = 'Ese nombre ya está en uso: ya hay un servicio activo con ese nombre.'
+// El nombre que el servidor rechazó: mientras siga escrito, el error se queda aunque
+// se edite otro campo. Al enviar manda otra vez el servidor.
+const createTakenName = ref<string | null>(null)
+const editTakenName = ref<string | null>(null)
+function keepNameTaken(
+  errors: FormFieldErrors,
+  name: string,
+  takenName: string | null,
+): FormFieldErrors {
+  return !errors.name && takenName !== null && name.trim() === takenName
+    ? { ...errors, name: NAME_TAKEN }
+    : errors
+}
+
+// Un 422 del servidor (#857). El Problem no señala campos, así que se muestra su
+// explicación segura (`detail`) o, sin ella, un texto general; el cliente nunca
+// decide por `detail`.
+function validationErrorText(detail: string | undefined): string {
+  const text = detail?.trim()
+  if (!text) return 'Algún dato no es válido. Revísalo e inténtalo de nuevo.'
+  const sentence = text.charAt(0).toUpperCase() + text.slice(1)
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`
 }
 
 async function onSubmitCreate() {
@@ -665,9 +706,12 @@ async function onSubmitCreate() {
       })
       return
     case 'validation-error':
+      createValidationDetail.value = outcome.detail
       createStatus.value = 'validation-error'
       return
     case 'name-conflict':
+      createTakenName.value = createForm.value.name.trim()
+      createFieldErrors.value = { ...createFieldErrors.value, name: NAME_TAKEN }
       createStatus.value = 'name-conflict'
       return
     case 'idempotency-conflict':
@@ -709,6 +753,7 @@ watch(
   { flush: 'post' },
 )
 const editRequestId = ref<string | undefined>()
+const editValidationDetail = ref<string | undefined>()
 const editAttempted = ref(false)
 
 // HU-029 (DEC-004): si el precio cambia y el servicio tiene turnos futuros, el profesional
@@ -757,6 +802,7 @@ function openEditDialog(service: Service) {
   }
   editDurationRaw.value = String(service.durationMinutes)
   editFieldErrors.value = {}
+  editTakenName.value = null
   editStatus.value = 'idle'
   editAttempted.value = false
   isEditOpen.value = true
@@ -776,7 +822,12 @@ function validateEditFields(): FormFieldErrors {
 }
 
 function revalidateEditIfAttempted() {
-  if (editAttempted.value) editFieldErrors.value = validateEditFields()
+  if (!editAttempted.value) return
+  editFieldErrors.value = keepNameTaken(
+    validateEditFields(),
+    editForm.value.name,
+    editTakenName.value,
+  )
 }
 
 function onEditNameInput(value: string | number) {
@@ -837,9 +888,12 @@ async function onSubmitEdit() {
       return
     }
     case 'validation-error':
+      editValidationDetail.value = outcome.detail
       editStatus.value = 'validation-error'
       return
     case 'name-conflict':
+      editTakenName.value = editForm.value.name.trim()
+      editFieldErrors.value = { ...editFieldErrors.value, name: NAME_TAKEN }
       editStatus.value = 'name-conflict'
       return
     case 'not-found':
@@ -1517,12 +1571,12 @@ async function reloadAfterConflict(serviceId: string) {
         @submit.prevent="onSubmitCreate"
       >
         <BaseAlert
-          v-if="createStatus === 'name-conflict'"
+          v-if="createStatus === 'validation-error'"
           variant="danger"
-          title="Ese nombre ya está en uso"
+          title="Revisa los datos del servicio"
           role="alert"
         >
-          Ya existe un servicio activo con ese nombre. Usa otro nombre.
+          {{ validationErrorText(createValidationDetail) }}
         </BaseAlert>
         <BaseAlert
           v-if="createStatus === 'idempotency-conflict'"
@@ -1637,12 +1691,12 @@ async function reloadAfterConflict(serviceId: string) {
         @submit.prevent="onSubmitEdit"
       >
         <BaseAlert
-          v-if="editStatus === 'name-conflict'"
+          v-if="editStatus === 'validation-error'"
           variant="danger"
-          title="Ese nombre ya está en uso"
+          title="Revisa los datos del servicio"
           role="alert"
         >
-          Ya existe un servicio activo con ese nombre. Usa otro nombre.
+          {{ validationErrorText(editValidationDetail) }}
         </BaseAlert>
         <BaseAlert
           v-if="editStatus === 'not-found'"
