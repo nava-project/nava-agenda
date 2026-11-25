@@ -126,4 +126,29 @@ describe('useLoaderGrace', () => {
     await vi.advanceTimersByTimeAsync(LOADER_MIN_VISIBLE_MS - 50)
     expect(done).toHaveBeenCalledOnce()
   })
+
+  it('restarts a pending wait when a hidden loader appears after the data (#843 r1, C2)', async () => {
+    const minVisibleMs = LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS
+    const { grace } = mountWithGrace({ minVisibleMs })
+    // Reprogramar: la espera se monta con la página, en el diálogo cerrado; los
+    // datos llegan a los 250 ms y el diálogo se abre a los 150, así que el
+    // esqueleto empieza a asomar a los 450, con el settled() ya pendiente.
+    const done = await settledAfter(grace, 250)
+    await vi.advanceTimersByTimeAsync(200)
+    grace.markAppeared()
+    // Antes se soltaba a los 800 ms desde start(): 150 ms después de asomar.
+    await vi.advanceTimersByTimeAsync(minVisibleMs - 1)
+    expect(done).not.toHaveBeenCalled()
+    await vi.advanceTimersByTimeAsync(1)
+    expect(done).toHaveBeenCalledOnce()
+  })
+
+  it('leaves an already released wait alone when the loader appears later', async () => {
+    const { grace } = mountWithGrace()
+    const done = await settledAfter(grace, 100)
+    expect(done).toHaveBeenCalledOnce()
+    grace.markAppeared()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(done).toHaveBeenCalledOnce()
+  })
 })

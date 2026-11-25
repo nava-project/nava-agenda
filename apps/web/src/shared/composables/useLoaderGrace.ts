@@ -47,28 +47,54 @@ export function useLoaderGrace(options: LoaderGraceOptions = {}): LoaderGrace {
   const minVisibleMs = options.minVisibleMs ?? LOADER_MIN_VISIBLE_MS
   let startedAt = Date.now()
   let timer: ReturnType<typeof setTimeout> | undefined
+  // La espera de un settled() que aún retiene la carga, para reprogramarla.
+  let pending: (() => void) | null = null
+
+  function release() {
+    clearTimeout(timer)
+    const resolve = pending
+    pending = null
+    resolve?.()
+  }
+
+  function hold() {
+    clearTimeout(timer)
+    const remaining = LOADER_APPEAR_MS + minVisibleMs - (Date.now() - startedAt)
+    if (remaining <= 0) release()
+    else timer = setTimeout(release, remaining)
+  }
 
   function start() {
     clearTimeout(timer)
+    pending = null
     startedAt = Date.now()
   }
 
+  // Si los datos ya llegaron (hay un settled() pendiente), su espera se contó
+  // desde start(): con la espera montada oculta, el cargador asomaría al final
+  // y se iría a medio fundido (#843 r1, C2). Se vuelve a contar desde ahora.
   function markAppeared() {
     startedAt = Date.now() - LOADER_APPEAR_MS
+    if (pending) hold()
   }
 
   function settled(): Promise<void> {
+    // Como start(): una espera anterior sin soltar se abandona, no se resuelve.
     clearTimeout(timer)
+    pending = null
     const elapsed = Date.now() - startedAt
     if (elapsed < LOADER_APPEAR_MS - FRAME_MARGIN_MS) return Promise.resolve()
-    const remaining = LOADER_APPEAR_MS + minVisibleMs - elapsed
-    if (remaining <= 0) return Promise.resolve()
+    if (LOADER_APPEAR_MS + minVisibleMs - elapsed <= 0) return Promise.resolve()
     return new Promise((resolve) => {
-      timer = setTimeout(resolve, remaining)
+      pending = resolve
+      hold()
     })
   }
 
-  onUnmounted(() => clearTimeout(timer))
+  onUnmounted(() => {
+    clearTimeout(timer)
+    pending = null
+  })
 
   return { start, markAppeared, settled }
 }

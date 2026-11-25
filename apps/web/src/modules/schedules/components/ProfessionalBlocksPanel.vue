@@ -170,10 +170,11 @@ async function showAffectedAppointments(startsAt: string, endsAt: string) {
 
 // Botón «Ver turnos» de la ficha: consulta los turnos que caen bajo ese bloqueo y abre el detalle.
 // La espera de «Ver turnos» (#843, CA-4 y CA-16): el sol solo asoma si la consulta
-// pasa de LOADER_APPEAR_MS y, si asomó, se queda lo bastante. El botón espera con
+// pasa de LOADER_APPEAR_MS y, si asomó, se queda 300 ms pleno tras su fundido (el
+// del sol dura 420 ms con rebote y llega pleno a los ~130; #843 r1, C1). El botón espera con
 // aria-disabled y la marca base-button--loading, sin `disabled` nativo: así no
 // suelta el foco y el diálogo, al cerrarse, lo devuelve a él.
-const affectedGrace = useLoaderGrace()
+const affectedGrace = useLoaderGrace({ minVisibleMs: LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS })
 const affectedWaitShown = ref(false)
 let affectedWaitTimer: ReturnType<typeof setTimeout> | undefined
 

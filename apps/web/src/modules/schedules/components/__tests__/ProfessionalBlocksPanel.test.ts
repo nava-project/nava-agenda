@@ -1317,7 +1317,12 @@ describe('ProfessionalBlocksPanel · la espera sin destellos (#843)', () => {
     affected.resolve({ kind: 'success', items: [], truncated: false })
     await flushPromises()
     expect(view.find('.blocks-panel__view-wait').exists()).toBe(true)
-    await vi.advanceTimersByTimeAsync(260)
+    // Asomó a los 300 ms: se queda su fundido más 300 ms plenos, hasta los 800
+    // (#843 r1, C1; antes se iba a los 600, con el sol pleno solo ~130 ms).
+    await vi.advanceTimersByTimeAsync(449)
+    expect(view.find('.blocks-panel__view-wait').exists()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    await flushPromises()
     expect(view.find('.blocks-panel__view-wait').exists()).toBe(false)
     expect(view.attributes('aria-disabled')).toBeUndefined()
     expect(wrapper.text()).toContain('Ningún turno confirmado cae dentro de este bloqueo')
