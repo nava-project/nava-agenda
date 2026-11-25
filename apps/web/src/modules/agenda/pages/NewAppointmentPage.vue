@@ -22,7 +22,7 @@
 // a él. Campos, validaciones, contrato y envío no cambian.
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
-import { useToast, useVocabulary } from '@/shared/composables'
+import { useVocabulary } from '@/shared/composables'
 import { worksOwnProfessional } from '@/shared/model'
 import { sessionBusinessName } from '@/modules/auth'
 import {
@@ -133,7 +133,6 @@ watch(customerNote, () => {
 
 const fieldErrors = ref<Record<string, string | undefined>>({})
 const attempted = ref(false)
-const toast = useToast()
 // Palabras del negocio (DEC-110): con los valores iniciales, el texto de siempre.
 const v = useVocabulary()
 const hideProfessionalField = computed(
@@ -385,9 +384,10 @@ async function onSubmit() {
       created.value = outcome.appointment
       saveStatus.value = 'idle'
       draftAnnouncement.value = ''
-      toast.success('Turno registrado', { detail: 'El turno ya está en la agenda.' })
-      // El foco va al titular desde el primer cuadro: la ceremonia corta de
-      // la tarjeta no bloquea nada (#833, CA-15).
+      // Sin aviso emergente (#839): la vista de confirmación ya lo es, y a
+      // 1024×768 el aviso tapaba el pie de la tarjeta registrada. El foco va
+      // al titular desde el primer cuadro, que se anuncia con su nota (la
+      // ceremonia corta de la tarjeta no bloquea nada, #833, CA-15).
       await nextTick()
       successHeading.value?.focus()
       return
@@ -595,14 +595,20 @@ function onProfessionalSelect(professionalId: string) {
 
       <!-- Evento 12, registrado (#833): la misma tarjeta pasa a confirmada con
            una ceremonia corta, en el sitio del riel. Ningún role="status" la
-           envuelve: el titular recibe el foco y el aviso emergente anuncia. -->
+           envuelve ni sale un aviso emergente (#839): el titular recibe el foco
+           y el lector lee con él la nota que lo describe. -->
       <div v-else-if="createdTicket" class="new-appointment-page__layout">
         <div class="new-appointment-page__form new-appointment-page__done">
           <p class="new-appointment-page__done-label">Confirmación</p>
-          <h2 ref="successHeading" tabindex="-1" class="new-appointment-page__done-title">
+          <h2
+            ref="successHeading"
+            tabindex="-1"
+            class="new-appointment-page__done-title"
+            aria-describedby="new-appointment-success-note"
+          >
             Turno registrado
           </h2>
-          <p class="new-appointment-page__success-note">
+          <p id="new-appointment-success-note" class="new-appointment-page__success-note">
             El turno quedó confirmado en la agenda {{ v.ofTheProfessional }}. Las notificaciones al
             cliente todavía no están disponibles (B5 las agrega más adelante).
           </p>

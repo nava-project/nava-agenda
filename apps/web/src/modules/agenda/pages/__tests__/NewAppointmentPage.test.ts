@@ -216,7 +216,7 @@ describe('NewAppointmentPage', () => {
   })
 
   it('submits successfully and shows an honest summary, no link to a non-existent agenda screen', async () => {
-    const wrapper = await mountReady()
+    const wrapper = await mountReady(oneProfessional, { attachTo: document.body })
     await fillValidForm(wrapper)
     createManualAppointmentMock.mockResolvedValueOnce({
       kind: 'success',
@@ -240,7 +240,14 @@ describe('NewAppointmentPage', () => {
     expect(wrapper.text()).toContain('Turno registrado')
     expect(wrapper.text()).toContain('Corte clásico')
     expect(wrapper.find('a').exists()).toBe(false)
-    expect(toastState.items.map((item) => item.title)).toEqual(['Turno registrado'])
+    // Sin aviso emergente (#839): la confirmación es la vista. El lector la anuncia
+    // al recibir el foco el titular, que lleva su nota como descripción.
+    expect(toastState.items).toEqual([])
+    const heading = wrapper.get('h2.new-appointment-page__done-title')
+    expect(document.activeElement).toBe(heading.element)
+    const note = document.getElementById(heading.attributes('aria-describedby')!)
+    expect(note?.textContent).toContain('El turno quedó confirmado en la agenda')
+    wrapper.unmount()
   })
 
   it('shows the server conflict detail on a schedule/block conflict (DEC-073)', async () => {
@@ -772,7 +779,8 @@ describe('NewAppointmentPage', () => {
       expect(document.activeElement?.textContent?.trim()).toBe('Turno registrado')
       // Ningún role="status" envuelve la tarjeta; el aviso emergente anuncia.
       expect(ticket.element.closest('[role="status"], [aria-live]')).toBeNull()
-      expect(toastState.items.map((item) => item.title)).toEqual(['Turno registrado'])
+      // Sin aviso emergente (#839): la confirmación es la vista y el foco en su titular.
+      expect(toastState.items).toEqual([])
       expect(announcer(wrapper).text()).toBe('')
       wrapper.unmount()
     })
