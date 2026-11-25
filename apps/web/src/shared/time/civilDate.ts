@@ -1,3 +1,5 @@
+import { dateTimeFormat } from './dateTimeFormat'
+
 // Fecha civil "AAAA-MM-DD" (HU-063, RN-DIS-07): estas funciones nunca leen
 // la zona del dispositivo. getCivilDateInTimezone es la única que necesita
 // una zona explícita (para saber qué día es "hoy" en el negocio);
@@ -28,7 +30,7 @@ export function isCivilDateString(value: string): boolean {
 // Intl.DateTimeFormat resuelve el día civil real incluso en un día local de
 // 23/25 horas por DST.
 export function getCivilDateInTimezone(timezone: string, at: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
+  const parts = dateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
@@ -59,7 +61,7 @@ export function shiftCivilDate(civilDate: string, deltaDays: number): string {
 export function formatCivilDateFull(civilDate: string): string {
   const [year, month, day] = civilDate.split('-').map(Number)
   const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
-  return new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', dateStyle: 'full' }).format(at)
+  return dateTimeFormat('es-CO', { timeZone: 'UTC', dateStyle: 'full' }).format(at)
 }
 
 // formatCivilDateLong (revisión de #783): la fecha en palabras para leer de
@@ -70,7 +72,7 @@ export function formatCivilDateLong(civilDate: string, today: string | null = nu
   const [year, month, day] = civilDate.split('-').map(Number)
   const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
   const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', ...options }).format(at)
+    dateTimeFormat('es-CO', { timeZone: 'UTC', ...options }).format(at)
   const text = `${part({ weekday: 'long' })} ${day} de ${part({ month: 'long' })}`
   return today && today.slice(0, 4) === civilDate.slice(0, 4) ? text : `${text} de ${year}`
 }
@@ -83,7 +85,9 @@ export function formatCivilDateShort(civilDate: string, today: string | null = n
   const [year, month, day] = civilDate.split('-').map(Number)
   const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
   const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat('es-CO', { timeZone: 'UTC', ...options }).format(at).replace('.', '')
+    dateTimeFormat('es-CO', { timeZone: 'UTC', ...options })
+      .format(at)
+      .replace('.', '')
   let text = `${part({ weekday: 'short' })} ${day} ${part({ month: 'short' })}`
   if (today && today.slice(0, 4) !== civilDate.slice(0, 4)) text += ` ${year}`
   if (!today) return text
@@ -116,7 +120,7 @@ export function minutesIntoCivilDate(
   if (instantCivilDate < civilDate) return 0
   if (instantCivilDate > civilDate) return 24 * 60
 
-  const parts = new Intl.DateTimeFormat('en-GB', {
+  const parts = dateTimeFormat('en-GB', {
     timeZone: timezone,
     hour: '2-digit',
     minute: '2-digit',
@@ -144,7 +148,7 @@ export function minutesSinceCivilMidnight(
   const at = new Date(isoInstant)
   const instantCivilDate = getCivilDateInTimezone(timezone, at)
 
-  const parts = new Intl.DateTimeFormat('en-GB', {
+  const parts = dateTimeFormat('en-GB', {
     timeZone: timezone,
     hour: '2-digit',
     minute: '2-digit',
@@ -173,7 +177,7 @@ export interface CivilDateChip {
 export function civilDateChip(civilDate: string): CivilDateChip {
   const [year, month, day] = civilDate.split('-').map(Number)
   const at = new Date(Date.UTC(year!, month! - 1, day!, 12))
-  const parts = new Intl.DateTimeFormat('es-CO', {
+  const parts = dateTimeFormat('es-CO', {
     timeZone: 'UTC',
     weekday: 'short',
     day: 'numeric',
