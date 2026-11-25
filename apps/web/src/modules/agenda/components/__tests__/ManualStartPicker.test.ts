@@ -540,4 +540,169 @@ describe('ManualStartPicker', () => {
     expect(wrapper.text()).toContain('Nueva hora')
     wrapper.unmount()
   })
+
+  describe('«Empezó ahora» (#852)', () => {
+    // Cada prueba registra su montaje y se desmonta aunque falle un expect (O2 de #855).
+    const mounted: ReturnType<typeof mount>[] = []
+    function mountStarted(props: Record<string, unknown> = {}) {
+      const result = mountPicker({ offerStartedNow: true, ...props })
+      mounted.push(result.wrapper)
+      return result
+    }
+    async function toOtherTime(wrapper: ReturnType<typeof mount>) {
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text().startsWith('Otra hora'))!
+        .trigger('click')
+      await flushPromises()
+    }
+    const startedNowButton = (wrapper: ReturnType<typeof mount>) =>
+      wrapper.findAll('button').find((b) => b.text() === 'Empezó ahora')
+    const announcement = (wrapper: ReturnType<typeof mount>) =>
+      wrapper.get('[aria-live="polite"].manual-start__sr-only').text()
+
+    beforeEach(() => {
+      fetchManualAvailabilityMock.mockResolvedValue(availability([at(tomorrow, '09:00')]))
+    })
+    afterEach(() => {
+      while (mounted.length) mounted.pop()!.unmount()
+      vi.useRealTimers()
+    })
+
+    it('is not offered unless the page asks for it, as when rescheduling (CA-8)', async () => {
+      const { wrapper } = mountPicker({ excludeAppointmentId: 'a-1', idPrefix: 'reschedule' })
+      mounted.push(wrapper)
+      await toOtherTime(wrapper)
+      expect(wrapper.find('#reschedule-date').exists()).toBe(true)
+      expect(startedNowButton(wrapper)).toBeUndefined()
+    })
+
+    it('needs the professional, the service and the business zone (CA-3, CA-9)', async () => {
+      for (const props of [{ professionalId: '' }, { serviceId: '' }, { timezone: null }]) {
+        const { wrapper } = mountStarted(props)
+        await toOtherTime(wrapper)
+        expect(wrapper.find('#new-appointment-date').exists()).toBe(true)
+        expect(startedNowButton(wrapper)).toBeUndefined()
+      }
+      const { wrapper } = mountStarted()
+      await toOtherTime(wrapper)
+      expect(startedNowButton(wrapper)).toBeDefined()
+    })
+
+    it('is not on the grid: the grid still offers no past start (DEC-190)', async () => {
+      const { wrapper } = mountStarted()
+      await flushPromises()
+      expect(startedNowButton(wrapper)).toBeUndefined()
+    })
+
+    it('writes today and the current minute in the business zone, whatever the device zone or the day of the strip (CA-1)', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      // 20:47:35 UTC: las 9:47 en Pago Pago (UTC−11) y las 10:47 del día siguiente
+      // en Kiritimati (UTC+14).
+      vi.setSystemTime(new Date('2026-11-25T20:47:35Z'))
+      const cases = [
+        { timezone: 'Pacific/Pago_Pago', date: '2026-11-25', time: '09:47' },
+        { timezone: 'Pacific/Kiritimati', date: '2026-11-26', time: '10:47' },
+      ]
+      for (const c of cases) {
+        const { wrapper, date, time } = mountStarted({ timezone: c.timezone })
+        await toOtherTime(wrapper)
+        // Un día elegido antes en la tira no manda.
+        date.value = '2026-12-03'
+        await wrapper.setProps({ date: '2026-12-03' })
+        await startedNowButton(wrapper)!.trigger('click')
+        await flushPromises()
+        expect([date.value, time.value]).toEqual([c.date, c.time])
+      }
+    })
+
+    it('at 23:59 it is still today, and in a night shift at 00:30 it is the new civil day (CA-1)', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      // Bogotá es UTC−5.
+      vi.setSystemTime(new Date('2026-11-26T04:59:59Z'))
+      const { wrapper, date, time } = mountStarted()
+      await toOtherTime(wrapper)
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect([date.value, time.value]).toEqual(['2026-11-25', '23:59'])
+
+      vi.setSystemTime(new Date('2026-11-26T05:30:10Z'))
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect([date.value, time.value]).toEqual(['2026-11-26', '00:30'])
+    })
+
+    it('fixes the start at the tap and a second tap updates it (CA-5)', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-11-25T20:47:35Z'))
+      const { wrapper, time } = mountStarted()
+      await toOtherTime(wrapper)
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect(time.value).toBe('15:47')
+      vi.setSystemTime(new Date('2026-11-25T20:52:05Z'))
+      await flushPromises()
+      expect(time.value).toBe('15:47')
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect(time.value).toBe('15:52')
+    })
+
+    it('keeps the focus on the shortcut and announces the start, again on a second tap in the same minute (CA-6)', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-11-25T20:47:35Z'))
+      const { wrapper } = mountStarted()
+      await toOtherTime(wrapper)
+      const button = startedNowButton(wrapper)!
+      ;(button.element as HTMLButtonElement).focus()
+      await button.trigger('click')
+      await flushPromises()
+      expect(document.activeElement).toBe(button.element)
+      expect(announcement(wrapper)).toBe('Inicio: hoy, 3:47 p. m.')
+
+      // Mismo minuto: la región pasa por vacía en el DOM y se reescribe, para que se
+      // anuncie otra vez.
+      const region = wrapper.get('[aria-live="polite"].manual-start__sr-only').element
+      const seen: string[] = []
+      const observer = new MutationObserver(() => seen.push(region.textContent!.trim()))
+      observer.observe(region, { childList: true, characterData: true, subtree: true })
+      await button.trigger('click')
+      await flushPromises()
+      await new Promise((r) => setTimeout(r, 0))
+      observer.disconnect()
+      expect(seen).toEqual(['', 'Inicio: hoy, 3:47 p. m.'])
+      expect(document.activeElement).toBe(button.element)
+    })
+
+    it('is disabled while the page saves', async () => {
+      const { wrapper } = mountStarted()
+      await toOtherTime(wrapper)
+      await wrapper.setProps({ disabled: true })
+      expect(startedNowButton(wrapper)!.attributes('disabled')).toBeDefined()
+    })
+
+    it('going back to the free hours drops the past start (CA-7)', async () => {
+      const { wrapper, time } = mountStarted()
+      await toOtherTime(wrapper)
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect(time.value).not.toBe('')
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === 'Ver las horas libres')!
+        .trigger('click')
+      await flushPromises()
+      expect(time.value).toBe('')
+      expect(wrapper.find('.bk-min[aria-checked="true"]').exists()).toBe(false)
+    })
+
+    it('has no axe violations in «Otra hora» with the shortcut (CA-6)', async () => {
+      const { wrapper } = mountStarted()
+      await toOtherTime(wrapper)
+      await startedNowButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect(await axe(wrapper.element)).toHaveNoViolations()
+    })
+  })
 })

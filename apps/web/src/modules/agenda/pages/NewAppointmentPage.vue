@@ -909,6 +909,7 @@ function onProfessionalSelect(professionalId: string) {
                   :timezone="businessTimezone"
                   :disabled="saveStatus === 'saving'"
                   :error="attempted ? fieldErrors.startsAt : undefined"
+                  offer-started-now
                   @duration="onPickerDuration"
                 />
               </div>
