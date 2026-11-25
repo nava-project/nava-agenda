@@ -236,6 +236,24 @@ describe('CatalogPage', () => {
     expect(wrapper.findAll('li').length).toBe(0)
   })
 
+  it('with an empty catalog offers a single «Agregar servicio», the header one', async () => {
+    const wrapper = await mountReady([])
+    const adds = wrapper.findAll('button').filter((b) => b.text() === 'Agregar servicio')
+    expect(adds).toHaveLength(1)
+    const empty = wrapper.get('.catalog-page__empty')
+    expect(empty.findAll('button')).toHaveLength(0)
+    expect(empty.text()).toContain('«Agregar servicio», arriba')
+    // En el teléfono conserva el texto que la pista nombra, no el «+» solo.
+    expect(adds[0]!.classes()).toContain('catalog-page__create--labeled')
+  })
+
+  it('with services, the header action stays the compact one on the phone', async () => {
+    const wrapper = await mountReady([service('s-1', 'Corte clásico')])
+    expect(wrapper.get('.catalog-page__create').classes()).not.toContain(
+      'catalog-page__create--labeled',
+    )
+  })
+
   it('shows duration and price for each service', async () => {
     const wrapper = await mountReady([
       service('s-1', 'Corte clásico', { durationMinutes: 45, price: '65000.00' }),
@@ -1010,6 +1028,34 @@ describe('CatalogPage', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Ese nombre ya está en uso')
+  })
+
+  it('on a 500 while editing, shows the support code like the booking does (#813)', async () => {
+    const wrapper = await mountReady(fourServices)
+    await findButtonByText(wrapper, 'Editar').trigger('click')
+    await flushPromises()
+
+    updateMock.mockResolvedValueOnce({ kind: 'unexpected-error', requestId: 'req-ejemplo-813' })
+    submitOpenDialog(wrapper)
+    await flushPromises()
+
+    const alert = wrapper.findAll('[role="alert"]').find((a) => a.text().includes('inesperado'))!
+    expect(alert.text()).toContain('comparte este código con soporte: req-ejemplo-813')
+    expect(alert.text()).toContain('No perdiste lo que escribiste.')
+  })
+
+  it('on a 500 without a support code while editing, keeps the plain message (#813)', async () => {
+    const wrapper = await mountReady(fourServices)
+    await findButtonByText(wrapper, 'Editar').trigger('click')
+    await flushPromises()
+
+    updateMock.mockResolvedValueOnce({ kind: 'unexpected-error' })
+    submitOpenDialog(wrapper)
+    await flushPromises()
+
+    const alert = wrapper.findAll('[role="alert"]').find((a) => a.text().includes('inesperado'))!
+    expect(alert.text()).toContain('Inténtalo de nuevo en unos segundos.')
+    expect(alert.text()).not.toContain('soporte')
   })
 
   // --- HU-024: desactivar/reactivar --------------------------------------

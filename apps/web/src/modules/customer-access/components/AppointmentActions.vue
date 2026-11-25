@@ -16,6 +16,7 @@ import { useAppointmentCancel } from '../composables/useAppointmentCancel'
 import AppointmentCancellation from './AppointmentCancellation.vue'
 import { calendarLeaf } from '../model/appointmentMoment'
 import { timezoneLabel } from '@/shared/time/timezoneName'
+import { minutesInWords } from '@/shared/time/durationWords'
 import { cancellationAvailability } from '../model/cancellationAvailability'
 import { rescheduleAvailability } from '../model/rescheduleAvailability'
 import type {
@@ -126,7 +127,7 @@ const cancelHint = computed(() => {
   const availability = cancellationAvailability(a, nowMs.value)
   switch (availability.mode) {
     case 'within-deadline':
-      return `Sin costo hasta ${a.cancellationDeadlineMinutes} minutos antes. Liberas el horario.`
+      return `Sin costo hasta ${minutesInWords(a.cancellationDeadlineMinutes)} antes. Liberas el horario.`
     case 'late-allowed':
       return availability.reasonRequired
         ? 'Ya pasó el plazo sin costo: puedes cancelar indicando el motivo.'

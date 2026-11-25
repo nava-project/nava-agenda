@@ -107,7 +107,30 @@ describe('OpeningHoursCard', () => {
       today: { ...TUESDAY, holiday: 'Independencia de Cartagena', hours: [] },
       at: new Date(Date.UTC(2026, 10, 18, 15)),
     })
-    expect(wrapper.get('.pb-hours__row--today dd').text()).toBe('9:00 a. m. – 7:00 p. m.')
+    // El martes del festivo vuelve a su horario de la semana, y la marca de hoy ya
+    // está en el miércoles (#850), que no tiene horario.
+    const tuesday = wrapper.findAll('.pb-hours__row')[1]!
+    expect(tuesday.get('dt').text()).toBe('Martes')
+    expect(tuesday.get('dd').text()).toBe('9:00 a. m. – 7:00 p. m.')
+    expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Miércoles · hoy')
+  })
+
+  it('pasada la medianoche del negocio, «· hoy» pasa al día nuevo sin esperar a `today` (#850)', async () => {
+    // Martes 23:59 en Bogotá con el `today` del martes: hoy es el martes.
+    const wrapper = mountCard({ at: new Date(Date.UTC(2026, 10, 18, 4, 59)) })
+    expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Martes · hoy')
+    // Miércoles 00:01: el `today` sigue siendo el del martes, la marca ya no.
+    await wrapper.setProps({ at: new Date(Date.UTC(2026, 10, 18, 5, 1)) })
+    expect(wrapper.findAll('.pb-hours__row--today')).toHaveLength(1)
+    expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Miércoles · hoy')
+    // El miércoles no tiene horario: su fila dice el de la semana, no el del martes.
+    expect(wrapper.get('.pb-hours__row--today dd').text()).toBe('Cerrado')
+  })
+
+  it('«· hoy» sigue la zona del negocio, no la del dispositivo (#850)', () => {
+    // 03:00 UTC del miércoles es todavía martes en Bogotá.
+    const wrapper = mountCard({ at: new Date(Date.UTC(2026, 10, 18, 3)) })
+    expect(wrapper.get('.pb-hours__row--today dt').text()).toBe('Martes · hoy')
   })
 
   it('si la página quedó abierta hasta otro día, no afirma un estado viejo', () => {

@@ -259,7 +259,8 @@ describe('CustomerReschedulePage', () => {
 
     expect(w.text()).toContain(headline)
     expect(w.find('[role="radiogroup"]').exists()).toBe(false)
-    expect(w.find('a[href="tel:+573001234567"]').exists()).toBe(true)
+    const phone = w.get('a[href="tel:+573001234567"]')
+    expect(phone.find('.phone-display__number').text()).toBe('300 123 4567')
   })
 
   it.each([

@@ -1247,12 +1247,12 @@ const editPreview = computed(() =>
           <template #hint>
             <template v-if="isSoloProfile">
               Créalo en la sección
-              <RouterLink :to="{ name: 'staff-profesionales' }">“Mi perfil”</RouterLink>
+              <RouterLink :to="{ name: 'staff-profesionales' }">«Mi perfil»</RouterLink>
               antes de configurar tu horario.
             </template>
             <template v-else>
               Agrega uno en la sección
-              <RouterLink :to="{ name: 'staff-profesionales' }">“{{ v.Professionals }}”</RouterLink>
+              <RouterLink :to="{ name: 'staff-profesionales' }">«{{ v.Professionals }}»</RouterLink>
               antes de configurar su horario.
             </template>
           </template>

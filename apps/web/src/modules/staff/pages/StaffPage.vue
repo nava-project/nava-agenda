@@ -285,6 +285,12 @@ const soloCard = computed(
   () => soloView.value && loadStatus.value === 'ready' && totalItems.value === 1,
 )
 
+const createLabel = computed(() =>
+  soloView.value && professionals.value.length === 0
+    ? 'Crear mi perfil'
+    : `Agregar ${v.value.professional}`,
+)
+
 const countLabel = computed(
   () =>
     `${totalItems.value} ${totalItems.value === 1 ? v.value.professional : v.value.professionals}`,
@@ -703,7 +709,12 @@ async function onSubmitRename() {
 
 <template>
   <section ref="pageRef" class="staff-page" aria-labelledby="staff-page-title">
-    <header class="staff-page__header">
+    <header
+      class="staff-page__header"
+      :class="{
+        'staff-page__header--labeled': loadStatus === 'ready' && professionals.length === 0,
+      }"
+    >
       <div>
         <h1 id="staff-page-title" class="staff-page__title">
           {{ soloView ? 'Mi perfil' : v.Professionals }}
@@ -716,16 +727,19 @@ async function onSubmitRename() {
           }}
         </p>
       </div>
-      <!-- Una acción principal por región: con el equipo vacío, el CTA vive en el
-           propio estado vacío y no se repite en la cabecera. -->
+      <!-- Una sola acción principal: la de la cabecera, también con el equipo vacío;
+           la escena del vacío no la repite (decisión del pulido 11a, 2026-11-24).
+           En la vista individual sin ficha ofrece lo mismo que antes ofrecía la
+           escena: «Crear mi perfil». -->
       <BaseButton
-        v-if="loadStatus === 'ready' && professionals.length > 0 && !soloCard && !isEmployeeProfile"
+        v-if="loadStatus === 'ready' && !soloCard && !isEmployeeProfile"
         type="button"
         variant="primary"
         class="staff-page__create"
+        :class="{ 'staff-page__create--labeled': professionals.length === 0 }"
         @click="openCreateDialog"
       >
-        Agregar {{ v.professional }}
+        {{ createLabel }}
       </BaseButton>
     </header>
 
@@ -776,14 +790,9 @@ async function onSubmitRename() {
               isEmployeeProfile
                 ? `Pídele ${v.toTheBusiness} que vincule tu usuario con tu perfil de ${v.professional}.`
                 : soloView
-                  ? 'Créalo con tu nombre y, si quieres, tu foto: tu agenda y tus horarios cuelgan de él.'
-                  : 'Agrega al primero de tu equipo: con su nombre y, si quieres, su foto.'
+                  ? 'Créalo con «Crear mi perfil», arriba: tu nombre y, si quieres, tu foto. Tu agenda y tus horarios cuelgan de él.'
+                  : `Agrega al primero de tu equipo con «Agregar ${v.professional}», arriba: su nombre y, si quieres, su foto.`
             }}
-          </template>
-          <template v-if="!isEmployeeProfile" #action>
-            <BaseButton type="button" variant="primary" @click="openCreateDialog">
-              {{ soloView ? 'Crear mi perfil' : `Agregar ${v.professional}` }}
-            </BaseButton>
           </template>
         </EmptyScene>
 
@@ -2149,6 +2158,30 @@ async function onSubmitRename() {
   .staff-page__create :deep(.base-button__content)::before {
     margin: 0;
     font-size: var(--font-size-title-item);
+  }
+
+  /* Con el equipo vacío es la única acción y la pista la nombra («Agregar …» o
+     «Crear mi perfil», arriba): conserva su texto. Si no cabe junto al título,
+     baja a su propia línea en vez de recortarse. */
+  .staff-page__header--labeled {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .staff-page__create--labeled.base-button {
+    flex-shrink: 0;
+    width: auto;
+    padding-inline: 14px;
+    font-size: var(--font-size-body-sm);
+  }
+
+  .staff-page__create--labeled :deep(.base-button__content) {
+    font-size: var(--font-size-body-sm);
+  }
+
+  .staff-page__create--labeled :deep(.base-button__content)::before {
+    margin-right: 6px;
+    font-size: inherit;
   }
 
   .staff-page__columns,

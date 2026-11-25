@@ -557,6 +557,8 @@ const createForm = ref<ServiceInput>({ name: '', description: '', durationMinute
 const createDurationRaw = ref('30')
 const createFieldErrors = ref<FormFieldErrors>({})
 const createStatus = ref<SaveStatus>('idle')
+// El código de soporte del último error inesperado al crear (#813).
+const createRequestId = ref<string | undefined>()
 const createAttempted = ref(false)
 // Clave de idempotencia del intento lógico vigente (RN-IDE-01): se genera
 // al abrir el diálogo y se REUTILIZA en cada reintento del mismo intento;
@@ -657,8 +659,17 @@ async function onSubmitCreate() {
       createStatus.value = 'network-error'
       return
     case 'unexpected-error':
+      createRequestId.value = outcome.requestId
       createStatus.value = 'unexpected-error'
   }
+}
+
+// Un 500 al guardar dice el código de soporte con el mismo patrón que la
+// reserva (#813); sin código, el texto de siempre.
+function unexpectedErrorText(requestId: string | undefined): string {
+  return requestId
+    ? `Inténtalo de nuevo. Si continúa, comparte este código con soporte: ${requestId}. No perdiste lo que escribiste.`
+    : 'Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.'
 }
 
 // --- Edición ----------------------------------------------------------
@@ -669,6 +680,7 @@ const editForm = ref<ServiceInput>({ name: '', description: '', durationMinutes:
 const editDurationRaw = ref('30')
 const editFieldErrors = ref<FormFieldErrors>({})
 const editStatus = ref<SaveStatus>('idle')
+const editRequestId = ref<string | undefined>()
 const editAttempted = ref(false)
 
 // HU-029 (DEC-004): si el precio cambia y el servicio tiene turnos futuros, el profesional
@@ -809,6 +821,7 @@ async function onSubmitEdit() {
       editStatus.value = 'network-error'
       return
     case 'unexpected-error':
+      editRequestId.value = outcome.requestId
       editStatus.value = 'unexpected-error'
   }
 }
@@ -1096,6 +1109,7 @@ async function reloadAfterConflict(serviceId: string) {
           type="button"
           variant="primary"
           class="catalog-page__create"
+          :class="{ 'catalog-page__create--labeled': services.length === 0 && !isSearching }"
           @click="openCreateDialog"
         >
           Agregar servicio
@@ -1197,13 +1211,9 @@ async function reloadAfterConflict(serviceId: string) {
           <template #hint>
             <template v-if="isSearching">Prueba con otra palabra o borra la búsqueda.</template>
             <template v-else>
-              Crea el primero con su duración y precio; en cuanto lo guardes aparece en tu catálogo.
+              Crea el primero con «Agregar servicio», arriba: su duración y su precio. En cuanto lo
+              guardes, aparece en tu catálogo.
             </template>
-          </template>
-          <template v-if="!isSearching" #action>
-            <BaseButton type="button" variant="primary" @click="openCreateDialog">
-              Agregar servicio
-            </BaseButton>
           </template>
         </EmptyScene>
 
@@ -1507,7 +1517,7 @@ async function reloadAfterConflict(serviceId: string) {
           title="Ocurrió un error inesperado"
           role="alert"
         >
-          Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
+          {{ unexpectedErrorText(createRequestId) }}
         </BaseAlert>
 
         <BaseInput
@@ -1626,7 +1636,7 @@ async function reloadAfterConflict(serviceId: string) {
           title="Ocurrió un error inesperado"
           role="alert"
         >
-          Inténtalo de nuevo en unos segundos. No perdiste lo que escribiste.
+          {{ unexpectedErrorText(editRequestId) }}
         </BaseAlert>
 
         <BaseInput
@@ -3452,6 +3462,24 @@ async function reloadAfterConflict(serviceId: string) {
   .catalog-page__create :deep(.base-button__content)::before {
     margin: 0;
     font-size: var(--font-size-title-item);
+  }
+
+  /* Con el catálogo vacío es la única acción y la pista la nombra («Agregar
+     servicio», arriba): conserva su texto, que cabe junto al título. */
+  .catalog-page__create--labeled.base-button {
+    flex-shrink: 0;
+    width: auto;
+    padding-inline: 14px;
+    font-size: var(--font-size-body-sm);
+  }
+
+  .catalog-page__create--labeled :deep(.base-button__content) {
+    font-size: var(--font-size-body-sm);
+  }
+
+  .catalog-page__create--labeled :deep(.base-button__content)::before {
+    margin-right: 6px;
+    font-size: inherit;
   }
 
   .catalog-page__columns {
