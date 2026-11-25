@@ -236,6 +236,24 @@ describe('CatalogPage', () => {
     expect(wrapper.findAll('li').length).toBe(0)
   })
 
+  it('with an empty catalog offers a single «Agregar servicio», the header one', async () => {
+    const wrapper = await mountReady([])
+    const adds = wrapper.findAll('button').filter((b) => b.text() === 'Agregar servicio')
+    expect(adds).toHaveLength(1)
+    const empty = wrapper.get('.catalog-page__empty')
+    expect(empty.findAll('button')).toHaveLength(0)
+    expect(empty.text()).toContain('«Agregar servicio», arriba')
+    // En el teléfono conserva el texto que la pista nombra, no el «+» solo.
+    expect(adds[0]!.classes()).toContain('catalog-page__create--labeled')
+  })
+
+  it('with services, the header action stays the compact one on the phone', async () => {
+    const wrapper = await mountReady([service('s-1', 'Corte clásico')])
+    expect(wrapper.get('.catalog-page__create').classes()).not.toContain(
+      'catalog-page__create--labeled',
+    )
+  })
+
   it('shows duration and price for each service', async () => {
     const wrapper = await mountReady([
       service('s-1', 'Corte clásico', { durationMinutes: 45, price: '65000.00' }),

@@ -327,6 +327,29 @@ describe('StaffPage', () => {
     expect(wrapper.find('.staff-page__footer').exists()).toBe(false)
   })
 
+  it('with an empty team offers a single «Agregar», in the header, and the scene names it', async () => {
+    const wrapper = await mountReady([])
+    const header = wrapper.get('.staff-page__header')
+    expect(header.get('.staff-page__create').text()).toBe('Agregar profesional')
+    const empty = wrapper.get('.staff-page__empty')
+    expect(empty.findAll('button')).toHaveLength(0)
+    expect(empty.text()).toContain('«Agregar profesional», arriba')
+    // En el teléfono conserva el texto que la pista nombra (no el «+» solo) y la
+    // cabecera puede bajarlo de línea en vez de recortarlo.
+    expect(header.get('.staff-page__create').classes()).toContain('staff-page__create--labeled')
+    expect(header.classes()).toContain('staff-page__header--labeled')
+  })
+
+  it('with a team, the header action stays the compact one on the phone', async () => {
+    const wrapper = await mountReady([professional('b-1', 'Carlos Ramírez')])
+    expect(wrapper.get('.staff-page__create').classes()).not.toContain(
+      'staff-page__create--labeled',
+    )
+    expect(wrapper.get('.staff-page__header').classes()).not.toContain(
+      'staff-page__header--labeled',
+    )
+  })
+
   it('shows a recoverable error with Reintentar when the initial load fails', async () => {
     fetchMock.mockResolvedValueOnce({ kind: 'network-error' })
     const wrapper = mountPage()
@@ -1333,10 +1356,13 @@ describe('StaffPage', () => {
 
       expect(wrapper.get('h1').text()).toBe('Mi perfil')
       expect(wrapper.text()).toContain('Aún no tienes tu perfil')
-      const create = wrapper.findAll('button').find((b) => b.text() === 'Crear mi perfil')
-      expect(create).toBeDefined()
+      // Una sola acción, en la cabecera, con lo mismo que ofrecía la escena.
+      expect(wrapper.get('.staff-page__header .staff-page__create').text()).toBe('Crear mi perfil')
+      const empty = wrapper.get('.staff-page__empty')
+      expect(empty.findAll('button')).toHaveLength(0)
+      expect(empty.text()).toContain('«Crear mi perfil», arriba')
       // El diálogo de alta vive siempre en el DOM; lo que importa es el estado vacío visible.
-      expect(wrapper.get('.staff-page__empty').text()).not.toContain('Agregar')
+      expect(empty.text()).not.toContain('Agregar')
     })
 
     it('goes back to the team screen when there are several professionals', async () => {
